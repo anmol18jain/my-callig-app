@@ -37,6 +37,7 @@
     const ws = new WebSocket(protocol + '//' + window.location.host);
     const room = 'global-voice-room';
     let pc, localStream, isMuted = false;
+    let candidateQueue = [];
 
     const callBtn = document.getElementById('callBtn');
     const muteBtn = document.getElementById('muteBtn');
@@ -44,37 +45,98 @@
     const statusText = document.getElementById('status');
     const remoteAudio = document.getElementById('remoteAudio');
 
-    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    const config = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
 
-    ws.onopen = () => { ws.send(JSON.stringify({ room, type: 'join' })); statusText.innerText = 'Ready to talk'; };
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ room, type: 'join' }));
+      statusText.innerText = 'Ready to talk';
+    };
 
     ws.onmessage = async (e) => {
       const { type, payload } = JSON.parse(e.data);
+
       if (type === 'offer') {
+        statusText.innerText = 'Incoming call...';
         await initPeer();
         await pc.setRemoteDescription(new RTCSessionDescription(payload));
+        processQueuedCandidates();
+
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         ws.send(JSON.stringify({ room, type: 'answer', payload: answer }));
         showInCallUI();
       } else if (type === 'answer') {
         await pc.setRemoteDescription(new RTCSessionDescription(payload));
+        processQueuedCandidates();
         showInCallUI();
-      } else if (type === 'candidate' && pc) {
-        await pc.addIceCandidate(new RTCIceCandidate(payload));
-      } else if (type === 'hangup') { resetSession(false); }
+      } else if (type === 'candidate') {
+        const candidate = new RTCIceCandidate(payload);
+        if (pc && pc.remoteDescription) {
+          await pc.addIceCandidate(candidate);
+        } else {
+          candidateQueue.push(candidate);
+        }
+      } else if (type === 'hangup') {
+        resetSession(false);
+      }
     };
+
+    async function processQueuedCandidates() {
+      while (candidateQueue.length > 0) {
+        const cand = candidateQueue.shift();
+        try {
+          await pc.addIceCandidate(cand);
+        } catch (err) {
+          console.error('Candidate queue error', err);
+        }
+      }
+    }
 
     async function initPeer() {
       if (pc) return;
+
+      // Request microphone access
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       pc = new RTCPeerConnection(config);
+
+      // Add local audio tracks to peer connection
       localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-      pc.ontrack = (event) => { remoteAudio.srcObject = event.streams[0]; remoteAudio.play(); };
-      pc.onicecandidate = (event) => { if (event.candidate) ws.send(JSON.stringify({ room, type: 'candidate', payload: event.candidate })); };
+
+      // Handle receiving incoming remote audio
+      pc.ontrack = (event) => {
+        remoteAudio.srcObject = event.streams[0];
+        // Ensure browser allows playback
+        remoteAudio.play().catch(err => {
+          console.warn('Autoplay blocked. User tap needed:', err);
+          document.body.addEventListener('click', () => remoteAudio.play(), { once: true });
+        });
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          ws.send(JSON.stringify({ room, type: 'candidate', payload: event.candidate }));
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log('ICE Connection State:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'connected') {
+          statusText.innerText = 'Connected (Audio Live)';
+        } else if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+          statusText.innerText = 'Connection lost';
+        }
+      };
     }
 
     callBtn.onclick = async () => {
+      // Un-mute audio element early on user click to satisfy mobile autoplay policies
+      remoteAudio.play().catch(() => {});
+
       statusText.innerText = 'Calling...';
       await initPeer();
       const offer = await pc.createOffer();
@@ -95,14 +157,20 @@
       if (notify) ws.send(JSON.stringify({ room, type: 'hangup' }));
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (pc) pc.close();
-      pc = null; localStream = null;
-      callBtn.style.display = 'block'; muteBtn.style.display = 'none'; hangupBtn.style.display = 'none';
+      pc = null;
+      localStream = null;
+      candidateQueue = [];
+      callBtn.style.display = 'block';
+      muteBtn.style.display = 'none';
+      hangupBtn.style.display = 'none';
       statusText.innerText = 'Ready to talk';
     }
 
     function showInCallUI() {
-      callBtn.style.display = 'none'; muteBtn.style.display = 'block'; hangupBtn.style.display = 'block';
-      statusText.innerText = 'Connected';
+      callBtn.style.display = 'none';
+      muteBtn.style.display = 'block';
+      hangupBtn.style.display = 'block';
+      statusText.innerText = 'Connecting audio...';
     }
   </script>
 </body>
