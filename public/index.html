@@ -4,174 +4,759 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="manifest" href="manifest.json">
-  <title>Voice App</title>
+  <title>Real-Time Call</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-    body { background: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100vh; padding: 40px 20px; }
-    .header { text-align: center; margin-top: 20px; }
-    .avatar { width: 90px; height: 90px; border-radius: 50%; background: #2a2a2a; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
-    #status { color: #888; font-size: 15px; margin-top: 8px; }
-    .controls { display: flex; gap: 20px; margin-bottom: 30px; width: 100%; max-width: 320px; justify-content: center; }
-    button { flex: 1; height: 60px; border-radius: 30px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; }
-    #callBtn { background: #25D366; color: white; }
-    #muteBtn { background: #333; color: white; display: none; }
-    #hangupBtn { background: #FF3B30; color: white; display: none; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background: #111;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: background 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Couple / Late-Night Theme */
+    body.couple-mode {
+      background: #080503 !important;
+    }
+    body.couple-mode .top-bar, 
+    body.couple-mode .controls,
+    body.couple-mode .ambient-drawer {
+      background: rgba(18, 12, 8, 0.85) !important;
+      border-color: #2b1a10 !important;
+    }
+    body.couple-mode video {
+      filter: brightness(0.78) contrast(0.95) sepia(0.28);
+      transition: filter 0.8s ease;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      padding: 10px 16px;
+      background: #1c1c1e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #2c2c2e;
+      z-index: 20;
+    }
+    .room-badge {
+      font-size: 13px;
+      background: #2c2c2e;
+      padding: 6px 12px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .text-btn {
+      background: none;
+      border: none;
+      color: #0a84ff;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Grid Area */
+    .grid {
+      flex: 1;
+      display: grid;
+      gap: 8px;
+      padding: 8px;
+      background: transparent;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      align-content: center;
+      position: relative;
+    }
+    .video-box {
+      position: relative;
+      background: #1c1c1e;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 9 / 16;
+      max-height: 85vh;
+    }
+    @media (min-width: 600px) {
+      .video-box { aspect-ratio: 4 / 3; }
+    }
+    video { width: 100%; height: 100%; object-fit: cover; }
+    .audio-avatar { display: none; font-size: 48px; }
+    .audio-only .audio-avatar { display: block; }
+    .audio-only video { display: none; }
+    .tag {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.6);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+    }
+
+    /* In-Call Controls */
+    .controls {
+      padding: 14px 16px;
+      background: #1c1c1e;
+      display: none;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      border-top: 1px solid #2c2c2e;
+    }
+    .btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 25px;
+      border: none;
+      background: #3a3a3c;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, background 0.2s;
+    }
+    .btn:active { transform: scale(0.92); }
+    .btn.active-pink {
+      background: #ff4d88 !important;
+      box-shadow: 0 0 14px rgba(255, 77, 136, 0.5);
+    }
+    .btn-hangup { background: #ff3b30; }
+
+    /* Ambient Music Drawer */
+    .ambient-drawer {
+      display: none;
+      background: #18181b;
+      padding: 10px 16px;
+      border-top: 1px solid #2c2c2e;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
+      z-index: 15;
+    }
+    .ambient-drawer select, .ambient-drawer input {
+      background: #2c2c2e;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    /* Heartbeat Ripple FX */
+    .heart-ripple {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(255, 77, 136, 0.45);
+      border: 2px solid #ff4d88;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(1);
+      animation: ripple 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+      z-index: 999;
+    }
+    @keyframes ripple {
+      to {
+        transform: translate(-50%, -50%) scale(7.5);
+        opacity: 0;
+      }
+    }
+
+    /* AMOLED Sleep Overlay */
+    #sleepOverlay {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 10000;
+      display: none;
+      opacity: 0;
+      transition: opacity 1.5s ease;
+      cursor: pointer;
+    }
+    #sleepOverlay.awake {
+      display: block;
+      opacity: 1;
+    }
+
+    /* Join Lobby */
+    #lobby {
+      position: fixed;
+      inset: 0;
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+    }
+    .card {
+      background: #1c1c1e;
+      padding: 28px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+    }
+    .card input[type="text"] {
+      width: 100%;
+      height: 46px;
+      background: #2c2c2e;
+      border: 1px solid #3a3a3c;
+      border-radius: 12px;
+      color: #fff;
+      text-align: center;
+      margin: 14px 0;
+      outline: none;
+      font-size: 15px;
+    }
+    .primary-btn {
+      width: 100%;
+      height: 48px;
+      border-radius: 24px;
+      border: none;
+      background: #34c759;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="avatar">🎙️</div>
-    <h2>Global Room</h2>
-    <p id="status">Connecting...</p>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="room-badge">
+      <span id="roomLabel">...</span>
+      <button class="text-btn" id="copyBtn">Copy Link</button>
+    </div>
+    <span id="callStatus" style="font-size: 12px; color: #8e8e93;">Ready</span>
   </div>
 
-  <div class="controls">
-    <button id="callBtn">Start Call</button>
-    <button id="muteBtn">Mute</button>
-    <button id="hangupBtn">End</button>
+  <!-- Lobby -->
+  <div id="lobby">
+    <div class="card">
+      <h2 style="margin-bottom: 6px;">Start Calling</h2>
+      <p style="font-size: 13px; color: #8e8e93;">Private Room & Group Call</p>
+      <input type="text" id="roomInput" placeholder="Room ID" />
+      <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 20px; font-size: 13px;">
+        <label><input type="radio" name="initMode" value="video" checked> 📹 Video</label>
+        <label><input type="radio" name="initMode" value="audio"> 🎙️ Audio Only</label>
+      </div>
+      <button class="primary-btn" id="startBtn">Join Call</button>
+    </div>
   </div>
-  <audio id="remoteAudio" autoplay playsinline></audio>
+
+  <!-- Video Grid (Supports 2, 3, 4+ peers) -->
+  <div class="grid" id="videoGrid">
+    <div class="video-box" id="box-local">
+      <div class="audio-avatar">🎙️</div>
+      <video id="localVideo" autoplay playsinline muted></video>
+      <span class="tag">You</span>
+    </div>
+  </div>
+
+  <!-- Ambient Sound Controls Drawer -->
+  <div class="ambient-drawer" id="ambientDrawer">
+    <span>Soundscape:</span>
+    <select id="ambientSelect">
+      <option value="none">Off</option>
+      <option value="rain">🌧️ Warm Rain</option>
+      <option value="fire">🔥 Crackling Hearth</option>
+      <option value="brown">🌌 Deep Brown Noise</option>
+    </select>
+    <input type="range" id="ambientVol" min="0" max="1" step="0.05" value="0.4" style="width: 80px;" />
+  </div>
+
+  <!-- In-Call Floating Actions -->
+  <div class="controls" id="controls">
+    <button class="btn" id="muteBtn" title="Mute/Unmute">🎙️</button>
+    <button class="btn" id="camBtn" title="Camera Toggle">📹</button>
+    <button class="btn" id="coupleBtn" title="Couple Mode">🌙</button>
+    <button class="btn" id="ambientToggleBtn" title="Ambient Sounds">🎵</button>
+    <button class="btn btn-hangup" id="leaveBtn" title="Leave">📞</button>
+  </div>
+
+  <!-- AMOLED Sleep Screen -->
+  <div id="sleepOverlay"></div>
 
   <script>
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(protocol + '//' + window.location.host);
-    const room = 'global-voice-room';
-    let pc, localStream, isMuted = false;
-    let candidateQueue = [];
 
-    const callBtn = document.getElementById('callBtn');
+    let myId = null;
+    let localStream = null;
+    let isCoupleMode = false;
+    let isMuted = false;
+    let isCamOff = false;
+    let room = window.location.hash.substring(1).trim() || 'lounge-' + Math.random().toString(36).substring(2, 6);
+
+    const peers = {}; // peerId -> RTCPeerConnection
+    const dataChannels = {}; // peerId -> RTCDataChannel
+
+    // --- Web Audio Engine & DSP ---
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let localVoiceAnalyser = null;
+    let localHighPass = null;
+    let localPeaking = null;
+    let localCompressor = null;
+    let ambientGainNode = null;
+    let currentAmbientSource = null;
+
+    // --- DOM Hooks ---
+    const lobby = document.getElementById('lobby');
+    const roomInput = document.getElementById('roomInput');
+    const startBtn = document.getElementById('startBtn');
+    const roomLabel = document.getElementById('roomLabel');
+    const copyBtn = document.getElementById('copyBtn');
+    const callStatus = document.getElementById('callStatus');
+    const videoGrid = document.getElementById('videoGrid');
+    const localVideo = document.getElementById('localVideo');
+    const controls = document.getElementById('controls');
     const muteBtn = document.getElementById('muteBtn');
-    const hangupBtn = document.getElementById('hangupBtn');
-    const statusText = document.getElementById('status');
-    const remoteAudio = document.getElementById('remoteAudio');
+    const camBtn = document.getElementById('camBtn');
+    const coupleBtn = document.getElementById('coupleBtn');
+    const ambientToggleBtn = document.getElementById('ambientToggleBtn');
+    const ambientDrawer = document.getElementById('ambientDrawer');
+    const ambientSelect = document.getElementById('ambientSelect');
+    const ambientVol = document.getElementById('ambientVol');
+    const sleepOverlay = document.getElementById('sleepOverlay');
 
-    const config = {
+    roomInput.value = room;
+
+    const rtcConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
       ]
     };
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ room, type: 'join' }));
-      statusText.innerText = 'Ready to talk';
-    };
+    // -------------------------------------------------------------
+    // Web Audio Architecture (Whisper Smoothing & Ambience)
+    // -------------------------------------------------------------
+    function initAudioPipeline(stream) {
+      if (!audioCtx) audioCtx = new AudioContextClass();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
 
-    ws.onmessage = async (e) => {
-      const { type, payload } = JSON.parse(e.data);
+      const source = audioCtx.createMediaStreamSource(stream);
 
-      if (type === 'offer') {
-        statusText.innerText = 'Incoming call...';
-        await initPeer();
-        await pc.setRemoteDescription(new RTCSessionDescription(payload));
-        processQueuedCandidates();
+      // 1. High-Pass Filter (Eliminate handling/sub rumble)
+      localHighPass = audioCtx.createBiquadFilter();
+      localHighPass.type = 'highpass';
+      localHighPass.frequency.value = 120;
 
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        ws.send(JSON.stringify({ room, type: 'answer', payload: answer }));
-        showInCallUI();
-      } else if (type === 'answer') {
-        await pc.setRemoteDescription(new RTCSessionDescription(payload));
-        processQueuedCandidates();
-        showInCallUI();
-      } else if (type === 'candidate') {
-        const candidate = new RTCIceCandidate(payload);
-        if (pc && pc.remoteDescription) {
-          await pc.addIceCandidate(candidate);
-        } else {
-          candidateQueue.push(candidate);
+      // 2. Intimacy & Whisper Peaking Filter
+      localPeaking = audioCtx.createBiquadFilter();
+      localPeaking.type = 'peaking';
+      localPeaking.frequency.value = 3500;
+      localPeaking.gain.value = 0; // standard default
+      localPeaking.Q.value = 1.0;
+
+      // 3. Dynamics Compressor (Pulls quiet whispers forward, locks peaks)
+      localCompressor = audioCtx.createDynamicsCompressor();
+      localCompressor.threshold.value = -24;
+      localCompressor.ratio.value = 4;
+      localCompressor.knee.value = 10;
+      localCompressor.attack.value = 0.005;
+      localCompressor.release.value = 0.08;
+
+      // 4. Analyser for Auto-Ducking & Sleep Timer
+      localVoiceAnalyser = audioCtx.createAnalyser();
+      localVoiceAnalyser.fftSize = 256;
+
+      // Connect DSP Chain
+      source.connect(localHighPass);
+      localHighPass.connect(localPeaking);
+      localPeaking.connect(localCompressor);
+      localCompressor.connect(localVoiceAnalyser);
+
+      // Setup Ambient Output Bus
+      ambientGainNode = audioCtx.createGain();
+      ambientGainNode.gain.value = 0.4;
+      ambientGainNode.connect(audioCtx.destination);
+
+      startAudioDuckingLoop();
+      startSilenceSleepMonitor();
+    }
+
+    // Smooth Ducking: Lowers background ambience whenever voice is active
+    function startAudioDuckingLoop() {
+      const data = new Uint8Array(localVoiceAnalyser.frequencyBinCount);
+      function process() {
+        localVoiceAnalyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        const avg = sum / data.length;
+
+        // If user is speaking, duck ambient volume by 70%
+        if (ambientGainNode && currentAmbientSource) {
+          const baseVol = parseFloat(ambientVol.value);
+          const target = avg > 14 ? (baseVol * 0.3) : baseVol;
+          ambientGainNode.gain.setTargetAtTime(target, audioCtx.currentTime, 0.2);
         }
-      } else if (type === 'hangup') {
-        resetSession(false);
+        requestAnimationFrame(process);
       }
-    };
+      process();
+    }
 
-    async function processQueuedCandidates() {
-      while (candidateQueue.length > 0) {
-        const cand = candidateQueue.shift();
-        try {
-          await pc.addIceCandidate(cand);
-        } catch (err) {
-          console.error('Candidate queue error', err);
+    // Procedural Ambient Synthesizers (Zero external audio files required)
+    function playAmbientSound(type) {
+      if (currentAmbientSource) {
+        try { currentAmbientSource.stop(); } catch(e) {}
+        currentAmbientSource = null;
+      }
+      if (type === 'none') return;
+
+      const bufferSize = audioCtx.sampleRate * 2;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = buffer.getChannelData(0);
+
+      if (type === 'brown') {
+        let lastOut = 0.0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          output[i] = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = output[i];
+          output[i] *= 3.5;
         }
+      } else if (type === 'rain') {
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * 0.18; // soft pinkish wash
+        }
+      } else if (type === 'fire') {
+        for (let i = 0; i < bufferSize; i++) {
+          const crackle = Math.random() > 0.993 ? (Math.random() * 0.8) : 0;
+          output[i] = ((Math.random() * 2 - 1) * 0.04) + crackle;
+        }
+      }
+
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      noise.loop = true;
+
+      // Ambient shaping filter
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = (type === 'fire') ? 1600 : (type === 'rain' ? 850 : 380);
+
+      noise.connect(filter);
+      filter.connect(ambientGainNode);
+      noise.start();
+      currentAmbientSource = noise;
+    }
+
+    // -------------------------------------------------------------
+    // Ear-Proximity Auto Audio/Video Switching
+    // -------------------------------------------------------------
+    if ('ProximitySensor' in window) {
+      try {
+        const proximity = new ProximitySensor();
+        proximity.addEventListener('reading', () => {
+          if (proximity.distance < 4) {
+            // Phone held to ear: Switch video off to prevent face touch
+            setVideoTrackState(false);
+          } else {
+            // Away from ear: restore video
+            if (!isCamOff) setVideoTrackState(true);
+          }
+        });
+        proximity.start();
+      } catch (e) {
+        console.log('Proximity sensor not permitted:', e);
       }
     }
 
-    async function initPeer() {
-      if (pc) return;
+    function setVideoTrackState(enabled) {
+      if (localStream && localStream.getVideoTracks().length > 0) {
+        localStream.getVideoTracks()[0].enabled = enabled;
+        document.getElementById('box-local').classList.toggle('audio-only', !enabled);
+      }
+    }
 
-      // Request microphone access
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      pc = new RTCPeerConnection(config);
+    // -------------------------------------------------------------
+    // AMOLED Sleep Saver (15 Min Silence Auto-Blackout)
+    // -------------------------------------------------------------
+    let silentSeconds = 0;
+    function startSilenceSleepMonitor() {
+      const data = new Uint8Array(localVoiceAnalyser.frequencyBinCount);
+      setInterval(() => {
+        localVoiceAnalyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        const avg = sum / data.length;
 
-      // Add local audio tracks to peer connection
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        if (avg < 5) { // silence threshold
+          silentSeconds += 2;
+          if (silentSeconds >= 900) { // 15 minutes
+            sleepOverlay.classList.add('awake');
+          }
+        } else {
+          silentSeconds = 0;
+        }
+      }, 2000);
+    }
 
-      // Handle receiving incoming remote audio
+    sleepOverlay.onclick = () => {
+      sleepOverlay.classList.remove('awake');
+      silentSeconds = 0;
+    };
+
+    // -------------------------------------------------------------
+    // RTCDataChannel: Touch & Heartbeat Sync
+    // -------------------------------------------------------------
+    function setupDataChannel(peerId, channel) {
+      dataChannels[peerId] = channel;
+      channel.onmessage = (event) => {
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'touch') {
+          triggerHeartbeatFX(payload.x, payload.y);
+        }
+      };
+    }
+
+    // Tap/Hold anywhere to pulse partner's screen and trigger haptics
+    window.addEventListener('pointerdown', (e) => {
+      if (e.clientY < 60 || e.clientY > window.innerHeight - 80 || lobby.style.display !== 'none') return;
+      
+      const normX = e.clientX / window.innerWidth;
+      const normY = e.clientY / window.innerHeight;
+
+      // Local visual response
+      triggerHeartbeatFX(normX, normY);
+
+      // Transmit to peer(s)
+      const message = JSON.stringify({ type: 'touch', x: normX, y: normY });
+      Object.values(dataChannels).forEach(dc => {
+        if (dc.readyState === 'open') dc.send(message);
+      });
+    });
+
+    function triggerHeartbeatFX(normX, normY) {
+      // Haptic heartbeat
+      if (navigator.vibrate) navigator.vibrate([100, 100, 200]);
+
+      // Glowing ripple
+      const ripple = document.createElement('div');
+      ripple.className = 'heart-ripple';
+      ripple.style.left = (normX * window.innerWidth) + 'px';
+      ripple.style.top = (normY * window.innerHeight) + 'px';
+      document.body.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 1200);
+    }
+
+    // -------------------------------------------------------------
+    // WebSocket Signaling & WebRTC Mesh Engine
+    // -------------------------------------------------------------
+    ws.onmessage = async (e) => {
+      const data = JSON.parse(e.data);
+
+      if (data.type === 'room-info') {
+        myId = data.myId;
+        callStatus.innerText = `${data.peers.length + 1} connected`;
+        for (const pId of data.peers) {
+          createPeerConnection(pId, true);
+        }
+      } else if (data.type === 'peer-joined') {
+        callStatus.innerText = `User connected`;
+      } else if (data.type === 'offer') {
+        const pc = createPeerConnection(data.sender, false);
+        await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        ws.send(JSON.stringify({ target: data.sender, type: 'answer', payload: answer }));
+      } else if (data.type === 'answer') {
+        const pc = peers[data.sender];
+        if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+      } else if (data.type === 'candidate') {
+        const pc = peers[data.sender];
+        if (pc && data.payload) {
+          pc.addIceCandidate(new RTCIceCandidate(data.payload)).catch(console.error);
+        }
+      } else if (data.type === 'peer-left') {
+        if (peers[data.peerId]) {
+          peers[data.peerId].close();
+          delete peers[data.peerId];
+        }
+        const box = document.getElementById(`box-${data.peerId}`);
+        if (box) box.remove();
+      } else if (data.type === 'couple-toggle') {
+        applyCoupleMode(data.enabled);
+      } else if (data.type === 'ambient-sync') {
+        ambientSelect.value = data.sound;
+        ambientVol.value = data.volume;
+        playAmbientSound(data.sound);
+        if (ambientGainNode) ambientGainNode.gain.value = data.volume;
+      }
+    };
+
+    function createPeerConnection(peerId, isInitiator) {
+      const pc = new RTCPeerConnection(rtcConfig);
+      peers[peerId] = pc;
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      }
+
+      if (isInitiator) {
+        const dc = pc.createDataChannel('touch');
+        setupDataChannel(peerId, dc);
+
+        pc.onnegotiationneeded = async () => {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          ws.send(JSON.stringify({ target: peerId, type: 'offer', payload: offer }));
+        };
+      } else {
+        pc.ondatachannel = (e) => setupDataChannel(peerId, e.channel);
+      }
+
       pc.ontrack = (event) => {
-        remoteAudio.srcObject = event.streams[0];
-        // Ensure browser allows playback
-        remoteAudio.play().catch(err => {
-          console.warn('Autoplay blocked. User tap needed:', err);
-          document.body.addEventListener('click', () => remoteAudio.play(), { once: true });
-        });
+        let box = document.getElementById(`box-${peerId}`);
+        if (!box) {
+          box = document.createElement('div');
+          box.id = `box-${peerId}`;
+          box.className = 'video-box';
+
+          const hasVideo = event.streams[0].getVideoTracks().length > 0;
+          if (!hasVideo) box.classList.add('audio-only');
+
+          box.innerHTML = `
+            <div class="audio-avatar">🎙️</div>
+            <video id="v-${peerId}" autoplay playsinline></video>
+            <span class="tag">Partner</span>
+          `;
+          videoGrid.appendChild(box);
+        }
+        const remoteVid = box.querySelector('video');
+        remoteVid.srcObject = event.streams[0];
       };
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          ws.send(JSON.stringify({ room, type: 'candidate', payload: event.candidate }));
+          ws.send(JSON.stringify({ target: peerId, type: 'candidate', payload: event.candidate }));
         }
       };
 
-      pc.oniceconnectionstatechange = () => {
-        console.log('ICE Connection State:', pc.iceConnectionState);
-        if (pc.iceConnectionState === 'connected') {
-          statusText.innerText = 'Connected (Audio Live)';
-        } else if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-          statusText.innerText = 'Connection lost';
-        }
-      };
+      return pc;
     }
 
-    callBtn.onclick = async () => {
-      // Un-mute audio element early on user click to satisfy mobile autoplay policies
-      remoteAudio.play().catch(() => {});
+    // -------------------------------------------------------------
+    // UI Interaction Handlers
+    // -------------------------------------------------------------
+    startBtn.onclick = async () => {
+      room = roomInput.value.trim().toLowerCase().replace(/\s+/g, '-') || 'private-chat';
+      window.location.hash = room;
+      roomLabel.innerText = room;
 
-      statusText.innerText = 'Calling...';
-      await initPeer();
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      ws.send(JSON.stringify({ room, type: 'offer', payload: offer }));
+      const isVideo = document.querySelector('input[name="initMode"]:checked').value === 'video';
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true },
+          video: isVideo ? { facingMode: 'user' } : false
+        });
+
+        initAudioPipeline(localStream);
+
+        const localBox = document.getElementById('box-local');
+        if (!isVideo) {
+          localBox.classList.add('audio-only');
+        } else {
+          localBox.classList.remove('audio-only');
+          localVideo.srcObject = localStream;
+        }
+
+        lobby.style.display = 'none';
+        controls.style.display = 'flex';
+
+        ws.send(JSON.stringify({ room, type: 'join' }));
+      } catch (err) {
+        alert('Microphone/Camera permission required.');
+      }
+    };
+
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(window.location.origin + '/#' + room).then(() => {
+        copyBtn.innerText = 'Copied!';
+        setTimeout(() => copyBtn.innerText = 'Copy Link', 2000);
+      });
     };
 
     muteBtn.onclick = () => {
       isMuted = !isMuted;
       localStream.getAudioTracks()[0].enabled = !isMuted;
-      muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
-      muteBtn.style.background = isMuted ? '#f59e0b' : '#333';
+      muteBtn.style.background = isMuted ? '#ff9500' : '#3a3a3c';
     };
 
-    hangupBtn.onclick = () => resetSession(true);
+    camBtn.onclick = () => {
+      const vTrack = localStream.getVideoTracks()[0];
+      if (vTrack) {
+        isCamOff = !isCamOff;
+        vTrack.enabled = !isCamOff;
+        document.getElementById('box-local').classList.toggle('audio-only', isCamOff);
+        camBtn.style.background = isCamOff ? '#ff3b30' : '#3a3a3c';
+      }
+    };
 
-    function resetSession(notify) {
-      if (notify) ws.send(JSON.stringify({ room, type: 'hangup' }));
+    // Couple Mode Activation
+    function applyCoupleMode(enable) {
+      isCoupleMode = enable;
+      document.body.classList.toggle('couple-mode', isCoupleMode);
+      coupleBtn.classList.toggle('active-pink', isCoupleMode);
+
+      if (localPeaking && localCompressor) {
+        if (isCoupleMode) {
+          // Soft Whisper Tuning
+          localPeaking.gain.setTargetAtTime(6.0, audioCtx.currentTime, 0.2); // +6dB clarity at 3.5kHz
+          localCompressor.threshold.setTargetAtTime(-42, audioCtx.currentTime, 0.2); // High compression for whispers
+        } else {
+          localPeaking.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
+          localCompressor.threshold.setTargetAtTime(-24, audioCtx.currentTime, 0.2);
+        }
+      }
+    }
+
+    coupleBtn.onclick = () => {
+      const nextState = !isCoupleMode;
+      applyCoupleMode(nextState);
+      ws.send(JSON.stringify({ room, type: 'couple-toggle', enabled: nextState }));
+    };
+
+    // Ambient Drawer & Synchronization
+    ambientToggleBtn.onclick = () => {
+      ambientDrawer.style.display = ambientDrawer.style.display === 'flex' ? 'none' : 'flex';
+    };
+
+    function broadcastAmbient() {
+      const sound = ambientSelect.value;
+      const volume = parseFloat(ambientVol.value);
+      playAmbientSound(sound);
+      if (ambientGainNode) ambientGainNode.gain.value = volume;
+      ws.send(JSON.stringify({ room, type: 'ambient-sync', sound, volume }));
+    }
+
+    ambientSelect.onchange = broadcastAmbient;
+    ambientVol.oninput = broadcastAmbient;
+
+    leaveBtn.onclick = () => {
       if (localStream) localStream.getTracks().forEach(t => t.stop());
-      if (pc) pc.close();
-      pc = null;
-      localStream = null;
-      candidateQueue = [];
-      callBtn.style.display = 'block';
-      muteBtn.style.display = 'none';
-      hangupBtn.style.display = 'none';
-      statusText.innerText = 'Ready to talk';
-    }
-
-    function showInCallUI() {
-      callBtn.style.display = 'none';
-      muteBtn.style.display = 'block';
-      hangupBtn.style.display = 'block';
-      statusText.innerText = 'Connecting audio...';
-    }
+      location.reload();
+    };
   </script>
 </body>
 </html>
