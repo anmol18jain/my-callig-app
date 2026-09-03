@@ -1,0 +1,14 @@
+{
+  "name": "Voice App",
+  "short_name": "Voice",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "icons": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Phone_icon.png/240px-Phone_icon.png",
+      "sizes": "240x240",
+      "type": "image/png"
+    }
+  ]
+}
