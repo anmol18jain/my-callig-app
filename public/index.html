@@ -189,7 +189,7 @@
     }
     .stage-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
     .amb-chip { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 10px; font-size: 12px; cursor: pointer; }
-    .amb-chip.active { background: var(--accent); }
+    .amb-chip.active { background: var(--accent); border-color: var(--accent); }
 
     #watchDrawer {
       position: fixed; bottom: 82px; left: 0; right: 0;
@@ -201,7 +201,7 @@
 
     .app-modal {
       position: fixed; inset: 15% 10%; background: #18181b; border: 1px solid var(--border);
-      border-radius: 20px; display: none; flex-direction: column; padding: 20px; z-index: 1000;
+      border-radius: 20px; display: none; flex-direction: column; padding: 20px; z-index: 1000; box-shadow: 0 0 35px rgba(0,0,0,0.8);
     }
     .app-modal-list { flex: 1; overflow-y: auto; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
     .modal-item { background: #27272a; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
@@ -323,7 +323,7 @@
       </div>
     </div>
     <div class="stage-row">
-      <span>3D Ear Panning</span>
+      <span>3D Partner Ear Position</span>
       <select id="pannerSelect" style="background:#27272a; color:#fff; border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px; outline:none;">
         <option value="center">Center</option>
         <option value="left">Left Ear</option>
@@ -377,7 +377,7 @@
 
   <div class="app-modal" id="recapModal">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h3 style="color: #ec4899; font-size: 15px;">🎬 Reaction Highlights & Bookmarks</h3>
+      <h3 style="color: #ec4899; font-size: 15px;">🎬 Highlights & Bookmarks</h3>
       <button class="btn-pill" id="closeRecapBtn" style="color: #ef4444; font-size: 14px; border: none;">✕</button>
     </div>
     <div class="app-modal-list" id="recapList"></div>
@@ -480,7 +480,6 @@
     let wsReconnectTimer = null;
     let myUsername = localStorage.getItem('lounge_username');
 
-    // Purge phantom "Partner" if stored in username or contacts
     if (myUsername && myUsername.toLowerCase() === 'partner') {
       localStorage.removeItem('lounge_username');
       myUsername = null;
@@ -502,10 +501,10 @@
     const remoteMediaElements = {};
     const iceCandidateQueues = {};
 
-    let localStream = null, processedAudioTrack = null;
+    let localStream = null;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null, micSource = null, hpFilter = null, whisperNode = null, compressorNode = null;
-    let processedDest = null, localAnalyser = null, partnerPanner = null, ambGain = null, ambSource = null, activeAmbience = null;
+    let localAnalyser = null, partnerPanner = null, ambGain = null, ambSource = null, activeAmbience = null;
 
     const doodleCanvas = document.getElementById('doodleCanvas');
     const ctx = doodleCanvas.getContext('2d');
@@ -608,17 +607,16 @@
     doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight;
 
     // ==============================================================
-    // 2. STUN + FULL TURN RELAY (Fixes Cellular 4G/5G & Strict Wi-Fi)
+    // 2. TURN SERVER RELAY (FIXES MOBILE SYMMETRIC NAT BLOCKS)
     // ==============================================================
     const rtcConfig = {
       iceServers: [
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
         {
           urls: [
-            'turn:standard.relay.metered.ca:80',
-            'turn:standard.relay.metered.ca:443',
-            'turn:standard.relay.metered.ca:443?transport=tcp'
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:443',
+            'turn:openrelay.metered.ca:443?transport=tcp'
           ],
           username: 'openrelayproject',
           credential: 'openrelayproject'
@@ -628,7 +626,7 @@
     };
 
     // ==============================================================
-    // 3. AUTO-RECONNECTING WEBSOCKET (Render.com Keep-Alive)
+    // 3. WEBSOCKET ENGINE
     // ==============================================================
     function connectWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -647,13 +645,13 @@
         } else if (data.type === 'INCOMING_CALL') {
           showIncomingCallScreen(data);
         } else if (data.type === 'CALL_ACCEPTED_BY_PEER') {
-          // Callee answered and has camera running -> start WebRTC Offer
+          console.log("Peer accepted, starting WebRTC Offer...");
           const pc = createMeshPeerConnection(data.from, true);
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           ws.send(JSON.stringify({ target: data.from, type: 'OFFER', payload: offer }));
         } else if (data.type === 'OFFER') {
-          // Callee receives offer with local media already activated
+          console.log("Offer received, sending Answer...");
           const pc = createMeshPeerConnection(data.sender, false);
           await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
           if (iceCandidateQueues[data.sender]) {
@@ -664,6 +662,7 @@
           await pc.setLocalDescription(ans);
           ws.send(JSON.stringify({ target: data.sender, type: 'ANSWER', payload: ans }));
         } else if (data.type === 'ANSWER') {
+          console.log("Answer received, setting remote description...");
           const pc = peerConnections[data.sender];
           if (pc) {
             await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
@@ -691,7 +690,40 @@
     connectWebSocket();
 
     // ==============================================================
-    // 4. USER REGISTRATION & CONTACTS
+    // 4. PUSH NOTIFICATIONS
+    // ==============================================================
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+    }
+
+    async function armPushNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') return;
+
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub && VAPID_PUBLIC_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          });
+        }
+        if (sub && myUsername) {
+          await fetch('/api/register-push', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: myUsername, subscription: sub })
+          });
+        }
+      } catch (err) {}
+    }
+
+    // ==============================================================
+    // 5. IDENTITY & CONTACTS
     // ==============================================================
     function setupUserIdentity() {
       if (!myUsername) {
@@ -709,10 +741,7 @@
     saveUsernameBtn.onclick = () => {
       const val = loginUsernameInput.value.trim();
       if (!val) return;
-      if (val.toLowerCase() === 'partner') {
-        alert("Please choose your actual name (e.g., Ashirvad, Rohit, etc.), not 'Partner'.");
-        return;
-      }
+      if (val.toLowerCase() === 'partner') return alert("Choose your actual name, not 'Partner'.");
       myUsername = val;
       localStorage.setItem('lounge_username', myUsername);
       setupUserIdentity();
@@ -733,14 +762,13 @@
     openAddContactBtn.onclick = () => {
       newPersonInput.value = ''; addPersonModal.style.display = 'flex'; newPersonInput.focus();
     };
-
     cancelAddPersonBtn.onclick = () => { addPersonModal.style.display = 'none'; };
 
     savePersonBtn.onclick = () => {
       const name = newPersonInput.value.trim();
       if (!name) return;
       if (name.toLowerCase() === myUsername.toLowerCase()) return alert("You cannot add yourself!");
-      if (name.toLowerCase() === 'partner') return alert("Enter the contact's actual username, not 'Partner'.");
+      if (name.toLowerCase() === 'partner') return alert("Enter their actual username, not 'Partner'.");
       if (!myContacts.includes(name)) {
         myContacts.push(name);
         localStorage.setItem('lounge_saved_contacts', JSON.stringify(myContacts));
@@ -814,7 +842,54 @@
     document.getElementById('startGroupVideoBtn').onclick = () => initiateCall(Array.from(selectedContacts), 'video');
 
     // ==============================================================
-    // 5. CALL INITIATION & SYNCHRONIZED WEBRTC
+    // 6. HARDWARE & MEDIA INITIALIZATION (SAFE FALLBACK)
+    // ==============================================================
+    async function startMediaHardware(audioOnly) {
+      try {
+        if (!audioOnly) {
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+              audio: { echoCancellation: true, noiseSuppression: true },
+              video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } }
+            });
+          } catch (e) {
+            console.warn("Camera blocked or missing, forcing audio only.");
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            isAudioOnly = true;
+          }
+        } else {
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        }
+
+        if (localStream) {
+          initWebAudioDSP(localStream);
+          myVideo.srcObject = localStream;
+          myMeshVideo.srcObject = localStream;
+        }
+      } catch (err) {
+        console.error("Hardware initialization crashed:", err);
+        alert('Hardware Error: ' + err.message + '\n\nEnsure camera/microphone permissions are granted in your browser settings.');
+      }
+    }
+
+    function enterCallStage(title) {
+      isCallActive = true;
+      contactsScreen.style.display = 'none';
+      controlsDock.style.display = 'flex';
+      callSessionTitle.innerText = title;
+
+      if (isAudioOnly) {
+        audioStage.style.display = 'flex'; mainVideoContainer.style.display = 'none'; videoMeshGrid.style.display = 'none';
+        localPip.style.display = 'none'; remotePip.style.display = 'none'; camFlipBtn.style.display = 'none'; camToggleBtn.style.display = 'none';
+        callModeToggleBtn.style.display = 'none'; screenShareBtn.style.display = 'none'; bookmarkBtn.style.display = 'none'; watchDrawerBtn.style.display = 'none';
+      } else {
+        audioStage.style.display = 'none'; mainVideoContainer.style.display = 'flex'; videoMeshGrid.style.display = 'none';
+        localPip.style.display = 'block'; remotePip.style.display = 'block'; camFlipBtn.style.display = 'flex';
+      }
+    }
+
+    // ==============================================================
+    // 7. WEBRTC ENGINE (IOS BUG BYPASS)
     // ==============================================================
     async function initiateCall(targets, mode) {
       isAudioOnly = mode === 'audio';
@@ -822,8 +897,9 @@
       callParticipants = [myUsername, ...targets];
 
       await startMediaHardware(isAudioOnly);
-      enterCallStage(targets.join(', '));
+      if (!localStream) return; // Halt if permissions failed
 
+      enterCallStage(targets.join(', '));
       ws.send(JSON.stringify({
         type: 'CALL_TARGETS',
         targets: targets,
@@ -857,11 +933,10 @@
       const pureParticipants = pendingCallDetails.allParticipants || [pendingCallDetails.from];
       callParticipants = Array.from(new Set([myUsername, ...pureParticipants]));
 
-      // 1. Turn on Callee media first
       await startMediaHardware(isAudioOnly);
-      enterCallStage(`Lounge (${callParticipants.length})`);
+      if (!localStream) return; // Halt if permissions failed
 
-      // 2. Signal Caller that Callee is ready for the offer
+      enterCallStage(`Lounge (${callParticipants.length})`);
       ws.send(JSON.stringify({
         type: 'CALL_ACCEPTED',
         target: pendingCallDetails.from,
@@ -876,55 +951,17 @@
       if (navigator.vibrate) navigator.vibrate(0);
     }
 
-    async function startMediaHardware(audioOnly) {
-      try {
-        if (!audioOnly) {
-          try {
-            localStream = await navigator.mediaDevices.getUserMedia({
-              audio: { echoCancellation: true, noiseSuppression: true },
-              video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } }
-            });
-          } catch (e) {
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            isAudioOnly = true;
-          }
-        } else {
-          localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        }
-
-        initWebAudioDSP(localStream);
-        myVideo.srcObject = localStream;
-        myMeshVideo.srcObject = localStream;
-      } catch (err) {
-        alert('Permission required: ' + err.message);
-      }
-    }
-
-    function enterCallStage(title) {
-      isCallActive = true;
-      contactsScreen.style.display = 'none';
-      controlsDock.style.display = 'flex';
-      callSessionTitle.innerText = title;
-
-      if (isAudioOnly) {
-        audioStage.style.display = 'flex'; mainVideoContainer.style.display = 'none'; videoMeshGrid.style.display = 'none';
-        localPip.style.display = 'none'; remotePip.style.display = 'none'; camFlipBtn.style.display = 'none'; camToggleBtn.style.display = 'none';
-        callModeToggleBtn.style.display = 'none'; screenShareBtn.style.display = 'none'; bookmarkBtn.style.display = 'none'; watchDrawerBtn.style.display = 'none';
-      } else {
-        audioStage.style.display = 'none'; mainVideoContainer.style.display = 'flex'; videoMeshGrid.style.display = 'none';
-        localPip.style.display = 'block'; remotePip.style.display = 'block'; camFlipBtn.style.display = 'flex';
-      }
-    }
-
     function createMeshPeerConnection(remotePeerName, isInitiator) {
       if (peerConnections[remotePeerName]) return peerConnections[remotePeerName];
+
+      console.log(`[WebRTC] Creating connection for ${remotePeerName}`);
       const pc = new RTCPeerConnection(rtcConfig);
       peerConnections[remotePeerName] = pc;
       iceCandidateQueues[remotePeerName] = [];
 
-      if (processedAudioTrack) pc.addTrack(processedAudioTrack, localStream);
-      if (localStream && !isAudioOnly) {
-        localStream.getVideoTracks().forEach(t => pc.addTrack(t, localStream));
+      // THE FIX: Directly attach raw hardware tracks to bypass iOS WebAudio silencer bug
+      if (localStream) {
+        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
       }
 
       if (isInitiator) {
@@ -935,9 +972,17 @@
       }
 
       pc.ontrack = (evt) => setupRemoteParticipantMedia(remotePeerName, evt.streams[0], evt.track.kind);
+      
       pc.onicecandidate = (e) => {
         if (e.candidate && ws && ws.readyState === 1) {
           ws.send(JSON.stringify({ target: remotePeerName, type: 'CANDIDATE', payload: e.candidate }));
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.log(`[WebRTC State] ${remotePeerName} is ${pc.connectionState}`);
+        if (pc.connectionState === 'connected') {
+          document.getElementById('partnerPipLabel').innerText = remotePeerName;
         }
       };
 
@@ -945,6 +990,8 @@
     }
 
     function setupRemoteParticipantMedia(peerName, stream, kind) {
+      console.log(`[WebRTC] Receiving ${kind} track from ${peerName}`);
+      
       if (!remoteMediaElements[peerName]) {
         const audioCard = document.createElement('div'); audioCard.className = 'avatar-card'; audioCard.id = `audioCard_${peerName}`;
         audioCard.innerHTML = `<div class="avatar-disc" id="disc_${peerName}">👤</div><span style="font-size: 12px; font-weight: 600;">${peerName}</span>`;
@@ -960,12 +1007,15 @@
       }
 
       const elements = remoteMediaElements[peerName];
+      document.getElementById('partnerPipLabel').innerText = peerName; // Fix: Ensure label ALWAYS updates
+
       if (kind === 'video') {
         const vid = elements.videoTile.querySelector('video'); vid.srcObject = stream;
         partnerVideo.srcObject = stream;
-        document.getElementById('partnerPipLabel').innerText = peerName;
       }
-      if (kind === 'audio') setupRemoteSpatialAudio(stream);
+      if (kind === 'audio') {
+        setupRemoteSpatialAudio(stream);
+      }
     }
 
     function updateVideoGridLayout() {
@@ -978,7 +1028,7 @@
     window.addEventListener('resize', updateVideoGridLayout);
 
     // ==============================================================
-    // 6. SUITE SUBLIME FEATURES (Watch Party, Doodles, Chat, Subs)
+    // 8. DATA CHANNELS (Apps, Chat, Tools)
     // ==============================================================
     function multicastData(obj) {
       const payload = JSON.stringify(obj);
@@ -1178,7 +1228,11 @@
       Object.values(peerConnections).forEach(pc => { const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video'); if (sender) sender.replaceTrack(camTrack || null); });
       myVideo.srcObject = localStream; myMeshVideo.srcObject = localStream; screenShareBtn.classList.remove('active-blue'); isScreenSharing = false;
     }
-    muteMicBtn.onclick = () => { if (!localStream) return; isMuted = !isMuted; localStream.getAudioTracks()[0].enabled = !isMuted; if (processedAudioTrack) processedAudioTrack.enabled = !isMuted; muteMicBtn.classList.toggle('active-amber', isMuted); };
+    muteMicBtn.onclick = () => {
+      if (!localStream) return; isMuted = !isMuted;
+      localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+      muteMicBtn.classList.toggle('active-amber', isMuted);
+    };
     watchDrawerBtn.onclick = () => { watchDrawer.style.display = watchDrawer.style.display !== 'flex' ? 'flex' : 'none'; };
     pipSysBtn.onclick = async () => { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else if (mainPlayer && !isYouTubeMode) await mainPlayer.requestPictureInPicture(); else alert("System PiP operates on native MP4 video."); };
     hangupBtn.onclick = () => { if (localStream) localStream.getTracks().forEach(t => t.stop()); location.reload(); };
@@ -1200,17 +1254,19 @@
       micSource = audioCtx.createMediaStreamSource(stream); hpFilter = audioCtx.createBiquadFilter(); hpFilter.type = 'highpass'; hpFilter.frequency.value = 100;
       whisperNode = audioCtx.createBiquadFilter(); whisperNode.type = 'peaking'; whisperNode.frequency.value = 3500; whisperNode.gain.value = 0;
       compressorNode = audioCtx.createDynamicsCompressor(); compressorNode.threshold.value = -24; localAnalyser = audioCtx.createAnalyser(); localAnalyser.fftSize = 64;
-      processedDest = audioCtx.createMediaStreamDestination();
-      micSource.connect(hpFilter); hpFilter.connect(whisperNode); whisperNode.connect(compressorNode); compressorNode.connect(localAnalyser); compressorNode.connect(processedDest);
-      processedAudioTrack = processedDest.stream.getAudioTracks()[0]; ambGain = audioCtx.createGain(); ambGain.gain.value = 0; ambGain.connect(audioCtx.destination);
+      micSource.connect(hpFilter); hpFilter.connect(whisperNode); whisperNode.connect(compressorNode); compressorNode.connect(localAnalyser);
+      ambGain = audioCtx.createGain(); ambGain.gain.value = 0; ambGain.connect(audioCtx.destination);
       startVisualizerLoop(); startAcousticAnalyser();
     }
+    
     function setupRemoteSpatialAudio(stream) {
       if (!audioCtx) return;
       try {
         const remoteSource = audioCtx.createMediaStreamSource(stream); partnerPanner = audioCtx.createPanner(); partnerPanner.panningModel = 'HRTF'; partnerPanner.distanceModel = 'inverse'; partnerPanner.positionX.value = 0; partnerPanner.positionY.value = 0; partnerPanner.positionZ.value = -1;
         remoteSource.connect(partnerPanner); partnerPanner.connect(audioCtx.destination);
-      } catch (e) { console.warn('Spatial audio routing fallback:', e); }
+      } catch (e) {
+        console.warn('Spatial audio routing fallback:', e);
+      }
     }
     pannerSelect.onchange = () => { if (!partnerPanner || !audioCtx) return; const x = pannerSelect.value === 'left' ? -3 : pannerSelect.value === 'right' ? 3 : 0; partnerPanner.positionX.setTargetAtTime(x, audioCtx.currentTime, 0.1); };
 
