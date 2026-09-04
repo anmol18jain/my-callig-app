@@ -11,109 +11,133 @@ const wss = new WebSocketServer({ server });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// VAPID Push Keys (Replace with your keys if generated via npx web-push generate-vapid-keys)
-const PUBLIC_VAPID_KEY = process.env.PUBLIC_VAPID_KEY || 'BOZaNWGt6kdd33z0PpLxXhmwpTSm_epeb0vaUo4JVjSYDajaXcifybrnhTG3gyQxc5XlWyrjVwcRhbio8ULuY3k';
-const PRIVATE_VAPID_KEY = process.env.PRIVATE_VAPID_KEY || 'lkm0wllEJGO7bnUrcZ0WQTxjF5gNf3yvdyac0cfnL1U';
+// VAPID Push Keys (Generate using `npx web-push generate-vapid-keys`)
+const PUBLIC_VAPID_KEY = process.env.PUBLIC_VAPID_KEY || 'YOUR_PUBLIC_VAPID_KEY_HERE';
+const PRIVATE_VAPID_KEY = process.env.PRIVATE_VAPID_KEY || 'YOUR_PRIVATE_VAPID_KEY_HERE';
 
-if (PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY') {
-  webpush.setVapidDetails('mailto:admin@loungesuite.local', PUBLIC_VAPID_KEY, PRIVATE_VAPID_KEY);
+if (PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
+  webpush.setVapidDetails(
+    'mailto:admin@loungesuite.local',
+    PUBLIC_VAPID_KEY,
+    PRIVATE_VAPID_KEY
+  );
 }
 
-// Active users store: username -> { ws, pushSub }
+// Active user registry: username -> { ws: WebSocket|null, pushSub: Object|null }
 const users = new Map();
 
-// Register background push subscription
 app.post('/api/register-push', (req, res) => {
   const { username, subscription } = req.body;
-  if (users.has(username)) {
-    users.get(username).pushSub = subscription;
+  if (!username || !subscription) {
+    return res.status(400).json({ error: 'Missing username or subscription' });
   }
-  res.status(200).json({ status: 'ok' });
+
+  const existing = users.get(username) || { ws: null, pushSub: null };
+  existing.pushSub = subscription;
+  users.set(username, existing);
+
+  console.log(`[Push] Device armed with push subscription for: ${username}`);
+  res.status(200).json({ status: 'subscribed' });
 });
 
-// Wake up devices via background push notification
 app.post('/api/push-ring', async (req, res) => {
   const { from, targets, callMode, sessionToken } = req.body;
-  if (!Array.isArray(targets)) return res.status(400).json({ error: 'targets must be an array' });
+  if (!Array.isArray(targets) || targets.length === 0) {
+    return res.status(400).json({ error: 'Targets array is required' });
+  }
 
-  for (const to of targets) {
-    const target = users.get(to);
-    if (target && target.pushSub && PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY') {
+  const pushTasks = targets.map(async (targetName) => {
+    const userRecord = users.get(targetName);
+    if (userRecord && userRecord.pushSub && PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
+      const payload = JSON.stringify({
+        title: `📞 Incoming ${callMode === 'audio' ? 'Audio' : 'Video'} Call`,
+        body: `${from} is calling you. Tap to answer!`,
+        from,
+        callMode,
+        sessionToken,
+        allParticipants: [from, ...targets]
+      });
+
       try {
-        await webpush.sendNotification(target.pushSub, JSON.stringify({
-          title: `📞 Call from ${from}`,
-          body: `Tap to answer ${callMode === 'audio' ? 'audio' : 'video'} call`,
-          from, callMode, sessionToken
-        }), { Urgency: 'high', TTL: 60 });
-      } catch (e) {
-        console.log('Push send error:', e.message);
+        await webpush.sendNotification(userRecord.pushSub, payload, {
+          Urgency: 'high',
+          TTL: 60
+        });
+        console.log(`[Push] Dispatched call alert to: ${targetName}`);
+      } catch (err) {
+        console.error(`[Push] Delivery failure for ${targetName}:`, err.message);
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          userRecord.pushSub = null;
+        }
       }
     }
-  }
-  res.status(200).json({ status: 'sent' });
+  });
+
+  await Promise.all(pushTasks);
+  res.status(200).json({ status: 'dispatched' });
 });
 
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Broadcast online contact presence
 function broadcastContactList() {
-  const list = Array.from(users.entries()).map(([name, u]) => ({
+  const contactList = Array.from(users.entries()).map(([name, record]) => ({
     name,
-    online: u.ws !== null && u.ws.readyState === 1
+    online: record.ws !== null && record.ws.readyState === 1
   }));
-  const msg = JSON.stringify({ type: 'CONTACT_UPDATE', contacts: list });
-  for (const u of users.values()) {
-    if (u.ws && u.ws.readyState === 1) u.ws.send(msg);
+
+  const message = JSON.stringify({ type: 'CONTACT_UPDATE', contacts: contactList });
+  for (const record of users.values()) {
+    if (record.ws && record.ws.readyState === 1) {
+      record.ws.send(message);
+    }
   }
 }
 
-// WebSocket Signaling Engine
 wss.on('connection', (ws) => {
-  let currentUser = null;
+  let boundUser = null;
 
   ws.on('message', (raw) => {
     try {
       const data = JSON.parse(raw);
 
-      // User Registration
       if (data.type === 'REGISTER') {
-        currentUser = data.username;
-        const existing = users.get(currentUser) || {};
-        users.set(currentUser, { ...existing, ws });
+        boundUser = data.username;
+        const current = users.get(boundUser) || { ws: null, pushSub: null };
+        current.ws = ws;
+        users.set(boundUser, current);
+        console.log(`[WebSocket] Connected: ${boundUser}`);
         broadcastContactList();
         return;
       }
 
-      // Ring Targets
       if (data.type === 'CALL_TARGETS') {
-        const targets = data.targets;
-        targets.forEach(targetName => {
-          const target = users.get(targetName);
-          if (target && target.ws && target.ws.readyState === 1) {
-            target.ws.send(JSON.stringify({
+        const { targets, callMode, sessionToken } = data;
+        targets.forEach((targetName) => {
+          const targetRecord = users.get(targetName);
+          if (targetRecord && targetRecord.ws && targetRecord.ws.readyState === 1) {
+            targetRecord.ws.send(JSON.stringify({
               type: 'INCOMING_CALL',
-              from: currentUser,
-              callMode: data.callMode,
-              sessionToken: data.sessionToken,
-              allParticipants: [currentUser, ...targets]
+              from: boundUser,
+              callMode,
+              sessionToken,
+              allParticipants: [boundUser, ...targets]
             }));
           }
         });
         return;
       }
 
-      // Enter Mesh Session
       if (data.type === 'JOIN_CALL_SESSION') {
         const { sessionToken, participants } = data;
-        participants.forEach(pName => {
-          if (pName !== currentUser) {
-            const peer = users.get(pName);
-            if (peer && peer.ws && peer.ws.readyState === 1) {
-              peer.ws.send(JSON.stringify({
+        participants.forEach((pName) => {
+          if (pName !== boundUser) {
+            const pRecord = users.get(pName);
+            if (pRecord && pRecord.ws && pRecord.ws.readyState === 1) {
+              pRecord.ws.send(JSON.stringify({
                 type: 'PEER_ENTERED_SESSION',
-                peerName: currentUser,
+                peerName: boundUser,
                 sessionToken
               }));
             }
@@ -122,21 +146,22 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      // Targeted P2P signaling (offer, answer, candidate, decline)
       if (data.target && users.has(data.target)) {
-        const target = users.get(data.target);
-        if (target && target.ws && target.ws.readyState === 1) {
-          target.ws.send(JSON.stringify({ ...data, sender: currentUser }));
+        const destination = users.get(data.target);
+        if (destination && destination.ws && destination.ws.readyState === 1) {
+          destination.ws.send(JSON.stringify({ ...data, sender: boundUser }));
         }
       }
     } catch (err) {
-      console.error('Signaling error:', err);
+      console.error('[WebSocket Error]:', err);
     }
   });
 
   ws.on('close', () => {
-    if (currentUser && users.has(currentUser)) {
-      users.get(currentUser).ws = null;
+    if (boundUser && users.has(boundUser)) {
+      const current = users.get(boundUser);
+      current.ws = null;
+      console.log(`[WebSocket] Disconnected: ${boundUser}`);
       broadcastContactList();
     }
   });
