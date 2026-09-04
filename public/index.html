@@ -99,15 +99,15 @@
     }
 
     .pip-box {
-      position: absolute; width: 110px; height: 146px; border-radius: 14px;
+      position: absolute; width: 130px; height: 175px; border-radius: 16px;
       overflow: hidden; background: #18181b; border: 2px solid #3f3f46;
       box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 45; cursor: grab; touch-action: none;
     }
-    .pip-box video { width: 100%; height: 100%; object-fit: cover; }
+    .pip-box video { width: 100%; height: 100%; object-fit: cover; background: #000; }
     .pip-box video.mirror-mode { transform: scaleX(-1); }
     .pip-label {
-      position: absolute; bottom: 4px; left: 6px; background: rgba(0,0,0,0.7);
-      padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;
+      position: absolute; bottom: 4px; left: 6px; background: rgba(0,0,0,0.75);
+      padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; z-index: 2;
     }
     .pip-reacting { border-color: #00ffa3 !important; box-shadow: 0 0 25px rgba(0, 255, 163, 0.85) !important; }
     .couch-mode-local { left: 8% !important; bottom: 88px !important; width: 140px !important; height: 105px !important; }
@@ -186,10 +186,11 @@
       width: calc(100% - 24px); max-width: 440px; background: rgba(18, 18, 22, 0.96);
       border: 1px solid var(--border); border-radius: 20px; padding: 16px;
       backdrop-filter: blur(16px); z-index: 90; display: none; flex-direction: column; gap: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
     }
     .stage-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
     .amb-chip { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 10px; font-size: 12px; cursor: pointer; }
-    .amb-chip.active { background: var(--accent); border-color: var(--accent); }
+    .amb-chip.active { background: var(--accent); }
 
     #watchDrawer {
       position: fixed; bottom: 82px; left: 0; right: 0;
@@ -296,6 +297,7 @@
       </div>
     </div>
 
+    <!-- Dual PiP Floating Elements -->
     <div class="pip-box" id="localPip" style="top: 65px; right: 16px;">
       <video id="myVideo" class="mirror-mode" autoplay playsinline muted></video>
       <span class="pip-label">You</span>
@@ -303,7 +305,7 @@
 
     <div class="pip-box" id="remotePip" style="top: 65px; left: 16px;">
       <video id="partnerVideo" autoplay playsinline></video>
-      <span class="pip-label" id="partnerPipLabel">Remote</span>
+      <span class="pip-label" id="partnerPipLabel">Waiting...</span>
     </div>
 
     <div id="subtitlesBanner">
@@ -353,9 +355,9 @@
     </div>
     <div style="display: flex; gap: 12px; align-items: center; font-size: 12px;">
       <span>Scale:</span>
-      <input type="range" id="pipScaleSlider" min="80" max="200" value="110" style="flex: 1;" />
+      <input type="range" id="pipScaleSlider" min="80" max="200" value="130" style="flex: 1;" />
       <span>Opacity:</span>
-      <input type="range" id="pipOpacitySlider" min="30" max="100" value="85" style="flex: 1;" />
+      <input type="range" id="pipOpacitySlider" min="30" max="100" value="95" style="flex: 1;" />
     </div>
   </div>
 
@@ -366,7 +368,7 @@
     </div>
     <div class="chat-messages" id="chatMessages">
       <div style="text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 15px;">
-        End-to-End P2P Encrypted. Zero server storage.
+        End-to-End P2P Encrypted.
       </div>
     </div>
     <div class="chat-input-bar">
@@ -377,7 +379,7 @@
 
   <div class="app-modal" id="recapModal">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h3 style="color: #ec4899; font-size: 15px;">🎬 Highlights & Bookmarks</h3>
+      <h3 style="color: #ec4899; font-size: 15px;">🎬 Highlights</h3>
       <button class="btn-pill" id="closeRecapBtn" style="color: #ef4444; font-size: 14px; border: none;">✕</button>
     </div>
     <div class="app-modal-list" id="recapList"></div>
@@ -473,13 +475,12 @@
   <script>
     const VAPID_PUBLIC_KEY = 'YOUR_PUBLIC_VAPID_KEY_HERE';
 
-    // ==============================================================
-    // 1. STATE & GHOST "PARTNER" ELIMINATION
-    // ==============================================================
+    // State Variables
     let ws = null;
     let wsReconnectTimer = null;
     let myUsername = localStorage.getItem('lounge_username');
 
+    // Wipe stale placeholder names
     if (myUsername && myUsername.toLowerCase() === 'partner') {
       localStorage.removeItem('lounge_username');
       myUsername = null;
@@ -606,12 +607,11 @@
     window.addEventListener('resize', () => { doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight; });
     doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight;
 
-    // ==============================================================
-    // 2. TURN SERVER RELAY (FIXES MOBILE SYMMETRIC NAT BLOCKS)
-    // ==============================================================
+    // Bulletproof TURN + STUN ICE Configuration
     const rtcConfig = {
       iceServers: [
         { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
         {
           urls: [
             'turn:openrelay.metered.ca:80',
@@ -625,9 +625,7 @@
       iceCandidatePoolSize: 10
     };
 
-    // ==============================================================
-    // 3. WEBSOCKET ENGINE
-    // ==============================================================
+    // WebSocket Connection
     function connectWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(protocol + '//' + window.location.host);
@@ -645,13 +643,13 @@
         } else if (data.type === 'INCOMING_CALL') {
           showIncomingCallScreen(data);
         } else if (data.type === 'CALL_ACCEPTED_BY_PEER') {
-          console.log("Peer accepted, starting WebRTC Offer...");
+          console.log("[Signal] Peer accepted, initializing Offer...");
           const pc = createMeshPeerConnection(data.from, true);
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           ws.send(JSON.stringify({ target: data.from, type: 'OFFER', payload: offer }));
         } else if (data.type === 'OFFER') {
-          console.log("Offer received, sending Answer...");
+          console.log("[Signal] Received Offer from", data.sender);
           const pc = createMeshPeerConnection(data.sender, false);
           await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
           if (iceCandidateQueues[data.sender]) {
@@ -662,7 +660,7 @@
           await pc.setLocalDescription(ans);
           ws.send(JSON.stringify({ target: data.sender, type: 'ANSWER', payload: ans }));
         } else if (data.type === 'ANSWER') {
-          console.log("Answer received, setting remote description...");
+          console.log("[Signal] Received Answer from", data.sender);
           const pc = peerConnections[data.sender];
           if (pc) {
             await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
@@ -675,7 +673,7 @@
           const pc = peerConnections[data.sender];
           const candidate = new RTCIceCandidate(data.payload);
           if (pc && pc.remoteDescription && pc.remoteDescription.type) {
-            pc.addIceCandidate(candidate);
+            pc.addIceCandidate(candidate).catch(()=>{});
           } else {
             if (!iceCandidateQueues[data.sender]) iceCandidateQueues[data.sender] = [];
             iceCandidateQueues[data.sender].push(candidate);
@@ -689,42 +687,7 @@
     }
     connectWebSocket();
 
-    // ==============================================================
-    // 4. PUSH NOTIFICATIONS
-    // ==============================================================
-    function urlBase64ToUint8Array(base64String) {
-      const padding = '='.repeat((4 - base64String.length % 4) % 4);
-      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-      const rawData = window.atob(base64);
-      return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
-    }
-
-    async function armPushNotifications() {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-      try {
-        const reg = await navigator.serviceWorker.register('/sw.js');
-        await navigator.serviceWorker.ready;
-        const perm = await Notification.requestPermission();
-        if (perm !== 'granted') return;
-
-        let sub = await reg.pushManager.getSubscription();
-        if (!sub && VAPID_PUBLIC_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-          });
-        }
-        if (sub && myUsername) {
-          await fetch('/api/register-push', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: myUsername, subscription: sub })
-          });
-        }
-      } catch (err) {}
-    }
-
-    // ==============================================================
-    // 5. IDENTITY & CONTACTS
-    // ==============================================================
+    // User Identity Logic
     function setupUserIdentity() {
       if (!myUsername) {
         loginModal.style.display = 'flex';
@@ -734,14 +697,13 @@
         myAvatarDisplay.innerText = myUsername[0].toUpperCase();
         document.getElementById('myAudioName').innerText = `${myUsername} (You)`;
         registerServer();
-        armPushNotifications();
       }
     }
 
     saveUsernameBtn.onclick = () => {
       const val = loginUsernameInput.value.trim();
       if (!val) return;
-      if (val.toLowerCase() === 'partner') return alert("Choose your actual name, not 'Partner'.");
+      if (val.toLowerCase() === 'partner') return alert("Choose your real name, not 'Partner'.");
       myUsername = val;
       localStorage.setItem('lounge_username', myUsername);
       setupUserIdentity();
@@ -768,7 +730,6 @@
       const name = newPersonInput.value.trim();
       if (!name) return;
       if (name.toLowerCase() === myUsername.toLowerCase()) return alert("You cannot add yourself!");
-      if (name.toLowerCase() === 'partner') return alert("Enter their actual username, not 'Partner'.");
       if (!myContacts.includes(name)) {
         myContacts.push(name);
         localStorage.setItem('lounge_saved_contacts', JSON.stringify(myContacts));
@@ -841,19 +802,17 @@
     document.getElementById('startGroupAudioBtn').onclick = () => initiateCall(Array.from(selectedContacts), 'audio');
     document.getElementById('startGroupVideoBtn').onclick = () => initiateCall(Array.from(selectedContacts), 'video');
 
-    // ==============================================================
-    // 6. HARDWARE & MEDIA INITIALIZATION (SAFE FALLBACK)
-    // ==============================================================
+    // Hardware & Media Initialization
     async function startMediaHardware(audioOnly) {
       try {
         if (!audioOnly) {
           try {
             localStream = await navigator.mediaDevices.getUserMedia({
-              audio: { echoCancellation: true, noiseSuppression: true },
-              video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } }
+              audio: true,
+              video: { facingMode: currentFacingMode }
             });
           } catch (e) {
-            console.warn("Camera blocked or missing, forcing audio only.");
+            console.warn("Camera failed, using audio-only fallback:", e);
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             isAudioOnly = true;
           }
@@ -861,14 +820,23 @@
           localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         }
 
+        // Explicitly attach stream and play
         if (localStream) {
-          initWebAudioDSP(localStream);
           myVideo.srcObject = localStream;
+          myVideo.muted = true;
+          myVideo.setAttribute('playsinline', 'true');
+          myVideo.play().catch(e => console.log("Local myVideo play error:", e));
+
           myMeshVideo.srcObject = localStream;
+          myMeshVideo.muted = true;
+          myMeshVideo.setAttribute('playsinline', 'true');
+          myMeshVideo.play().catch(e => console.log("Mesh myMeshVideo play error:", e));
+
+          initWebAudioDSP(localStream);
         }
       } catch (err) {
-        console.error("Hardware initialization crashed:", err);
-        alert('Hardware Error: ' + err.message + '\n\nEnsure camera/microphone permissions are granted in your browser settings.');
+        alert('Permission Denied: Allow camera/mic access in your browser settings.');
+        console.error(err);
       }
     }
 
@@ -880,24 +848,21 @@
 
       if (isAudioOnly) {
         audioStage.style.display = 'flex'; mainVideoContainer.style.display = 'none'; videoMeshGrid.style.display = 'none';
-        localPip.style.display = 'none'; remotePip.style.display = 'none'; camFlipBtn.style.display = 'none'; camToggleBtn.style.display = 'none';
-        callModeToggleBtn.style.display = 'none'; screenShareBtn.style.display = 'none'; bookmarkBtn.style.display = 'none'; watchDrawerBtn.style.display = 'none';
+        localPip.style.display = 'none'; remotePip.style.display = 'none';
       } else {
         audioStage.style.display = 'none'; mainVideoContainer.style.display = 'flex'; videoMeshGrid.style.display = 'none';
-        localPip.style.display = 'block'; remotePip.style.display = 'block'; camFlipBtn.style.display = 'flex';
+        localPip.style.display = 'block'; remotePip.style.display = 'block';
       }
     }
 
-    // ==============================================================
-    // 7. WEBRTC ENGINE (IOS BUG BYPASS)
-    // ==============================================================
+    // Call Actions
     async function initiateCall(targets, mode) {
       isAudioOnly = mode === 'audio';
       currentSessionToken = 'session-' + Math.random().toString(36).substring(2, 7);
       callParticipants = [myUsername, ...targets];
 
       await startMediaHardware(isAudioOnly);
-      if (!localStream) return; // Halt if permissions failed
+      if (!localStream) return;
 
       enterCallStage(targets.join(', '));
       ws.send(JSON.stringify({
@@ -906,12 +871,6 @@
         callMode: mode,
         sessionToken: currentSessionToken
       }));
-
-      fetch('/api/push-ring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: myUsername, targets, callMode: mode, sessionToken: currentSessionToken })
-      }).catch(()=>{});
     }
 
     let pendingCallDetails = null;
@@ -920,8 +879,8 @@
       incomingCallerName.innerText = `${data.from}`;
       incomingCallType.innerText = data.callMode === 'audio' ? '🎙️ Incoming Audio Call' : '📹 Incoming Video Call';
       incomingCallModal.style.display = 'flex';
-      ringtoneAudio.currentTime = 0; ringtoneAudio.play().catch(()=>{});
-      if (navigator.vibrate) navigator.vibrate([500, 250, 500, 250, 500, 250]);
+      ringtoneAudio.currentTime = 0;
+      ringtoneAudio.play().catch(()=>{});
     }
 
     acceptCallBtn.onclick = async () => {
@@ -930,13 +889,12 @@
 
       isAudioOnly = pendingCallDetails.callMode === 'audio';
       currentSessionToken = pendingCallDetails.sessionToken;
-      const pureParticipants = pendingCallDetails.allParticipants || [pendingCallDetails.from];
-      callParticipants = Array.from(new Set([myUsername, ...pureParticipants]));
+      callParticipants = [myUsername, pendingCallDetails.from];
 
       await startMediaHardware(isAudioOnly);
-      if (!localStream) return; // Halt if permissions failed
+      if (!localStream) return;
 
-      enterCallStage(`Lounge (${callParticipants.length})`);
+      enterCallStage(`In Call`);
       ws.send(JSON.stringify({
         type: 'CALL_ACCEPTED',
         target: pendingCallDetails.from,
@@ -947,21 +905,24 @@
     declineCallBtn.onclick = () => { dismissRinging(); pendingCallDetails = null; };
 
     function dismissRinging() {
-      incomingCallModal.style.display = 'none'; ringtoneAudio.pause(); ringtoneAudio.currentTime = 0;
-      if (navigator.vibrate) navigator.vibrate(0);
+      incomingCallModal.style.display = 'none';
+      ringtoneAudio.pause();
+      ringtoneAudio.currentTime = 0;
     }
 
+    // Peer Connection & Streams
     function createMeshPeerConnection(remotePeerName, isInitiator) {
       if (peerConnections[remotePeerName]) return peerConnections[remotePeerName];
 
-      console.log(`[WebRTC] Creating connection for ${remotePeerName}`);
       const pc = new RTCPeerConnection(rtcConfig);
       peerConnections[remotePeerName] = pc;
       iceCandidateQueues[remotePeerName] = [];
 
-      // THE FIX: Directly attach raw hardware tracks to bypass iOS WebAudio silencer bug
+      // Add hardware tracks
       if (localStream) {
-        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+        localStream.getTracks().forEach(track => {
+          pc.addTrack(track, localStream);
+        });
       }
 
       if (isInitiator) {
@@ -971,18 +932,16 @@
         pc.ondatachannel = (e) => setupDataChannel(remotePeerName, e.channel);
       }
 
-      pc.ontrack = (evt) => setupRemoteParticipantMedia(remotePeerName, evt.streams[0], evt.track.kind);
-      
+      // Incoming remote stream handling
+      pc.ontrack = (evt) => {
+        console.log(`[Stream Arrived] Track received: ${evt.track.kind}`);
+        const stream = evt.streams[0] || new MediaStream([evt.track]);
+        setupRemoteParticipantMedia(remotePeerName, stream, evt.track.kind);
+      };
+
       pc.onicecandidate = (e) => {
         if (e.candidate && ws && ws.readyState === 1) {
           ws.send(JSON.stringify({ target: remotePeerName, type: 'CANDIDATE', payload: e.candidate }));
-        }
-      };
-
-      pc.onconnectionstatechange = () => {
-        console.log(`[WebRTC State] ${remotePeerName} is ${pc.connectionState}`);
-        if (pc.connectionState === 'connected') {
-          document.getElementById('partnerPipLabel').innerText = remotePeerName;
         }
       };
 
@@ -990,31 +949,44 @@
     }
 
     function setupRemoteParticipantMedia(peerName, stream, kind) {
-      console.log(`[WebRTC] Receiving ${kind} track from ${peerName}`);
-      
+      document.getElementById('partnerPipLabel').innerText = peerName;
+
+      // Ensure partner video plays smoothly without auto-mute blocks
+      partnerVideo.srcObject = stream;
+      partnerVideo.setAttribute('playsinline', 'true');
+      partnerVideo.play().catch(e => {
+        console.warn("Autoplay block detected, retrying muted:", e);
+        partnerVideo.muted = true;
+        partnerVideo.play().catch(()=>{});
+      });
+
+      // Audio Sink
+      remoteAudioSink.srcObject = stream;
+      remoteAudioSink.play().catch(e => console.log("Audio sink play error:", e));
+
+      // Video Grid Tile setup
       if (!remoteMediaElements[peerName]) {
-        const audioCard = document.createElement('div'); audioCard.className = 'avatar-card'; audioCard.id = `audioCard_${peerName}`;
-        audioCard.innerHTML = `<div class="avatar-disc" id="disc_${peerName}">👤</div><span style="font-size: 12px; font-weight: 600;">${peerName}</span>`;
+        const audioCard = document.createElement('div');
+        audioCard.className = 'avatar-card';
+        audioCard.innerHTML = `<div class="avatar-disc">👤</div><span style="font-size:12px; font-weight:600;">${peerName}</span>`;
         audioMeshGrid.appendChild(audioCard);
 
-        const videoTile = document.createElement('div'); videoTile.className = 'video-tile'; videoTile.id = `videoTile_${peerName}`;
+        const videoTile = document.createElement('div');
+        videoTile.className = 'video-tile';
         videoTile.innerHTML = `<video autoplay playsinline></video><span class="tile-label">${peerName}</span>`;
-        videoMeshGrid.appendChild(videoTile); updateVideoGridLayout();
+        const tileVid = videoTile.querySelector('video');
+        tileVid.srcObject = stream;
+        tileVid.play().catch(()=>{});
+        videoMeshGrid.appendChild(videoTile);
+        updateVideoGridLayout();
 
-        const audioSink = document.createElement('audio'); audioSink.autoplay = true; audioSink.playsInline = true; audioSink.srcObject = stream;
-        document.body.appendChild(audioSink);
-        remoteMediaElements[peerName] = { audioCard, videoTile, audioSink };
-      }
-
-      const elements = remoteMediaElements[peerName];
-      document.getElementById('partnerPipLabel').innerText = peerName; // Fix: Ensure label ALWAYS updates
-
-      if (kind === 'video') {
-        const vid = elements.videoTile.querySelector('video'); vid.srcObject = stream;
-        partnerVideo.srcObject = stream;
-      }
-      if (kind === 'audio') {
-        setupRemoteSpatialAudio(stream);
+        remoteMediaElements[peerName] = { audioCard, videoTile };
+      } else {
+        const tileVid = remoteMediaElements[peerName].videoTile.querySelector('video');
+        if (tileVid) {
+          tileVid.srcObject = stream;
+          tileVid.play().catch(()=>{});
+        }
       }
     }
 
@@ -1022,14 +994,11 @@
       const totalTiles = videoMeshGrid.querySelectorAll('.video-tile').length;
       if (totalTiles <= 1) { videoMeshGrid.style.gridTemplateColumns = '1fr'; videoMeshGrid.style.gridTemplateRows = '1fr'; }
       else if (totalTiles === 2) { videoMeshGrid.style.gridTemplateColumns = window.innerWidth > 600 ? '1fr 1fr' : '1fr'; videoMeshGrid.style.gridTemplateRows = window.innerWidth > 600 ? '1fr' : '1fr 1fr'; }
-      else if (totalTiles <= 4) { videoMeshGrid.style.gridTemplateColumns = '1fr 1fr'; videoMeshGrid.style.gridTemplateRows = '1fr 1fr'; }
-      else { videoMeshGrid.style.gridTemplateColumns = '1fr 1fr 1fr'; videoMeshGrid.style.gridTemplateRows = '1fr 1fr'; }
+      else { videoMeshGrid.style.gridTemplateColumns = '1fr 1fr'; videoMeshGrid.style.gridTemplateRows = '1fr 1fr'; }
     }
     window.addEventListener('resize', updateVideoGridLayout);
 
-    // ==============================================================
-    // 8. DATA CHANNELS (Apps, Chat, Tools)
-    // ==============================================================
+    // Chat, Canvas & Media Handlers
     function multicastData(obj) {
       const payload = JSON.stringify(obj);
       Object.values(dataChannels).forEach(dc => {
@@ -1163,33 +1132,6 @@
       }); recapModal.style.display = 'flex';
     }; closeRecapBtn.onclick = () => recapModal.style.display = 'none';
 
-    function startAcousticAnalyser() {
-      if (!localAnalyser) return; const data = new Uint8Array(localAnalyser.frequencyBinCount);
-      setInterval(() => {
-        localAnalyser.getByteFrequencyData(data); let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i]; const avg = sum / data.length; const now = Date.now();
-        if (avg > 75 && now - lastReactionTime > 3000) {
-          lastReactionTime = now; let rType = 'gasp'; if (avg > 92) rType = 'scream'; else if (avg > 80) rType = 'laugh';
-          triggerReactionUI(rType, 'You'); multicastData({ type: 'REACTION_BURST', rType });
-        }
-      }, 200);
-    }
-
-    if (SpeechRecognition) {
-      recognizer = new SpeechRecognition(); recognizer.continuous = true; recognizer.interimResults = true; recognizer.lang = 'en-US';
-      recognizer.onresult = (e) => {
-        let interim = '', final = ''; for (let i = e.resultIndex; i < e.results.length; ++i) { if (e.results[i].isFinal) final += e.results[i][0].transcript; else interim += e.results[i][0].transcript; }
-        const text = (final || interim).trim(); if (text.length > 0) { showSubtitle("You", text); multicastData({ type: 'LIVE_SUB', speaker: myUsername, text }); }
-      };
-      recognizer.onend = () => { if (shouldKeepListening && isSubsActive) try { recognizer.start(); } catch (err) {} };
-    }
-    subsBtn.onclick = () => {
-      if (!SpeechRecognition) return alert('Speech recognition supported on Chrome/Edge.');
-      isSubsActive = !isSubsActive; subsBtn.classList.toggle('active-amber', isSubsActive);
-      if (isSubsActive) { shouldKeepListening = true; try { recognizer.start(); } catch(e){} subtitlesBanner.style.display = 'block'; subSpeaker.innerText = 'You:'; subText.innerText = 'Listening...'; }
-      else { shouldKeepListening = false; try { recognizer.stop(); } catch(e){} subtitlesBanner.style.display = 'none'; }
-    };
-    function showSubtitle(speaker, text) { subtitlesBanner.style.display = 'block'; subSpeaker.innerText = `${speaker}:`; subSpeaker.style.color = speaker === 'You' ? '#38bdf8' : '#ec4899'; subText.innerText = text; clearTimeout(window.subTimer); window.subTimer = setTimeout(() => { if (!isSubsActive) subtitlesBanner.style.display = 'none'; else subText.innerText = 'Listening...'; }, 4000); }
-
     chatBtn.onclick = () => { isChatOpen = !isChatOpen; chatDrawer.classList.toggle('open', isChatOpen); if (isChatOpen) { unreadCount = 0; chatBadge.style.display = 'none'; chatInput.focus(); } };
     closeChatBtn.onclick = () => { isChatOpen = false; chatDrawer.classList.remove('open'); };
     sendChatBtn.onclick = sendChat; chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
@@ -1200,93 +1142,62 @@
     }
 
     camFlipBtn.onclick = async () => {
-      if (!localStream || isCamOff) return; currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+      if (!localStream || isCamOff) return;
+      currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: currentFacingMode } } }).catch(() => navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } }));
-        const newTrack = stream.getVideoTracks()[0], oldTrack = localStream.getVideoTracks()[0]; if (oldTrack) { oldTrack.stop(); localStream.removeTrack(oldTrack); } localStream.addTrack(newTrack);
-        myVideo.srcObject = localStream; myMeshVideo.srcObject = localStream;
-        Object.values(peerConnections).forEach(pc => { const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video'); if (sender) sender.replaceTrack(newTrack); });
-      } catch (err) {}
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } });
+        const newTrack = stream.getVideoTracks()[0];
+        const oldTrack = localStream.getVideoTracks()[0];
+        if (oldTrack) { oldTrack.stop(); localStream.removeTrack(oldTrack); }
+        localStream.addTrack(newTrack);
+        myVideo.srcObject = localStream;
+        myMeshVideo.srcObject = localStream;
+        Object.values(peerConnections).forEach(pc => {
+          const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) sender.replaceTrack(newTrack);
+        });
+      } catch (err) { console.error("Camera flip error:", err); }
     };
+
     camToggleBtn.onclick = () => {
-      if (!localStream) return; const track = localStream.getVideoTracks()[0];
-      if (track) { isCamOff = !isCamOff; track.enabled = !isCamOff; myVideo.style.display = isCamOff ? 'none' : 'block'; myMeshVideo.style.display = isCamOff ? 'none' : 'block'; camToggleBtn.innerText = isCamOff ? '🙈' : '📹'; camToggleBtn.classList.toggle('active-amber', isCamOff); }
+      if (!localStream) return;
+      const track = localStream.getVideoTracks()[0];
+      if (track) {
+        isCamOff = !isCamOff;
+        track.enabled = !isCamOff;
+        myVideo.style.opacity = isCamOff ? '0' : '1';
+        camToggleBtn.innerText = isCamOff ? '🙈' : '📹';
+        camToggleBtn.classList.toggle('active-amber', isCamOff);
+      }
     };
-    screenShareBtn.onclick = async () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return alert("Screen sharing supported on desktop browsers.");
-      if (!isScreenSharing) {
-        try {
-          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } }); const track = screenStream.getVideoTracks()[0];
-          Object.values(peerConnections).forEach(pc => { const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video'); if (sender) sender.replaceTrack(track); });
-          myVideo.srcObject = screenStream; myMeshVideo.srcObject = screenStream; screenShareBtn.classList.add('active-blue'); isScreenSharing = true;
-          track.onended = () => stopScreenShare();
-        } catch (err) { if (err.name !== 'NotAllowedError') console.error(err); }
-      } else stopScreenShare();
-    };
-    function stopScreenShare() {
-      if (!isScreenSharing) return; if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; } const camTrack = localStream ? localStream.getVideoTracks()[0] : null;
-      Object.values(peerConnections).forEach(pc => { const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video'); if (sender) sender.replaceTrack(camTrack || null); });
-      myVideo.srcObject = localStream; myMeshVideo.srcObject = localStream; screenShareBtn.classList.remove('active-blue'); isScreenSharing = false;
-    }
+
     muteMicBtn.onclick = () => {
-      if (!localStream) return; isMuted = !isMuted;
+      if (!localStream) return;
+      isMuted = !isMuted;
       localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
       muteMicBtn.classList.toggle('active-amber', isMuted);
     };
+
     watchDrawerBtn.onclick = () => { watchDrawer.style.display = watchDrawer.style.display !== 'flex' ? 'flex' : 'none'; };
-    pipSysBtn.onclick = async () => { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else if (mainPlayer && !isYouTubeMode) await mainPlayer.requestPictureInPicture(); else alert("System PiP operates on native MP4 video."); };
+    pipSysBtn.onclick = async () => { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else if (mainPlayer && !isYouTubeMode) await mainPlayer.requestPictureInPicture(); };
     hangupBtn.onclick = () => { if (localStream) localStream.getTracks().forEach(t => t.stop()); location.reload(); };
 
-    fileBeamBtn.onclick = () => p2pFileInput.click();
-    p2pFileInput.onchange = () => {
-      const file = p2pFileInput.files[0]; if (!file) return; const firstChan = Object.values(dataChannels)[0]; if (!firstChan || firstChan.readyState !== 'open') return alert('Partner not connected yet.');
-      const CHUNK_SIZE = 64 * 1024; let offset = 0; firstChan.bufferedAmountLowThreshold = 256 * 1024; firstChan.send(JSON.stringify({ type: 'FILE_START', name: file.name, size: file.size, mime: file.type }));
-      function pump() {
-        while (offset < file.size) {
-          if (firstChan.bufferedAmount > firstChan.bufferedAmountLowThreshold) { firstChan.onbufferedamountlow = () => { firstChan.onbufferedamountlow = null; pump(); }; return; }
-          const slice = file.slice(offset, offset + CHUNK_SIZE); const reader = new FileReader(); reader.onload = (e) => { firstChan.send(e.target.result); offset += CHUNK_SIZE; pump(); }; reader.readAsArrayBuffer(slice); return;
-        } firstChan.send(JSON.stringify({ type: 'FILE_END' })); alert('File Beam finished sending!');
-      } pump();
-    };
-
     function initWebAudioDSP(stream) {
-      if (!audioCtx) audioCtx = new AudioContextClass(); if (audioCtx.state === 'suspended') audioCtx.resume();
-      micSource = audioCtx.createMediaStreamSource(stream); hpFilter = audioCtx.createBiquadFilter(); hpFilter.type = 'highpass'; hpFilter.frequency.value = 100;
-      whisperNode = audioCtx.createBiquadFilter(); whisperNode.type = 'peaking'; whisperNode.frequency.value = 3500; whisperNode.gain.value = 0;
-      compressorNode = audioCtx.createDynamicsCompressor(); compressorNode.threshold.value = -24; localAnalyser = audioCtx.createAnalyser(); localAnalyser.fftSize = 64;
-      micSource.connect(hpFilter); hpFilter.connect(whisperNode); whisperNode.connect(compressorNode); compressorNode.connect(localAnalyser);
-      ambGain = audioCtx.createGain(); ambGain.gain.value = 0; ambGain.connect(audioCtx.destination);
-      startVisualizerLoop(); startAcousticAnalyser();
-    }
-    
-    function setupRemoteSpatialAudio(stream) {
-      if (!audioCtx) return;
       try {
-        const remoteSource = audioCtx.createMediaStreamSource(stream); partnerPanner = audioCtx.createPanner(); partnerPanner.panningModel = 'HRTF'; partnerPanner.distanceModel = 'inverse'; partnerPanner.positionX.value = 0; partnerPanner.positionY.value = 0; partnerPanner.positionZ.value = -1;
-        remoteSource.connect(partnerPanner); partnerPanner.connect(audioCtx.destination);
-      } catch (e) {
-        console.warn('Spatial audio routing fallback:', e);
-      }
+        if (!audioCtx) audioCtx = new AudioContextClass();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        micSource = audioCtx.createMediaStreamSource(stream);
+        localAnalyser = audioCtx.createAnalyser();
+        localAnalyser.fftSize = 64;
+        micSource.connect(localAnalyser);
+        startVisualizerLoop();
+      } catch(e) {}
     }
-    pannerSelect.onchange = () => { if (!partnerPanner || !audioCtx) return; const x = pannerSelect.value === 'left' ? -3 : pannerSelect.value === 'right' ? 3 : 0; partnerPanner.positionX.setTargetAtTime(x, audioCtx.currentTime, 0.1); };
 
-    let isWhisperBoost = false;
-    whisperBoostBtn.onclick = () => {
-      isWhisperBoost = !isWhisperBoost; whisperBoostBtn.innerText = isWhisperBoost ? '🤫 Active (+8dB)' : '🤫 Off'; whisperBoostBtn.classList.toggle('active', isWhisperBoost);
-      if (whisperNode && audioCtx) { whisperNode.gain.setTargetAtTime(isWhisperBoost ? 8 : 0, audioCtx.currentTime, 0.1); compressorNode.threshold.setTargetAtTime(isWhisperBoost ? -45 : -24, audioCtx.currentTime, 0.1); }
-    };
-    function stopAmbience() { if (ambSource) { try { ambSource.stop(); } catch(e){} ambSource = null; } if (ambGain && audioCtx) ambGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2); rainBtn.classList.remove('active'); campBtn.classList.remove('active'); thetaBtn.classList.remove('active'); activeAmbience = null; }
-    function createPinkNoise(cutoff = 800) {
-      const bufferSize = audioCtx.sampleRate * 2; const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate); const data = buffer.getChannelData(0); let b0 = 0, b1 = 0, b2 = 0;
-      for (let i = 0; i < bufferSize; i++) { const white = Math.random() * 2 - 1; b0 = 0.99886 * b0 + white * 0.0555179; b1 = 0.99332 * b1 + white * 0.0750759; b2 = 0.96900 * b2 + white * 0.1538520; data[i] = (b0 + b1 + b2 + white * 0.5362) * 0.08; }
-      const noise = audioCtx.createBufferSource(); noise.buffer = buffer; noise.loop = true; const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = cutoff; noise.connect(filter); filter.connect(ambGain); noise.start(); return noise;
+    function setupRemoteSpatialAudio(stream) {
+      remoteAudioSink.srcObject = stream;
+      remoteAudioSink.play().catch(()=>{});
     }
-    rainBtn.onclick = () => { if (activeAmbience === 'rain') { stopAmbience(); return; } stopAmbience(); ambSource = createPinkNoise(900); ambGain.gain.setTargetAtTime(0.18, audioCtx.currentTime, 0.3); rainBtn.classList.add('active'); activeAmbience = 'rain'; };
-    campBtn.onclick = () => { if (activeAmbience === 'camp') { stopAmbience(); return; } stopAmbience(); ambSource = createPinkNoise(420); ambGain.gain.setTargetAtTime(0.22, audioCtx.currentTime, 0.3); campBtn.classList.add('active'); activeAmbience = 'camp'; };
-    thetaBtn.onclick = () => {
-      if (activeAmbience === 'theta') { stopAmbience(); return; } stopAmbience(); const merger = audioCtx.createChannelMerger(2); const oscL = audioCtx.createOscillator(); const oscR = audioCtx.createOscillator(); oscL.frequency.value = 200; oscR.frequency.value = 206; const gain = audioCtx.createGain(); gain.gain.value = 0.06; oscL.connect(merger, 0, 0); oscR.connect(merger, 0, 1); merger.connect(gain); gain.connect(ambGain); oscL.start(); oscR.start(); ambGain.gain.setTargetAtTime(0.2, audioCtx.currentTime, 0.3); thetaBtn.classList.add('active'); ambSource = oscL; activeAmbience = 'theta';
-    };
-    soundstageToggleBtn.onclick = () => { soundstageDrawer.style.display = soundstageDrawer.style.display !== 'flex' ? 'flex' : 'none'; soundstageToggleBtn.innerText = soundstageDrawer.style.display === 'flex' ? '✕ Close' : '🎧 Soundstage'; };
 
     function startVisualizerLoop() {
       const buf = new Uint8Array(32);
@@ -1298,8 +1209,7 @@
           const barWidth = 4, gap = 3, count = 28; const startX = (waveCanvas.width - (count * (barWidth + gap))) / 2;
           for (let i = 0; i < count; i++) {
             const factor = Math.sin((i / count) * Math.PI); const height = Math.min(46, Math.max(4, (lvl / 3.2) * factor + Math.random() * 2));
-            const x = startX + i * (barWidth + gap); const y = (waveCanvas.height - height) / 2;
-            waveCtx.fillStyle = '#6366f1'; waveCtx.beginPath(); waveCtx.roundRect(x, y, barWidth, height, 2); waveCtx.fill();
+            waveCtx.fillStyle = '#6366f1'; waveCtx.beginPath(); waveCtx.roundRect(startX + i * (barWidth + gap), (waveCanvas.height - height) / 2, barWidth, height, 2); waveCtx.fill();
           }
         } requestAnimationFrame(draw);
       } draw();
