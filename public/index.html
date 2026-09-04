@@ -3,14 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Lounge Suite • Master Edition</title>
+  <title>Lounge Suite • PWA Edition</title>
+  
+  <!-- PWA Manifest & App Metas -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#09090b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
+
   <style>
     :root {
       --bg: #09090b;
       --card: #121215;
-      --card-blur: rgba(18, 18, 21, 0.82);
       --border: #232328;
       --accent: #6366f1;
       --accent-glow: rgba(99, 102, 241, 0.35);
@@ -30,11 +37,11 @@
       overflow: hidden; display: flex; flex-direction: column;
     }
 
-    /* Top Minimal Glass Navigation */
+    /* Top Glass Navigation Bar */
     .top-bar {
-      height: 54px; padding: 0 16px; display: flex; align-items: center;
+      height: 52px; padding: 0 16px; display: flex; align-items: center;
       justify-content: space-between; border-bottom: 1px solid var(--border);
-      background: rgba(9, 9, 11, 0.9); backdrop-filter: blur(14px); z-index: 60;
+      background: rgba(9, 9, 11, 0.92); backdrop-filter: blur(14px); z-index: 60;
     }
     .room-pill {
       display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500;
@@ -48,13 +55,13 @@
     }
     .btn-pill:active { background: var(--border); }
 
-    /* Central Layout Viewports */
+    /* Central Viewport Container */
     .viewport-container {
       flex: 1; position: relative; overflow: hidden; display: flex;
       align-items: center; justify-content: center;
     }
 
-    /* 1. Pure Audio Stage (Active when mode is audio-only) */
+    /* Pure Audio Stage */
     #audioStage {
       display: none; flex-direction: column; align-items: center; justify-content: center;
       width: 100%; height: 100%; position: absolute; inset: 0; z-index: 10;
@@ -65,10 +72,10 @@
     }
     .avatar-card { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .avatar-disc {
-      width: 100px; height: 100px; border-radius: 50%;
+      width: 105px; height: 105px; border-radius: 50%;
       background: radial-gradient(circle at 30% 30%, #27272a, #121215);
       border: 2px solid var(--border); display: flex; align-items: center;
-      justify-content: center; font-size: 38px; position: relative;
+      justify-content: center; font-size: 40px; position: relative;
       transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .avatar-disc.speaking {
@@ -89,7 +96,7 @@
       width: 280px; height: 50px; pointer-events: none; opacity: 0.85;
     }
 
-    /* 2. Video Watch & Video Call Stage */
+    /* Video Watch & Stage Container */
     #mainVideoContainer {
       position: absolute; inset: 0; background: #000; display: flex;
       align-items: center; justify-content: center; z-index: 15;
@@ -141,14 +148,14 @@
       width: 140px !important; height: 105px !important;
     }
 
-    /* Thermal Warmth Canvas */
+    /* Thermal Warmth Auto-Fading Canvas */
     #doodleCanvas {
       position: absolute; inset: 0; width: 100%; height: 100%;
       pointer-events: none; touch-action: none; z-index: 50;
     }
     #doodleCanvas.drawing-active { pointer-events: auto !important; }
 
-    /* Subtitles Banner (Direct, High-Confidence) */
+    /* Subtitles Banner */
     #subtitlesBanner {
       position: fixed; bottom: 84px; left: 16px; right: 16px;
       background: rgba(18, 18, 22, 0.92); border: 1px solid var(--border);
@@ -159,7 +166,7 @@
     .sub-speaker { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
     .sub-text { font-size: 14px; font-weight: 500; color: #fde047; line-height: 1.4; }
 
-    /* Floating Reaction Emoji Bursts */
+    /* Emoji Burst */
     .reaction-burst-box {
       position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
       font-size: 54px; pointer-events: none; z-index: 85;
@@ -171,14 +178,6 @@
       80% { transform: translate(-50%, -120px) scale(1.0); opacity: 1; }
       100% { transform: translate(-50%, -180px) scale(0.6); opacity: 0; }
     }
-
-    /* Sunrise Alarm Overlay */
-    #sunriseOverlay {
-      position: fixed; inset: 0; pointer-events: none; display: none; opacity: 0;
-      background: radial-gradient(circle at bottom, #fbbf24 0%, #ea580c 45%, #431407 100%);
-      transition: opacity 18s ease-in; z-index: 80;
-    }
-    #sunriseOverlay.rising { display: block; opacity: 0.88; }
 
     /* Bottom Minimal Controls Dock */
     .controls-dock {
@@ -192,11 +191,10 @@
       width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--border);
       background: var(--card); color: var(--text); font-size: 17px; cursor: pointer;
       display: flex; align-items: center; justify-content: center; position: relative;
-      flex-shrink: 0; transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s;
+      flex-shrink: 0; transition: transform 0.15s ease, background 0.2s ease;
     }
     .c-btn:active { transform: scale(0.9); }
     .c-btn.active-blue { background: #0284c7 !important; border-color: #38bdf8 !important; }
-    .c-btn.active-purple { background: var(--accent) !important; border-color: #818cf8 !important; }
     .c-btn.active-pink { background: var(--pink) !important; border-color: #f472b6 !important; }
     .c-btn.active-amber { background: #d97706 !important; border-color: #fbbf24 !important; }
     .c-btn-end { background: #ef4444 !important; border-color: #dc2626 !important; }
@@ -206,7 +204,7 @@
       display: none; align-items: center; justify-content: center;
     }
 
-    /* WhatsApp-Style Chat Slide-Over Drawer */
+    /* WhatsApp-Style Slide-Over Drawer */
     #chatDrawer {
       position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 360px;
       background: #111114; border-left: 1px solid var(--border); z-index: 100;
@@ -215,7 +213,7 @@
     }
     #chatDrawer.open { transform: translateX(0); }
     .chat-header {
-      height: 54px; padding: 0 16px; border-bottom: 1px solid var(--border);
+      height: 52px; padding: 0 16px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
       background: rgba(17, 17, 20, 0.95);
     }
@@ -244,7 +242,7 @@
       align-items: center; justify-content: center; font-size: 15px;
     }
 
-    /* Co-Listen Soundstage Drawer */
+    /* Soundstage & Watch Drawers */
     #soundstageDrawer {
       position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%);
       width: calc(100% - 24px); max-width: 440px; background: rgba(18, 18, 22, 0.96);
@@ -260,7 +258,6 @@
     }
     .amb-chip.active { background: var(--accent); border-color: var(--accent); }
 
-    /* Watch Party Controls Drawer */
     #watchDrawer {
       position: fixed; bottom: 82px; left: 0; right: 0;
       background: rgba(18, 18, 22, 0.97); backdrop-filter: blur(14px);
@@ -284,6 +281,24 @@
       display: flex; justify-content: space-between; align-items: center; cursor: pointer;
     }
 
+    /* Full-Screen Incoming Call Overlay */
+    #incomingCallModal {
+      display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.97);
+      backdrop-filter: blur(20px); z-index: 3000; flex-direction: column;
+      align-items: center; justify-content: space-around; padding: 60px 20px;
+    }
+    .pulse-avatar {
+      width: 120px; height: 120px; border-radius: 50%; background: #1f1f23;
+      border: 3px solid var(--accent); display: flex; align-items: center;
+      justify-content: center; font-size: 48px; box-shadow: 0 0 30px var(--accent-glow);
+      animation: callPulse 1.5s infinite;
+    }
+    @keyframes callPulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6); }
+      70% { transform: scale(1.06); box-shadow: 0 0 0 26px rgba(99, 102, 241, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+    }
+
     /* Lobby */
     #lobbyModal {
       position: fixed; inset: 0; background: var(--bg); display: flex;
@@ -295,7 +310,7 @@
     }
     .lobby-box input {
       width: 100%; height: 46px; background: #27272a; border: 1px solid var(--border);
-      border-radius: 12px; color: white; text-align: center; margin: 16px 0;
+      border-radius: 12px; color: white; text-align: center; margin: 14px 0;
       outline: none; font-size: 14px;
     }
     .lobby-box button {
@@ -320,14 +335,13 @@
     </div>
   </div>
 
-  <!-- Sunrise & Thermal Canvas Layers -->
-  <div id="sunriseOverlay"></div>
+  <!-- Thermal Warmth Canvas -->
   <canvas id="doodleCanvas"></canvas>
 
   <!-- Viewport Stage -->
   <div class="viewport-container">
     
-    <!-- 1. Pure Audio Stage (Shown in Audio-Only Mode) -->
+    <!-- 1. Pure Audio Stage (Active in Pure Audio Mode) -->
     <div id="audioStage">
       <div class="peers-audio-row">
         <div class="avatar-card">
@@ -350,10 +364,10 @@
       <div id="ytWrapper"><div id="ytPlayer"></div></div>
     </div>
 
-    <!-- 3. Face-to-Face Call Mode Split Grid -->
+    <!-- 3. Face-to-Face Call Split Grid -->
     <div id="callGridWrapper"></div>
 
-    <!-- Dual-PiP Floating Windows (Shown in Video Watch Mode) -->
+    <!-- Dual-PiP Floating Tiles -->
     <div class="pip-box" id="localPip" style="top: 65px; right: 16px;">
       <video id="myVideo" class="mirror-mode" autoplay playsinline muted></video>
       <span class="pip-label">You</span>
@@ -371,9 +385,9 @@
     </div>
   </div>
 
-  <!-- Audio Soundstage Drawer -->
+  <!-- Soundstage Drawer -->
   <div id="soundstageDrawer">
-    <div style="font-size: 12px; font-weight: 700; color: #a1a1aa; text-transform: uppercase;">Co-Listen Ambience & Soundstage</div>
+    <div style="font-size: 12px; font-weight: 700; color: #a1a1aa; text-transform: uppercase;">Co-Listen Soundstage & Ambience</div>
     <div class="stage-row">
       <span>Ambient Soundscape</span>
       <div class="stage-chips">
@@ -396,7 +410,7 @@
     </div>
   </div>
 
-  <!-- Watch Party & PiP Controls Drawer -->
+  <!-- Watch Party Controls Drawer -->
   <div id="watchDrawer">
     <div style="display: flex; gap: 8px;">
       <input type="text" id="videoUrlInput" placeholder="Paste YouTube Link or Direct MP4..." style="flex: 1;" />
@@ -431,7 +445,7 @@
     </div>
     <div class="chat-messages" id="chatMessages">
       <div style="text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 15px;">
-        Zero server database storage. P2P encrypted via WebRTC.
+        End-to-End P2P Encrypted. Zero server storage.
       </div>
     </div>
     <div class="chat-input-bar">
@@ -440,7 +454,7 @@
     </div>
   </div>
 
-  <!-- Reaction Highlights & Bookmarks Modal -->
+  <!-- Highlights & Bookmarks Modal -->
   <div class="app-modal" id="recapModal">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <h3 style="color: #ec4899; font-size: 15px;">🎬 Reaction Highlights & Bookmarks</h3>
@@ -448,6 +462,22 @@
     </div>
     <div class="app-modal-list" id="recapList"></div>
   </div>
+
+  <!-- Full-Screen Incoming Call Overlay -->
+  <div id="incomingCallModal">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 14px;">
+      <div class="pulse-avatar">👤</div>
+      <h2 id="incomingCallerName" style="font-size: 22px; font-weight: 700;">Incoming Call...</h2>
+      <p id="incomingCallType" style="font-size: 13px; color: var(--text-dim);">Lounge Suite Invite</p>
+    </div>
+    <div style="display: flex; gap: 40px; align-items: center;">
+      <button id="declineCallBtn" style="width: 65px; height: 65px; border-radius: 50%; border: none; background: #ef4444; color: white; font-size: 24px; cursor: pointer;">✕</button>
+      <button id="acceptCallBtn" style="width: 65px; height: 65px; border-radius: 50%; border: none; background: #22c55e; color: white; font-size: 24px; cursor: pointer;">📞</button>
+    </div>
+  </div>
+
+  <!-- Ringtone Audio Element -->
+  <audio id="ringtoneAudio" loop src="https://actions.google.com/sounds/v1/alarms/phone_alerts_and_rings.ogg"></audio>
 
   <!-- Bottom Action Dock -->
   <div class="controls-dock">
@@ -463,7 +493,6 @@
     <button class="c-btn" id="doodleBtn" title="Thermal Canvas">🎨</button>
     <button class="c-btn" id="subsBtn" title="Live Subtitles">💬</button>
     <button class="c-btn" id="fileBeamBtn" title="P2P 1GB Beam">⚡</button>
-    <button class="c-btn" id="nudgeBtn" title="Smart Sunrise Nudge">🌅</button>
     <button class="c-btn" id="watchDrawerBtn" title="Watch Party Controls">🍿</button>
     <button class="c-btn" id="chatBtn" title="Chat">
       ✉️
@@ -473,15 +502,13 @@
   </div>
 
   <input type="file" id="p2pFileInput" style="display: none;" />
-
-  <!-- Safe audio sink for browser playback -->
   <audio id="remoteAudioSink" autoplay playsinline></audio>
 
   <!-- Pre-Join Entry Lobby Modal -->
   <div id="lobbyModal">
     <div class="lobby-box">
       <h2 style="font-size: 19px; font-weight: 700; margin-bottom: 6px;">Lounge Suite</h2>
-      <p style="font-size: 13px; color: var(--text-dim);">Modern Hybrid Call & Watch Party</p>
+      <p style="font-size: 13px; color: var(--text-dim);">PWA Hybrid Calling & Watch Party</p>
       <input type="text" id="roomInput" placeholder="Room Name" />
       
       <!-- Pre-Join Mode Selection -->
@@ -505,22 +532,23 @@
     let myId = null, localStream = null, processedAudioTrack = null;
     let screenStream = null, isScreenSharing = false, isCamOff = false, isMuted = false;
     let isAudioOnlyMode = false, currentFacingMode = 'user';
-    let room = window.location.hash.substring(1).trim() || 'lounge-' + Math.random().toString(36).substring(2, 6);
+    let room = window.location.hash.substring(1).split('?')[0].trim() || 'lounge-' + Math.random().toString(36).substring(2, 6);
     const peers = {}, dataChannels = {};
 
-    // Web Audio Variables (DSP, Ambience, 3D Spatial HRTF)
+    // Web Audio State
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null, micSource = null, hpFilter = null, whisperNode = null, compressorNode = null;
     let processedDest = null, localAnalyser = null, remoteAnalyser = null;
     let partnerPanner = null, ambGain = null, ambSource = null, activeAmbience = null;
 
-    // Doodle Canvas
+    // Thermal Canvas (Time-Decaying Stroke Engine)
     const doodleCanvas = document.getElementById('doodleCanvas');
     const ctx = doodleCanvas.getContext('2d');
-    let isDoodlingActive = false, isDrawingLocal = false, remoteLastPos = null;
-    let strokes = [];
+    let isDoodlingActive = false, isDrawingLocal = false;
+    let activeStrokes = []; // Elements: { x, y, isNew, color, time }
+    const DISSOLVE_TIME_MS = 3000;
 
-    // Synced Video & YouTube State
+    // Video Engine State
     let ytPlayer = null, isYouTubeMode = false, ytReady = false, isSyncing = false;
     let isCouchMode = false, isFaceToFaceCall = false, lastReactionTime = 0;
     const reactionHistory = [];
@@ -554,7 +582,6 @@
     const remotePip = document.getElementById('remotePip');
     const myVideo = document.getElementById('myVideo');
     const partnerVideo = document.getElementById('partnerVideo');
-    const sunriseOverlay = document.getElementById('sunriseOverlay');
     const remoteAudioSink = document.getElementById('remoteAudioSink');
 
     // Controls & Drawers
@@ -574,7 +601,6 @@
     const subText = document.getElementById('subText');
     const fileBeamBtn = document.getElementById('fileBeamBtn');
     const p2pFileInput = document.getElementById('p2pFileInput');
-    const nudgeBtn = document.getElementById('nudgeBtn');
     const watchDrawerBtn = document.getElementById('watchDrawerBtn');
     const watchDrawer = document.getElementById('watchDrawer');
     const chatBtn = document.getElementById('chatBtn');
@@ -604,16 +630,25 @@
     const rateSelect = document.getElementById('rateSelect');
     const hangupBtn = document.getElementById('hangupBtn');
 
+    // Calling Modal Elements
+    const incomingCallModal = document.getElementById('incomingCallModal');
+    const incomingCallerName = document.getElementById('incomingCallerName');
+    const incomingCallType = document.getElementById('incomingCallType');
+    const acceptCallBtn = document.getElementById('acceptCallBtn');
+    const declineCallBtn = document.getElementById('declineCallBtn');
+    const ringtoneAudio = document.getElementById('ringtoneAudio');
+    let pendingCallData = null;
+
     roomInput.value = room;
     waveCanvas.width = 280;
     waveCanvas.height = 50;
 
-    function resizeDoodleCanvas() {
+    function resizeDoodle() {
       doodleCanvas.width = window.innerWidth;
       doodleCanvas.height = window.innerHeight;
     }
-    window.addEventListener('resize', resizeDoodleCanvas);
-    resizeDoodleCanvas();
+    window.addEventListener('resize', resizeDoodle);
+    resizeDoodle();
 
     const rtcConfig = {
       iceServers: [
@@ -624,7 +659,151 @@
     };
 
     // -------------------------------------------------------------
-    // 1. WEB AUDIO DSP PIPELINE & 3D HRTF SPATIAL AUDIO
+    // PWA SERVICE WORKER & PUSH SUBSCRIPTION ENGINE
+    // -------------------------------------------------------------
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+    }
+
+    async function registerPWAAndPush() {
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.register('/sw.js');
+          if ('PushManager' in window && Notification.permission !== 'denied') {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+              let sub = await reg.pushManager.getSubscription();
+              if (!sub && PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
+                sub = await reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+                });
+              }
+              if (sub) {
+                await fetch('/api/subscribe', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ room, userId: myId || 'user-' + Date.now(), subscription: sub })
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('PWA / Push setup notification:', e);
+        }
+      }
+    }
+
+    // -------------------------------------------------------------
+    // INCOMING & OUTGOING CALL RINGING PIPELINE
+    // -------------------------------------------------------------
+    function triggerCallAlertUI(data) {
+      pendingCallData = data;
+      incomingCallerName.innerText = `Calling from room "${data.room}"`;
+      incomingCallType.innerText = data.callMode === 'audio' ? '🎙️ Incoming Pure Audio Call' : '📹 Incoming Video Call';
+      incomingCallModal.style.display = 'flex';
+
+      ringtoneAudio.currentTime = 0;
+      ringtoneAudio.play().catch(() => {});
+      if (navigator.vibrate) navigator.vibrate([500, 250, 500, 250, 500, 250]);
+    }
+
+    function dismissCallAlertUI() {
+      incomingCallModal.style.display = 'none';
+      ringtoneAudio.pause();
+      ringtoneAudio.currentTime = 0;
+      if (navigator.vibrate) navigator.vibrate(0);
+    }
+
+    acceptCallBtn.onclick = () => {
+      dismissCallAlertUI();
+      if (pendingCallData) {
+        const mode = pendingCallData.callMode || 'video';
+        document.querySelector(`input[name="initialMode"][value="${mode}"]`).checked = true;
+        joinBtn.click();
+      }
+    };
+
+    declineCallBtn.onclick = () => {
+      dismissCallAlertUI();
+      broadcastData({ type: 'CALL_DECLINED' });
+    };
+
+    // -------------------------------------------------------------
+    // 1. AUTO-FADING THERMAL CANVAS (Zero Error Interpolation)
+    // -------------------------------------------------------------
+    doodleBtn.onclick = () => {
+      isDoodlingActive = !isDoodlingActive;
+      doodleBtn.classList.toggle('active-pink', isDoodlingActive);
+      doodleCanvas.classList.toggle('drawing-active', isDoodlingActive);
+    };
+
+    function appendDoodlePoint(x, y, isNew, color = '#ec4899') {
+      activeStrokes.push({ x, y, isNew, color, time: Date.now() });
+    }
+
+    doodleCanvas.addEventListener('pointerdown', (e) => {
+      if (!isDoodlingActive) return;
+      e.preventDefault();
+      isDrawingLocal = true;
+      const nx = e.clientX / window.innerWidth;
+      const ny = e.clientY / window.innerHeight;
+      appendDoodlePoint(e.clientX, e.clientY, true, '#ec4899');
+      broadcastData({ type: 'DOODLE_POINT', x: nx, y: ny, isNew: true, color: '#ec4899' });
+    });
+
+    doodleCanvas.addEventListener('pointermove', (e) => {
+      if (!isDrawingLocal || !isDoodlingActive) return;
+      e.preventDefault();
+      const nx = e.clientX / window.innerWidth;
+      const ny = e.clientY / window.innerHeight;
+      appendDoodlePoint(e.clientX, e.clientY, false, '#ec4899');
+      broadcastData({ type: 'DOODLE_POINT', x: nx, y: ny, isNew: false, color: '#ec4899' });
+    });
+
+    window.addEventListener('pointerup', () => { isDrawingLocal = false; });
+
+    // Real-time dissolution loop
+    function renderThermalLoop() {
+      const now = Date.now();
+      ctx.clearRect(0, 0, doodleCanvas.width, doodleCanvas.height);
+      activeStrokes = activeStrokes.filter(p => now - p.time < DISSOLVE_TIME_MS);
+
+      if (activeStrokes.length > 0) {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 5;
+
+        for (let i = 0; i < activeStrokes.length; i++) {
+          const pt = activeStrokes[i];
+          const opacity = Math.max(0, 1 - ((now - pt.time) / DISSOLVE_TIME_MS));
+
+          ctx.strokeStyle = pt.color === '#ec4899'
+            ? `rgba(236, 72, 153, ${opacity})`
+            : `rgba(56, 189, 248, ${opacity})`;
+
+          if (pt.isNew || i === 0) {
+            ctx.beginPath();
+            ctx.moveTo(pt.x, pt.y);
+            ctx.lineTo(pt.x + 0.1, pt.y + 0.1);
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.moveTo(activeStrokes[i - 1].x, activeStrokes[i - 1].y);
+            ctx.lineTo(pt.x, pt.y);
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(renderThermalLoop);
+    }
+    renderThermalLoop();
+
+    // -------------------------------------------------------------
+    // 2. WEB AUDIO DSP & 3D HRTF SPATIAL AUDIO
     // -------------------------------------------------------------
     function initWebAudio(stream) {
       if (!audioCtx) audioCtx = new AudioContextClass();
@@ -632,18 +811,15 @@
 
       micSource = audioCtx.createMediaStreamSource(stream);
 
-      // High-pass Rumble Filter
       hpFilter = audioCtx.createBiquadFilter();
       hpFilter.type = 'highpass';
       hpFilter.frequency.value = 100;
 
-      // Vocal Presence Peaking Node
       whisperNode = audioCtx.createBiquadFilter();
       whisperNode.type = 'peaking';
       whisperNode.frequency.value = 3500;
       whisperNode.gain.value = 0;
 
-      // Auto Gain Control / Dynamics Compressor
       compressorNode = audioCtx.createDynamicsCompressor();
       compressorNode.threshold.value = -24;
       compressorNode.knee.value = 8;
@@ -716,7 +892,7 @@
     };
 
     // -------------------------------------------------------------
-    // 2. CO-LISTEN AMBIENCE SOUNDSCAPES
+    // 3. PROCEDURAL CO-LISTEN AMBIENT GENERATOR
     // -------------------------------------------------------------
     function stopAmbience() {
       if (ambSource) {
@@ -730,7 +906,7 @@
       activeAmbience = null;
     }
 
-    function createNoiseNode(cutoff = 800) {
+    function createPinkNoise(cutoff = 800) {
       const bufferSize = audioCtx.sampleRate * 2;
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -757,7 +933,7 @@
     rainBtn.onclick = () => {
       if (activeAmbience === 'rain') { stopAmbience(); return; }
       stopAmbience();
-      ambSource = createNoiseNode(900);
+      ambSource = createPinkNoise(900);
       ambGain.gain.setTargetAtTime(0.18, audioCtx.currentTime, 0.3);
       rainBtn.classList.add('active');
       activeAmbience = 'rain';
@@ -766,7 +942,7 @@
     campBtn.onclick = () => {
       if (activeAmbience === 'camp') { stopAmbience(); return; }
       stopAmbience();
-      ambSource = createNoiseNode(420);
+      ambSource = createPinkNoise(420);
       ambGain.gain.setTargetAtTime(0.22, audioCtx.currentTime, 0.3);
       campBtn.classList.add('active');
       activeAmbience = 'camp';
@@ -800,7 +976,7 @@
     };
 
     // -------------------------------------------------------------
-    // 3. VOICE PULSE ANIMATION & CENTER FREQUENCY WAVES
+    // 4. ENERGY DISCS & AUDIO WAVE OSCILLATOR
     // -------------------------------------------------------------
     function startVisualizerLoop() {
       const bufL = new Uint8Array(32);
@@ -847,7 +1023,7 @@
     }
 
     // -------------------------------------------------------------
-    // 4. ACOUSTIC ANALYSIS & REACTION HIGHLIGHTS
+    // 5. ACOUSTIC ANALYSIS & REACTION HIGHLIGHTS
     // -------------------------------------------------------------
     function triggerReactionUI(type, userId) {
       remotePip.classList.add('pip-reacting');
@@ -916,7 +1092,7 @@
     }
 
     // -------------------------------------------------------------
-    // 5. ACCURATE CONTINUOUS LIVE SUBTITLES (NO TRANSLATION LATENCY)
+    // 6. CONTINUOUS ACCURATE LIVE SUBTITLES
     // -------------------------------------------------------------
     if (SpeechRecognition) {
       recognizer = new SpeechRecognition();
@@ -976,7 +1152,7 @@
     }
 
     // -------------------------------------------------------------
-    // 6. WHATSAPP-STYLE P2P CHAT
+    // 7. WHATSAPP-STYLE P2P CHAT
     // -------------------------------------------------------------
     chatBtn.onclick = () => {
       isChatOpen = !isChatOpen;
@@ -1023,7 +1199,7 @@
     }
 
     // -------------------------------------------------------------
-    // 7. YOUTUBE IFRAME & DIRECT MP4 SYNCHRONIZATION
+    // 8. YOUTUBE IFRAME & DIRECT MP4 SYNCHRONIZATION
     // -------------------------------------------------------------
     function extractYouTubeId(url) {
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -1145,7 +1321,7 @@
     };
 
     // -------------------------------------------------------------
-    // 8. DUAL-PIP DRAGGING & INTERACTIONS
+    // 9. DUAL-PIP DRAGGING & INTERACTIONS
     // -------------------------------------------------------------
     function makeDraggable(el) {
       let ox = 0, oy = 0, sx = 0, sy = 0;
@@ -1186,7 +1362,6 @@
       remotePip.style.opacity = op;
     };
 
-    // Double-tap PiP to swap; single-tap to rewind 5s
     let tapTimeout = null;
     remotePip.addEventListener('click', () => {
       if (tapTimeout) {
@@ -1209,7 +1384,7 @@
     });
 
     // -------------------------------------------------------------
-    // 9. SCREEN SHARE, CAMERA FLIP & FACE-TO-FACE MODE
+    // 10. SCREEN SHARING, CAMERA FLIP & FACE-TO-FACE MODE
     // -------------------------------------------------------------
     callModeToggleBtn.onclick = () => {
       toggleCallOnlyMode(!isFaceToFaceCall);
@@ -1356,53 +1531,8 @@
     }
 
     // -------------------------------------------------------------
-    // 10. COLLABORATIVE THERMAL CANVAS & P2P 1GB BEAM
+    // 11. P2P 1GB+ FLOW-CONTROLLED BEAM
     // -------------------------------------------------------------
-    doodleBtn.onclick = () => {
-      isDoodlingActive = !isDoodlingActive;
-      doodleBtn.classList.toggle('active-pink', isDoodlingActive);
-      doodleCanvas.classList.toggle('drawing-active', isDoodlingActive);
-    };
-
-    doodleCanvas.addEventListener('pointerdown', (e) => {
-      if (!isDoodlingActive) return;
-      e.preventDefault();
-      isDrawingLocal = true;
-      const x = e.clientX / window.innerWidth;
-      const y = e.clientY / window.innerHeight;
-      drawPoint(e.clientX, e.clientY, false, '#ec4899');
-      strokes.push({ x: e.clientX, y: e.clientY, t: Date.now() });
-      broadcastData({ type: 'DOODLE_STROKE', state: 'start', x, y, color: '#ec4899' });
-    });
-
-    doodleCanvas.addEventListener('pointermove', (e) => {
-      if (!isDrawingLocal || !isDoodlingActive) return;
-      e.preventDefault();
-      const x = e.clientX / window.innerWidth;
-      const y = e.clientY / window.innerHeight;
-      drawPoint(e.clientX, e.clientY, true, '#ec4899');
-      strokes.push({ x: e.clientX, y: e.clientY, t: Date.now() });
-      broadcastData({ type: 'DOODLE_STROKE', state: 'move', x, y, color: '#ec4899' });
-    });
-
-    window.addEventListener('pointerup', () => {
-      if (isDrawingLocal) {
-        isDrawingLocal = false;
-        ctx.beginPath();
-        broadcastData({ type: 'DOODLE_STROKE', state: 'end' });
-      }
-    });
-
-    function drawPoint(pixelX, pixelY, isMove, color) {
-      ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.strokeStyle = color;
-      if (!isMove) {
-        ctx.beginPath(); ctx.moveTo(pixelX, pixelY); ctx.lineTo(pixelX, pixelY); ctx.stroke();
-      } else {
-        ctx.lineTo(pixelX, pixelY); ctx.stroke();
-      }
-    }
-
     fileBeamBtn.onclick = () => p2pFileInput.click();
     p2pFileInput.onchange = () => {
       const file = p2pFileInput.files[0];
@@ -1444,19 +1574,6 @@
     let incomingMeta = null, incomingChunks = [];
 
     // -------------------------------------------------------------
-    // 11. SMART NUDGE & SUNRISE ALARM
-    // -------------------------------------------------------------
-    function triggerSunrise() {
-      sunriseOverlay.classList.add('rising');
-      if (navigator.vibrate) navigator.vibrate([150, 300, 150, 300, 500]);
-      setTimeout(() => sunriseOverlay.classList.remove('rising'), 18000);
-    }
-    nudgeBtn.onclick = () => {
-      triggerSunrise();
-      broadcastData({ type: 'SUNRISE_ALARM' });
-    };
-
-    // -------------------------------------------------------------
     // 12. WEBRTC SIGNALING & DATA CHANNELS
     // -------------------------------------------------------------
     function broadcastData(obj) {
@@ -1481,20 +1598,8 @@
           showSubtitle(m.speaker, m.text);
         } else if (m.type === 'CHAT_MSG') {
           appendMessage(m.text, false);
-        } else if (m.type === 'DOODLE_STROKE') {
-          const targetX = m.x * window.innerWidth;
-          const targetY = m.y * window.innerHeight;
-          if (m.state === 'start') {
-            remoteLastPos = { x: targetX, y: targetY };
-            drawPoint(targetX, targetY, false, m.color || '#38bdf8');
-          } else if (m.state === 'move') {
-            if (!remoteLastPos) ctx.beginPath();
-            drawPoint(targetX, targetY, true, m.color || '#38bdf8');
-            remoteLastPos = { x: targetX, y: targetY };
-          } else if (m.state === 'end') {
-            ctx.beginPath();
-            remoteLastPos = null;
-          }
+        } else if (m.type === 'DOODLE_POINT') {
+          appendDoodlePoint(m.x * window.innerWidth, m.y * window.innerHeight, m.isNew, m.color || '#38bdf8');
         } else if (m.type === 'LOAD_MEDIA') {
           if (m.isYT && m.ytId) loadYouTubeVideo(m.ytId);
           else loadNativeVideo(m.url);
@@ -1534,8 +1639,8 @@
           triggerReactionUI(m.rType, 'Partner');
         } else if (m.type === 'BOOKMARK_MOMENT') {
           triggerReactionUI('bookmark', 'Partner');
-        } else if (m.type === 'SUNRISE_ALARM') {
-          triggerSunrise();
+        } else if (m.type === 'CALL_DECLINED') {
+          alert('Call was declined.');
         } else if (m.type === 'REMOTE_CAM_STATE') {
           partnerVideo.style.display = m.enabled ? 'block' : 'none';
         } else if (m.type === 'FILE_START') {
@@ -1554,6 +1659,7 @@
       const data = JSON.parse(e.data);
       if (data.type === 'room-info') {
         myId = data.myId;
+        registerPWAAndPush();
         data.peers.forEach(pId => createPeerConnection(pId, true));
       } else if (data.type === 'offer') {
         const pc = createPeerConnection(data.sender, false);
@@ -1572,6 +1678,8 @@
         partnerAudioName.innerText = 'Partner Left';
         partnerAudioBadge.innerText = 'Disconnected';
         partnerVideo.srcObject = null;
+      } else if (data.type === 'INCOMING_CALL_ALERT') {
+        triggerCallAlertUI(data);
       }
     };
 
@@ -1651,7 +1759,6 @@
 
         initWebAudio(localStream);
 
-        // Stage setup
         if (isAudioOnlyMode) {
           audioStage.style.display = 'flex';
           mainVideoContainer.style.display = 'none';
@@ -1674,10 +1781,28 @@
 
         lobbyModal.style.display = 'none';
         ws.send(JSON.stringify({ room, type: 'join' }));
+
+        // Ring any device in the room or trigger push
+        fetch('/api/ring-call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ room, callerId: myId, callMode: isAudioOnlyMode ? 'audio' : 'video' })
+        }).catch(() => {});
+
       } catch (err) {
         alert('Microphone access is required: ' + err.message);
       }
     };
+
+    // Auto-join if user tapped "Answer" from native lock screen notification
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('autoAnswer') === 'true') {
+        const mode = urlParams.get('mode') || 'video';
+        document.querySelector(`input[name="initialMode"][value="${mode}"]`).checked = true;
+        setTimeout(() => joinBtn.click(), 400);
+      }
+    });
 
     muteMicBtn.onclick = () => {
       if (!localStream) return;
