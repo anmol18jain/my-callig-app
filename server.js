@@ -71,7 +71,8 @@ app.post('/api/push-ring', async (req, res) => {
   res.status(200).json({ status: 'dispatched' });
 });
 
-app.get('*', (req, res) => {
+
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
