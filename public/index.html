@@ -14,54 +14,162 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    /* CSS Remains Exactly The Same as your Ultimate Edition */
-    :root { --bg: #09090b; --card: #121215; --border: #232328; --accent: #6366f1; --accent-glow: rgba(99, 102, 241, 0.35); --green: #22c55e; --pink: #ec4899; --amber: #f59e0b; --red: #ef4444; --text: #f4f4f5; --text-dim: #71717a; }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
-    body { width: 100vw; height: 100dvh; background: var(--bg); color: var(--text); overflow: hidden; display: flex; flex-direction: column; }
-    #earBlackoutShield { display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000; z-index: 99999; touch-action: none; }
-    .top-bar { height: 52px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: rgba(9, 9, 11, 0.92); backdrop-filter: blur(14px); z-index: 60; }
-    .status-pill { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; background: var(--card); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); }
+    :root {
+      --bg: #09090b; --card: #121215; --border: #232328; --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.35); --green: #22c55e; --pink: #ec4899;
+      --amber: #f59e0b; --red: #ef4444; --text: #f4f4f5; --text-dim: #71717a;
+    }
+    * {
+      box-sizing: border-box; margin: 0; padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    body {
+      width: 100vw; height: 100dvh; background: var(--bg); color: var(--text);
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+
+    #earBlackoutShield {
+      display: none; position: fixed; inset: 0; width: 100vw; height: 100vh;
+      background: #000; z-index: 99999; touch-action: none;
+    }
+
+    .top-bar {
+      height: 52px; padding: 0 16px; display: flex; align-items: center;
+      justify-content: space-between; border-bottom: 1px solid var(--border);
+      background: rgba(9, 9, 11, 0.92); backdrop-filter: blur(14px); z-index: 60;
+    }
+    .status-pill {
+      display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;
+      background: var(--card); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
+    }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
-    .btn-pill { background: none; border: 1px solid var(--border); color: #38bdf8; font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 12px; cursor: pointer; }
-    .viewport-container { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-    #audioStage { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; position: absolute; inset: 0; z-index: 10; }
-    .audio-mesh-grid { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 28px; padding: 20px; width: 100%; max-width: 600px; }
+    .btn-pill {
+      background: none; border: 1px solid var(--border); color: #38bdf8;
+      font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 12px; cursor: pointer;
+    }
+
+    .viewport-container {
+      flex: 1; position: relative; overflow: hidden; display: flex;
+      align-items: center; justify-content: center;
+    }
+
+    #audioStage {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      width: 100%; height: 100%; position: absolute; inset: 0; z-index: 10;
+    }
+    .audio-mesh-grid {
+      display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+      gap: 28px; padding: 20px; width: 100%; max-width: 600px;
+    }
     .avatar-card { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .avatar-disc { width: 95px; height: 95px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #27272a, #121215); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 38px; position: relative; transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+    .avatar-disc {
+      width: 95px; height: 95px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #27272a, #121215);
+      border: 2px solid var(--border); display: flex; align-items: center;
+      justify-content: center; font-size: 38px; position: relative;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
     .avatar-disc.speaking { border-color: var(--accent); box-shadow: 0 0 32px var(--accent-glow); transform: scale(1.08); }
-    #waveCanvas { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); width: 280px; height: 50px; pointer-events: none; opacity: 0.85; }
-    #mainVideoContainer { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 15; }
+    #waveCanvas {
+      position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+      width: 280px; height: 50px; pointer-events: none; opacity: 0.85;
+    }
+
+    #mainVideoContainer {
+      position: absolute; inset: 0; background: #000; display: flex;
+      align-items: center; justify-content: center; z-index: 15;
+    }
     #mainPlayer, #ytPlayer { width: 100%; height: 100%; object-fit: contain; }
     #ytWrapper { width: 100%; height: 100%; display: none; }
-    #videoMeshGrid { position: absolute; inset: 0; padding: 8px; display: none; gap: 8px; z-index: 25; grid-template-columns: 1fr; grid-template-rows: 1fr; }
-    .video-tile { position: relative; border-radius: 16px; overflow: hidden; background: #121215; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+
+    #videoMeshGrid {
+      position: absolute; inset: 0; padding: 8px; display: none;
+      gap: 8px; z-index: 25; grid-template-columns: 1fr; grid-template-rows: 1fr;
+    }
+    .video-tile {
+      position: relative; border-radius: 16px; overflow: hidden; background: #121215;
+      border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    }
     .video-tile video { width: 100%; height: 100%; object-fit: cover; }
     .video-tile video.mirror { transform: scaleX(-1); }
-    .tile-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-    .pip-box { position: absolute; width: 110px; height: 146px; border-radius: 14px; overflow: hidden; background: #18181b; border: 2px solid #3f3f46; box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 45; cursor: grab; touch-action: none; transition: box-shadow 0.2s, border-color 0.2s, opacity 0.2s; }
+    .tile-label {
+      position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7);
+      padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    }
+
+    .pip-box {
+      position: absolute; width: 110px; height: 146px; border-radius: 14px;
+      overflow: hidden; background: #18181b; border: 2px solid #3f3f46;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 45; cursor: grab; touch-action: none;
+    }
     .pip-box video { width: 100%; height: 100%; object-fit: cover; }
     .pip-box video.mirror-mode { transform: scaleX(-1); }
-    .pip-label { position: absolute; bottom: 4px; left: 6px; background: rgba(0,0,0,0.7); padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+    .pip-label {
+      position: absolute; bottom: 4px; left: 6px; background: rgba(0,0,0,0.7);
+      padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;
+    }
     .pip-reacting { border-color: #00ffa3 !important; box-shadow: 0 0 25px rgba(0, 255, 163, 0.85) !important; }
     .couch-mode-local { left: 8% !important; bottom: 88px !important; width: 140px !important; height: 105px !important; }
     .couch-mode-remote { left: 54% !important; bottom: 88px !important; width: 140px !important; height: 105px !important; }
-    #doodleCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; touch-action: none; z-index: 50; }
+
+    #doodleCanvas {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      pointer-events: none; touch-action: none; z-index: 50;
+    }
     #doodleCanvas.drawing-active { pointer-events: auto !important; }
-    #subtitlesBanner { position: fixed; bottom: 84px; left: 16px; right: 16px; background: rgba(18, 18, 22, 0.92); border: 1px solid var(--border); border-radius: 14px; padding: 10px 16px; text-align: center; backdrop-filter: blur(14px); display: none; z-index: 70; box-shadow: 0 8px 30px rgba(0,0,0,0.6); max-width: 550px; margin: 0 auto; }
+
+    #subtitlesBanner {
+      position: fixed; bottom: 84px; left: 16px; right: 16px;
+      background: rgba(18, 18, 22, 0.92); border: 1px solid var(--border);
+      border-radius: 14px; padding: 10px 16px; text-align: center;
+      backdrop-filter: blur(14px); display: none; z-index: 70; max-width: 550px; margin: 0 auto;
+    }
     .sub-speaker { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
     .sub-text { font-size: 14px; font-weight: 500; color: #fde047; line-height: 1.4; }
-    .reaction-burst-box { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); font-size: 54px; pointer-events: none; z-index: 85; animation: popBurst 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
-    @keyframes popBurst { 0% { transform: translate(-50%, 0) scale(0.3); opacity: 0; } 20% { transform: translate(-50%, -40px) scale(1.4); opacity: 1; } 80% { transform: translate(-50%, -120px) scale(1.0); opacity: 1; } 100% { transform: translate(-50%, -180px) scale(0.6); opacity: 0; } }
-    .controls-dock { height: 74px; padding: 0 14px max(10px, env(safe-area-inset-bottom)); display: none; align-items: center; justify-content: flex-start; gap: 8px; background: rgba(9, 9, 11, 0.94); border-top: 1px solid var(--border); z-index: 60; backdrop-filter: blur(14px); overflow-x: auto; scrollbar-width: none; }
+
+    .reaction-burst-box {
+      position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+      font-size: 54px; pointer-events: none; z-index: 85;
+      animation: popBurst 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    }
+    @keyframes popBurst {
+      0% { transform: translate(-50%, 0) scale(0.3); opacity: 0; }
+      20% { transform: translate(-50%, -40px) scale(1.4); opacity: 1; }
+      80% { transform: translate(-50%, -120px) scale(1.0); opacity: 1; }
+      100% { transform: translate(-50%, -180px) scale(0.6); opacity: 0; }
+    }
+
+    .controls-dock {
+      height: 74px; padding: 0 14px max(10px, env(safe-area-inset-bottom));
+      display: none; align-items: center; justify-content: flex-start; gap: 8px;
+      background: rgba(9, 9, 11, 0.94); border-top: 1px solid var(--border);
+      z-index: 60; backdrop-filter: blur(14px); overflow-x: auto; scrollbar-width: none;
+    }
     .controls-dock::-webkit-scrollbar { display: none; }
-    .c-btn { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; transition: transform 0.15s ease, background 0.2s ease; }
+    .c-btn {
+      width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-size: 17px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; position: relative;
+      flex-shrink: 0; transition: transform 0.15s ease, background 0.2s ease;
+    }
     .c-btn:active { transform: scale(0.9); }
     .c-btn.active-blue { background: #0284c7 !important; border-color: #38bdf8 !important; }
     .c-btn.active-pink { background: var(--pink) !important; border-color: #f472b6 !important; }
     .c-btn.active-amber { background: #d97706 !important; border-color: #fbbf24 !important; }
     .c-btn-end { background: var(--red) !important; border-color: #dc2626 !important; }
-    .badge-counter { position: absolute; top: -3px; right: -3px; width: 18px; height: 18px; background: var(--pink); border-radius: 50%; font-size: 10px; font-weight: bold; display: none; align-items: center; justify-content: center; }
-    #chatDrawer { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 360px; background: #111114; border-left: 1px solid var(--border); z-index: 100; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+    .badge-counter {
+      position: absolute; top: -3px; right: -3px; width: 18px; height: 18px;
+      background: var(--pink); border-radius: 50%; font-size: 10px; font-weight: bold;
+      display: none; align-items: center; justify-content: center;
+    }
+
+    #chatDrawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 360px;
+      background: #111114; border-left: 1px solid var(--border); z-index: 100;
+      display: flex; flex-direction: column; transform: translateX(100%);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
     #chatDrawer.open { transform: translateX(0); }
     .chat-header { height: 52px; padding: 0 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
     .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -71,26 +179,57 @@
     .chat-sender { font-size: 10px; font-weight: 700; color: #38bdf8; margin-bottom: 2px; }
     .chat-input-bar { padding: 10px 14px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); display: flex; gap: 8px; background: #18181b; }
     .chat-input { flex: 1; height: 38px; background: #27272a; border: 1px solid var(--border); border-radius: 19px; color: white; padding: 0 14px; font-size: 13px; outline: none; }
-    .chat-send-btn { width: 38px; height: 38px; border-radius: 50%; border: none; background: #00a884; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; }
-    #soundstageDrawer { position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%); width: calc(100% - 24px); max-width: 440px; background: rgba(18, 18, 22, 0.96); border: 1px solid var(--border); border-radius: 20px; padding: 16px; backdrop-filter: blur(16px); z-index: 90; display: none; flex-direction: column; gap: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+    .chat-send-btn { width: 38px; height: 38px; border-radius: 50%; border: none; background: #00a884; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    #soundstageDrawer {
+      position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 24px); max-width: 440px; background: rgba(18, 18, 22, 0.96);
+      border: 1px solid var(--border); border-radius: 20px; padding: 16px;
+      backdrop-filter: blur(16px); z-index: 90; display: none; flex-direction: column; gap: 12px;
+    }
     .stage-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
     .amb-chip { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 10px; font-size: 12px; cursor: pointer; }
-    .amb-chip.active { background: var(--accent); border-color: var(--accent); }
-    #watchDrawer { position: fixed; bottom: 82px; left: 0; right: 0; background: rgba(18, 18, 22, 0.97); backdrop-filter: blur(14px); padding: 14px 16px; border-top: 1px solid var(--border); display: none; flex-direction: column; gap: 10px; z-index: 90; }
+    .amb-chip.active { background: var(--accent); }
+
+    #watchDrawer {
+      position: fixed; bottom: 82px; left: 0; right: 0;
+      background: rgba(18, 18, 22, 0.97); backdrop-filter: blur(14px);
+      padding: 14px 16px; border-top: 1px solid var(--border); display: none;
+      flex-direction: column; gap: 10px; z-index: 90;
+    }
     #watchDrawer input, #watchDrawer select { padding: 8px 12px; background: #27272a; border: 1px solid var(--border); border-radius: 8px; color: white; outline: none; font-size: 13px; }
-    .app-modal { position: fixed; inset: 15% 10%; background: #18181b; border: 1px solid var(--border); border-radius: 20px; display: none; flex-direction: column; padding: 20px; z-index: 1000; box-shadow: 0 0 35px rgba(0,0,0,0.8); }
+
+    .app-modal {
+      position: fixed; inset: 15% 10%; background: #18181b; border: 1px solid var(--border);
+      border-radius: 20px; display: none; flex-direction: column; padding: 20px; z-index: 1000;
+    }
     .app-modal-list { flex: 1; overflow-y: auto; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
     .modal-item { background: #27272a; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-    #incomingCallModal { display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.97); backdrop-filter: blur(20px); z-index: 4000; flex-direction: column; align-items: center; justify-content: space-around; padding: 60px 20px; }
-    .pulse-avatar { width: 115px; height: 115px; border-radius: 50%; background: #1f1f23; border: 3px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 46px; animation: callPulse 1.5s infinite; }
-    @keyframes callPulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6); } 70% { transform: scale(1.06); box-shadow: 0 0 0 24px rgba(99, 102, 241, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); } }
-    
-    /* Contacts Screen UI */
-    #contactsScreen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; padding: 20px 16px; }
+
+    #incomingCallModal {
+      display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.97);
+      backdrop-filter: blur(20px); z-index: 4000; flex-direction: column;
+      align-items: center; justify-content: space-around; padding: 60px 20px;
+    }
+    .pulse-avatar {
+      width: 115px; height: 115px; border-radius: 50%; background: #1f1f23;
+      border: 3px solid var(--accent); display: flex; align-items: center;
+      justify-content: center; font-size: 46px; animation: callPulse 1.5s infinite;
+    }
+    @keyframes callPulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6); }
+      70% { transform: scale(1.06); box-shadow: 0 0 0 24px rgba(99, 102, 241, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+    }
+
+    #contactsScreen {
+      position: fixed; inset: 0; background: var(--bg); z-index: 2000;
+      display: flex; flex-direction: column; padding: 20px 16px;
+    }
     .contacts-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .user-profile-badge { display: flex; align-items: center; gap: 10px; }
     .user-avatar { width: 44px; height: 44px; border-radius: 50%; background: #27272a; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-    .contact-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; transition: border-color 0.2s; }
+    .contact-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .contact-card.selected { border-color: var(--accent); background: rgba(99, 102, 241, 0.1); }
     .contact-info { display: flex; align-items: center; gap: 12px; }
     .contact-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-dim); }
@@ -99,9 +238,18 @@
     .action-call-btn { width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; }
     .btn-audio-call { background: #27272a; color: #fff; }
     .btn-video-call { background: #0284c7; color: #fff; }
-    #groupCallBar { display: none; position: fixed; bottom: 20px; left: 16px; right: 16px; background: #1e1e24; border: 1px solid var(--accent); border-radius: 20px; padding: 12px 18px; align-items: center; justify-content: space-between; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 2500; }
+
+    #groupCallBar {
+      display: none; position: fixed; bottom: 20px; left: 16px; right: 16px;
+      background: #1e1e24; border: 1px solid var(--accent); border-radius: 20px;
+      padding: 12px 18px; align-items: center; justify-content: space-between; z-index: 2500;
+    }
     .group-btn { padding: 8px 16px; border-radius: 14px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-    .app-popup-modal { display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.95); z-index: 3500; align-items: center; justify-content: center; padding: 20px; }
+
+    .app-popup-modal {
+      display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.95);
+      z-index: 3500; align-items: center; justify-content: center; padding: 20px;
+    }
     .popup-box { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 26px 20px; width: 100%; max-width: 320px; text-align: center; }
     .popup-box input { width: 100%; height: 44px; background: #27272a; border: 1px solid var(--border); border-radius: 12px; color: white; text-align: center; margin: 14px 0; outline: none; font-size: 14px; font-weight: 600; }
     .popup-box button { width: 100%; height: 44px; border-radius: 22px; border: none; background: var(--accent); color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
@@ -155,7 +303,7 @@
 
     <div class="pip-box" id="remotePip" style="top: 65px; left: 16px;">
       <video id="partnerVideo" autoplay playsinline></video>
-      <span class="pip-label" id="partnerPipLabel">Partner</span>
+      <span class="pip-label" id="partnerPipLabel">Remote</span>
     </div>
 
     <div id="subtitlesBanner">
@@ -175,7 +323,7 @@
       </div>
     </div>
     <div class="stage-row">
-      <span>3D Partner Ear Position</span>
+      <span>3D Ear Panning</span>
       <select id="pannerSelect" style="background:#27272a; color:#fff; border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px; outline:none;">
         <option value="center">Center</option>
         <option value="left">Left Ear</option>
@@ -326,15 +474,22 @@
     const VAPID_PUBLIC_KEY = 'YOUR_PUBLIC_VAPID_KEY_HERE';
 
     // ==============================================================
-    // 1. STATE INITIALIZATION (CLEAN SLATE FIX: NO MORE "PARTNER")
+    // 1. STATE & GHOST "PARTNER" ELIMINATION
     // ==============================================================
-    let ws;
+    let ws = null;
     let wsReconnectTimer = null;
     let myUsername = localStorage.getItem('lounge_username');
-    
-    // THE FIX: Defaults to empty [] instead of ['Partner']
-    let myContacts = JSON.parse(localStorage.getItem('lounge_saved_contacts')) || [];
-    
+
+    // Purge phantom "Partner" if stored in username or contacts
+    if (myUsername && myUsername.toLowerCase() === 'partner') {
+      localStorage.removeItem('lounge_username');
+      myUsername = null;
+    }
+
+    let rawSavedContacts = JSON.parse(localStorage.getItem('lounge_saved_contacts')) || [];
+    let myContacts = rawSavedContacts.filter(c => c && c.toLowerCase() !== 'partner');
+    localStorage.setItem('lounge_saved_contacts', JSON.stringify(myContacts));
+
     let selectedContacts = new Set();
     let currentSessionToken = null;
     let callParticipants = [];
@@ -345,7 +500,7 @@
     const peerConnections = {};
     const dataChannels = {};
     const remoteMediaElements = {};
-    const iceCandidateQueues = {}; // FIX: Queues ICE candidates until Remote Description is fully set
+    const iceCandidateQueues = {};
 
     let localStream = null, processedAudioTrack = null;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -363,7 +518,7 @@
     let recognizer = null, isSubsActive = false, shouldKeepListening = false;
     let unreadCount = 0, isChatOpen = false;
 
-    // DOM Element Lookups
+    // DOM Elements
     const contactsScreen = document.getElementById('contactsScreen');
     const contactsListContainer = document.getElementById('contactsListContainer');
     const myUsernameDisplay = document.getElementById('myUsernameDisplay');
@@ -452,15 +607,28 @@
     window.addEventListener('resize', () => { doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight; });
     doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight;
 
+    // ==============================================================
+    // 2. STUN + FULL TURN RELAY (Fixes Cellular 4G/5G & Strict Wi-Fi)
+    // ==============================================================
     const rtcConfig = {
       iceServers: [
-        { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
-        { urls: 'stun:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' }
-      ]
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        {
+          urls: [
+            'turn:standard.relay.metered.ca:80',
+            'turn:standard.relay.metered.ca:443',
+            'turn:standard.relay.metered.ca:443?transport=tcp'
+          ],
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
+      ],
+      iceCandidatePoolSize: 10
     };
 
     // ==============================================================
-    // 2. WEBSOCKET ENGINE (SAFE RECONNECT)
+    // 3. AUTO-RECONNECTING WEBSOCKET (Render.com Keep-Alive)
     // ==============================================================
     function connectWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -473,16 +641,21 @@
 
       ws.onmessage = async (e) => {
         const data = JSON.parse(e.data);
+
         if (data.type === 'CONTACT_UPDATE') {
           renderContactsList(data.contacts);
         } else if (data.type === 'INCOMING_CALL') {
           showIncomingCallScreen(data);
-        } else if (data.type === 'PEER_ENTERED_SESSION') {
-          createMeshPeerConnection(data.peerName, true);
+        } else if (data.type === 'CALL_ACCEPTED_BY_PEER') {
+          // Callee answered and has camera running -> start WebRTC Offer
+          const pc = createMeshPeerConnection(data.from, true);
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          ws.send(JSON.stringify({ target: data.from, type: 'OFFER', payload: offer }));
         } else if (data.type === 'OFFER') {
+          // Callee receives offer with local media already activated
           const pc = createMeshPeerConnection(data.sender, false);
           await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
-          // FIX: Process any ICE candidates that arrived before the RemoteDescription was ready
           if (iceCandidateQueues[data.sender]) {
             iceCandidateQueues[data.sender].forEach(c => pc.addIceCandidate(c));
             iceCandidateQueues[data.sender] = [];
@@ -505,7 +678,6 @@
           if (pc && pc.remoteDescription && pc.remoteDescription.type) {
             pc.addIceCandidate(candidate);
           } else {
-            // Queue it safely
             if (!iceCandidateQueues[data.sender]) iceCandidateQueues[data.sender] = [];
             iceCandidateQueues[data.sender].push(candidate);
           }
@@ -519,38 +691,8 @@
     connectWebSocket();
 
     // ==============================================================
-    // 3. PUSH NOTIFICATIONS & REGISTRATION
+    // 4. USER REGISTRATION & CONTACTS
     // ==============================================================
-    function urlBase64ToUint8Array(base64String) {
-      const padding = '='.repeat((4 - base64String.length % 4) % 4);
-      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-      const rawData = window.atob(base64);
-      return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
-    }
-
-    async function armPushNotifications() {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-      try {
-        const reg = await navigator.serviceWorker.register('/sw.js');
-        await navigator.serviceWorker.ready;
-        const perm = await Notification.requestPermission();
-        if (perm !== 'granted') return;
-
-        let sub = await reg.pushManager.getSubscription();
-        if (!sub && VAPID_PUBLIC_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-          });
-        }
-        if (sub && myUsername) {
-          await fetch('/api/register-push', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: myUsername, subscription: sub })
-          });
-        }
-      } catch (err) {}
-    }
-
     function setupUserIdentity() {
       if (!myUsername) {
         loginModal.style.display = 'flex';
@@ -567,6 +709,10 @@
     saveUsernameBtn.onclick = () => {
       const val = loginUsernameInput.value.trim();
       if (!val) return;
+      if (val.toLowerCase() === 'partner') {
+        alert("Please choose your actual name (e.g., Ashirvad, Rohit, etc.), not 'Partner'.");
+        return;
+      }
       myUsername = val;
       localStorage.setItem('lounge_username', myUsername);
       setupUserIdentity();
@@ -579,7 +725,9 @@
     };
 
     function registerServer() {
-      if (ws.readyState === 1 && myUsername) ws.send(JSON.stringify({ type: 'REGISTER', username: myUsername }));
+      if (ws && ws.readyState === 1 && myUsername) {
+        ws.send(JSON.stringify({ type: 'REGISTER', username: myUsername }));
+      }
     }
 
     openAddContactBtn.onclick = () => {
@@ -592,6 +740,7 @@
       const name = newPersonInput.value.trim();
       if (!name) return;
       if (name.toLowerCase() === myUsername.toLowerCase()) return alert("You cannot add yourself!");
+      if (name.toLowerCase() === 'partner') return alert("Enter the contact's actual username, not 'Partner'.");
       if (!myContacts.includes(name)) {
         myContacts.push(name);
         localStorage.setItem('lounge_saved_contacts', JSON.stringify(myContacts));
@@ -615,7 +764,11 @@
       contactsListContainer.innerHTML = '';
 
       if (myContacts.length === 0) {
-        contactsListContainer.innerHTML = `<div style="text-align:center; color:var(--text-dim); margin-top:40px; font-size:13px;">No contacts saved yet.<br>Tap <b>+ Add Person</b>.</div>`;
+        contactsListContainer.innerHTML = `
+          <div style="text-align:center; color:var(--text-dim); margin-top:40px; font-size:13px;">
+            No contacts saved yet.<br>Tap <b>+ Add Person</b> in the top right.
+          </div>
+        `;
         return;
       }
 
@@ -630,7 +783,7 @@
             <div class="contact-dot ${isOnline ? 'online' : ''}"></div>
             <div>
               <div style="font-size:15px; font-weight:600;">${name}</div>
-              <div style="font-size:11px; color:${isOnline ? 'var(--green)' : 'var(--text-dim)'};">${isOnline ? 'Active Now' : 'Offline (Push Alert)'}</div>
+              <div style="font-size:11px; color:${isOnline ? 'var(--green)' : 'var(--text-dim)'};">${isOnline ? 'Active Now' : 'Offline'}</div>
             </div>
           </div>
           <div class="call-actions">
@@ -653,7 +806,7 @@
     function updateGroupBar() {
       const count = selectedContacts.size;
       if (count > 0) {
-        groupCallBar.style.display = 'flex'; groupBarText.innerText = `${count} person${count > 1 ? 's' : ''} selected`;
+        groupCallBar.style.display = 'flex'; groupBarText.innerText = `${count} selected`;
       } else groupCallBar.style.display = 'none';
     }
 
@@ -661,23 +814,34 @@
     document.getElementById('startGroupVideoBtn').onclick = () => initiateCall(Array.from(selectedContacts), 'video');
 
     // ==============================================================
-    // 4. CALL INITIATION & WEBRTC ENGINE
+    // 5. CALL INITIATION & SYNCHRONIZED WEBRTC
     // ==============================================================
     async function initiateCall(targets, mode) {
       isAudioOnly = mode === 'audio';
       currentSessionToken = 'session-' + Math.random().toString(36).substring(2, 7);
       callParticipants = [myUsername, ...targets];
+
       await startMediaHardware(isAudioOnly);
       enterCallStage(targets.join(', '));
-      ws.send(JSON.stringify({ type: 'CALL_TARGETS', targets: targets, callMode: mode, sessionToken: currentSessionToken }));
-      fetch('/api/push-ring', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from: myUsername, targets, callMode: mode, sessionToken: currentSessionToken }) }).catch(()=>{});
-      targets.forEach(targetUser => createMeshPeerConnection(targetUser, true));
+
+      ws.send(JSON.stringify({
+        type: 'CALL_TARGETS',
+        targets: targets,
+        callMode: mode,
+        sessionToken: currentSessionToken
+      }));
+
+      fetch('/api/push-ring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: myUsername, targets, callMode: mode, sessionToken: currentSessionToken })
+      }).catch(()=>{});
     }
 
     let pendingCallDetails = null;
     function showIncomingCallScreen(data) {
       pendingCallDetails = data;
-      incomingCallerName.innerText = `${data.from} ${data.allParticipants && data.allParticipants.length > 2 ? `+ ${data.allParticipants.length - 2} others` : ''}`;
+      incomingCallerName.innerText = `${data.from}`;
       incomingCallType.innerText = data.callMode === 'audio' ? '🎙️ Incoming Audio Call' : '📹 Incoming Video Call';
       incomingCallModal.style.display = 'flex';
       ringtoneAudio.currentTime = 0; ringtoneAudio.play().catch(()=>{});
@@ -687,15 +851,22 @@
     acceptCallBtn.onclick = async () => {
       dismissRinging();
       if (!pendingCallDetails) return;
+
       isAudioOnly = pendingCallDetails.callMode === 'audio';
       currentSessionToken = pendingCallDetails.sessionToken;
-      // FIX: Ensure no duplicate user names inside participants array
       const pureParticipants = pendingCallDetails.allParticipants || [pendingCallDetails.from];
       callParticipants = Array.from(new Set([myUsername, ...pureParticipants]));
 
+      // 1. Turn on Callee media first
       await startMediaHardware(isAudioOnly);
       enterCallStage(`Lounge (${callParticipants.length})`);
-      ws.send(JSON.stringify({ type: 'JOIN_CALL_SESSION', sessionToken: currentSessionToken, participants: callParticipants }));
+
+      // 2. Signal Caller that Callee is ready for the offer
+      ws.send(JSON.stringify({
+        type: 'CALL_ACCEPTED',
+        target: pendingCallDetails.from,
+        sessionToken: currentSessionToken
+      }));
     };
 
     declineCallBtn.onclick = () => { dismissRinging(); pendingCallDetails = null; };
@@ -709,19 +880,32 @@
       try {
         if (!audioOnly) {
           try {
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } } });
+            localStream = await navigator.mediaDevices.getUserMedia({
+              audio: { echoCancellation: true, noiseSuppression: true },
+              video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } }
+            });
           } catch (e) {
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); isAudioOnly = true;
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            isAudioOnly = true;
           }
-        } else localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        } else {
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        }
 
         initWebAudioDSP(localStream);
-        myVideo.srcObject = localStream; myMeshVideo.srcObject = localStream;
-      } catch (err) { alert('Permission required: ' + err.message); }
+        myVideo.srcObject = localStream;
+        myMeshVideo.srcObject = localStream;
+      } catch (err) {
+        alert('Permission required: ' + err.message);
+      }
     }
 
     function enterCallStage(title) {
-      isCallActive = true; contactsScreen.style.display = 'none'; controlsDock.style.display = 'flex'; callSessionTitle.innerText = title;
+      isCallActive = true;
+      contactsScreen.style.display = 'none';
+      controlsDock.style.display = 'flex';
+      callSessionTitle.innerText = title;
+
       if (isAudioOnly) {
         audioStage.style.display = 'flex'; mainVideoContainer.style.display = 'none'; videoMeshGrid.style.display = 'none';
         localPip.style.display = 'none'; remotePip.style.display = 'none'; camFlipBtn.style.display = 'none'; camToggleBtn.style.display = 'none';
@@ -736,21 +920,27 @@
       if (peerConnections[remotePeerName]) return peerConnections[remotePeerName];
       const pc = new RTCPeerConnection(rtcConfig);
       peerConnections[remotePeerName] = pc;
-      iceCandidateQueues[remotePeerName] = []; // Reset queue
+      iceCandidateQueues[remotePeerName] = [];
 
       if (processedAudioTrack) pc.addTrack(processedAudioTrack, localStream);
-      if (localStream && !isAudioOnly) localStream.getVideoTracks().forEach(t => pc.addTrack(t, localStream));
+      if (localStream && !isAudioOnly) {
+        localStream.getVideoTracks().forEach(t => pc.addTrack(t, localStream));
+      }
 
       if (isInitiator) {
-        const dc = pc.createDataChannel('groupMeshChannel'); setupDataChannel(remotePeerName, dc);
-        pc.onnegotiationneeded = async () => {
-          const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-          ws.send(JSON.stringify({ target: remotePeerName, type: 'OFFER', payload: offer }));
-        };
-      } else pc.ondatachannel = (e) => setupDataChannel(remotePeerName, e.channel);
+        const dc = pc.createDataChannel('groupMeshChannel');
+        setupDataChannel(remotePeerName, dc);
+      } else {
+        pc.ondatachannel = (e) => setupDataChannel(remotePeerName, e.channel);
+      }
 
       pc.ontrack = (evt) => setupRemoteParticipantMedia(remotePeerName, evt.streams[0], evt.track.kind);
-      pc.onicecandidate = (e) => { if (e.candidate) ws.send(JSON.stringify({ target: remotePeerName, type: 'CANDIDATE', payload: e.candidate })); };
+      pc.onicecandidate = (e) => {
+        if (e.candidate && ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ target: remotePeerName, type: 'CANDIDATE', payload: e.candidate }));
+        }
+      };
+
       return pc;
     }
 
@@ -772,7 +962,8 @@
       const elements = remoteMediaElements[peerName];
       if (kind === 'video') {
         const vid = elements.videoTile.querySelector('video'); vid.srcObject = stream;
-        partnerVideo.srcObject = stream; document.getElementById('partnerPipLabel').innerText = peerName;
+        partnerVideo.srcObject = stream;
+        document.getElementById('partnerPipLabel').innerText = peerName;
       }
       if (kind === 'audio') setupRemoteSpatialAudio(stream);
     }
@@ -787,9 +978,14 @@
     window.addEventListener('resize', updateVideoGridLayout);
 
     // ==============================================================
-    // 5. APP FEATURES (Chat, Canvas, Media Sync, Filters)
+    // 6. SUITE SUBLIME FEATURES (Watch Party, Doodles, Chat, Subs)
     // ==============================================================
-    function multicastData(obj) { const payload = JSON.stringify(obj); Object.values(dataChannels).forEach(dc => { if (dc.readyState === 'open') dc.send(payload); }); }
+    function multicastData(obj) {
+      const payload = JSON.stringify(obj);
+      Object.values(dataChannels).forEach(dc => {
+        if (dc.readyState === 'open') dc.send(payload);
+      });
+    }
 
     let incomingMeta = null, incomingChunks = [];
     function setupDataChannel(peerName, dc) {
@@ -1046,7 +1242,8 @@
           const barWidth = 4, gap = 3, count = 28; const startX = (waveCanvas.width - (count * (barWidth + gap))) / 2;
           for (let i = 0; i < count; i++) {
             const factor = Math.sin((i / count) * Math.PI); const height = Math.min(46, Math.max(4, (lvl / 3.2) * factor + Math.random() * 2));
-            waveCtx.fillStyle = '#6366f1'; waveCtx.beginPath(); waveCtx.roundRect(startX + i * (barWidth + gap), (waveCanvas.height - height) / 2, barWidth, height, 2); waveCtx.fill();
+            const x = startX + i * (barWidth + gap); const y = (waveCanvas.height - height) / 2;
+            waveCtx.fillStyle = '#6366f1'; waveCtx.beginPath(); waveCtx.roundRect(x, y, barWidth, height, 2); waveCtx.fill();
           }
         } requestAnimationFrame(draw);
       } draw();
@@ -1054,14 +1251,6 @@
 
     window.addEventListener('deviceorientation', (e) => { if (!isCallActive) return; earShield.style.display = (e.beta > 65 && e.beta < 115 && Math.abs(e.gamma) < 25) ? 'block' : 'none'; });
     earShield.onclick = () => { earShield.style.display = 'none'; };
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('autoAnswer') === 'true') {
-        const from = urlParams.get('from'); const mode = urlParams.get('mode') || 'video'; const sessionToken = urlParams.get('session'); const participants = (urlParams.get('participants') || '').split(',').filter(Boolean);
-        pendingCallDetails = { from, callMode: mode, sessionToken, allParticipants: participants }; setTimeout(() => acceptCallBtn.click(), 600);
-      }
-    });
 
     setupUserIdentity();
     renderContactsList();

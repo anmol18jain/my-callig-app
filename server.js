@@ -19,6 +19,7 @@ if (PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
   webpush.setVapidDetails('mailto:admin@loungesuite.local', PUBLIC_VAPID_KEY, PRIVATE_VAPID_KEY);
 }
 
+// Map: username -> { ws, pushSub }
 const users = new Map();
 
 app.post('/api/register-push', (req, res) => {
@@ -66,12 +67,17 @@ function broadcastContactList() {
   }));
   const message = JSON.stringify({ type: 'CONTACT_UPDATE', contacts: contactList });
   for (const record of users.values()) {
-    if (record.ws && record.ws.readyState === 1) record.ws.send(message);
+    if (record.ws && record.ws.readyState === 1) {
+      record.ws.send(message);
+    }
   }
 }
 
 wss.on('connection', (ws) => {
   let boundUser = null;
+  ws.isAlive = true;
+
+  ws.on('pong', () => { ws.isAlive = true; });
 
   ws.on('message', (raw) => {
     try {
@@ -82,45 +88,50 @@ wss.on('connection', (ws) => {
         const current = users.get(boundUser) || { ws: null, pushSub: null };
         current.ws = ws;
         users.set(boundUser, current);
+        console.log(`[Registered] ${boundUser}`);
         broadcastContactList();
         return;
       }
 
+      // Ring Target Devices
       if (data.type === 'CALL_TARGETS') {
-        data.targets.forEach((t) => {
-          const tRecord = users.get(t);
-          if (tRecord && tRecord.ws && tRecord.ws.readyState === 1) {
-            tRecord.ws.send(JSON.stringify({
-              type: 'INCOMING_CALL', from: boundUser, callMode: data.callMode,
-              sessionToken: data.sessionToken, allParticipants: [boundUser, ...data.targets]
+        data.targets.forEach((targetName) => {
+          const targetRecord = users.get(targetName);
+          if (targetRecord && targetRecord.ws && targetRecord.ws.readyState === 1) {
+            targetRecord.ws.send(JSON.stringify({
+              type: 'INCOMING_CALL',
+              from: boundUser,
+              callMode: data.callMode,
+              sessionToken: data.sessionToken,
+              allParticipants: [boundUser, ...data.targets]
             }));
           }
         });
         return;
       }
 
-      if (data.type === 'JOIN_CALL_SESSION') {
-        data.participants.forEach((pName) => {
-          if (pName !== boundUser) {
-            const pRecord = users.get(pName);
-            if (pRecord && pRecord.ws && pRecord.ws.readyState === 1) {
-              pRecord.ws.send(JSON.stringify({
-                type: 'PEER_ENTERED_SESSION', peerName: boundUser, sessionToken: data.sessionToken
-              }));
-            }
-          }
-        });
+      // Callee accepted call -> notify caller to start WebRTC handshake
+      if (data.type === 'CALL_ACCEPTED') {
+        const callerRecord = users.get(data.target);
+        if (callerRecord && callerRecord.ws && callerRecord.ws.readyState === 1) {
+          callerRecord.ws.send(JSON.stringify({
+            type: 'CALL_ACCEPTED_BY_PEER',
+            from: boundUser,
+            sessionToken: data.sessionToken
+          }));
+        }
         return;
       }
 
+      // Forward WebRTC signaling (OFFER, ANSWER, CANDIDATE)
       if (data.target && users.has(data.target)) {
-        const dest = users.get(data.target);
-        if (dest && dest.ws && dest.ws.readyState === 1) {
-          dest.ws.send(JSON.stringify({ ...data, sender: boundUser }));
+        const destination = users.get(data.target);
+        if (destination && destination.ws && destination.ws.readyState === 1) {
+          destination.ws.send(JSON.stringify({ ...data, sender: boundUser }));
         }
       }
     } catch (err) {
-      console.error('Signaling Error:', err.message);
+      console.error('[Signaling Error]:', err.message);
     }
   });
 
@@ -128,10 +139,22 @@ wss.on('connection', (ws) => {
     if (boundUser && users.has(boundUser)) {
       const current = users.get(boundUser);
       current.ws = null;
+      console.log(`[Disconnected] ${boundUser}`);
       broadcastContactList();
     }
   });
 });
 
+// Render.com Keep-Alive Ping (every 25 seconds prevents proxy drop)
+const pingInterval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (!ws.isAlive) return ws.terminate();
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 25000);
+
+wss.on('close', () => clearInterval(pingInterval));
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server live on port ${PORT}`));
+server.listen(PORT, () => console.log(`Lounge Suite active on port ${PORT}`));
