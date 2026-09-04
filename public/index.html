@@ -3,341 +3,293 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <link rel="manifest" href="manifest.json">
-  <title>Couple Lounge</title>
+  <title>Lounge Suite • Ultimate Caller</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-
+    * {
+      box-sizing: border-box; margin: 0; padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+    }
     html, body {
-      width: 100%;
-      height: 100dvh;
-      background: #0d0d0f;
-      color: #fff;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      transition: background 1s ease;
+      width: 100%; height: 100dvh; background: #09090b; color: #fff;
+      overflow: hidden; display: flex; flex-direction: column; touch-action: manipulation;
     }
 
-    /* Couple Mode Theme */
-    body.couple-active {
-      background: #080503 !important;
-    }
-    body.couple-active video {
-      filter: brightness(0.75) contrast(0.95) sepia(0.35) !important;
-      transition: filter 1s ease;
-    }
-    body.couple-active .top-bar,
-    body.couple-active .controls-bar {
-      background: rgba(14, 9, 6, 0.95) !important;
-      border-color: #2b180d !important;
-    }
-
-    /* Top Navigation */
+    /* Top Navigation Header */
     .top-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 52px;
-      padding: 0 16px;
-      background: #18181b;
-      border-bottom: 1px solid #27272a;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 100;
+      position: fixed; top: 0; left: 0; right: 0; height: 50px; padding: 0 14px;
+      background: rgba(24, 24, 27, 0.9); backdrop-filter: blur(8px);
+      border-bottom: 1px solid #27272a; display: flex; justify-content: space-between;
+      align-items: center; z-index: 100;
     }
     .room-badge {
-      font-size: 13px;
-      background: #27272a;
-      padding: 5px 12px;
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      font-size: 13px; background: #27272a; padding: 4px 10px; border-radius: 16px;
+      display: flex; align-items: center; gap: 8px;
     }
-    .copy-btn {
-      background: none;
-      border: none;
-      color: #38bdf8;
-      font-weight: 600;
-      font-size: 12px;
-      cursor: pointer;
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .btn-text { background: none; border: none; color: #38bdf8; font-weight: 600; font-size: 12px; cursor: pointer; }
+
+    /* Main Synced Video Player */
+    #mainVideoContainer {
+      position: absolute; inset: 0; background: #000;
+      display: flex; align-items: center; justify-content: center; z-index: 10;
+    }
+    #mainPlayer { width: 100%; height: 100%; object-fit: contain; }
+
+    /* Dual PiP Layer */
+    .pip-box {
+      position: absolute; width: 110px; height: 146px; border-radius: 14px;
+      overflow: hidden; background: #18181b; border: 2px solid #3f3f46;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 60; cursor: grab;
+      touch-action: none; transition: box-shadow 0.2s, border-color 0.2s, opacity 0.2s;
+    }
+    .pip-box:active { cursor: grabbing; }
+    .pip-box video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+    .pip-label {
+      position: absolute; bottom: 4px; left: 6px; background: rgba(0,0,0,0.7);
+      padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;
+    }
+    .pip-reacting {
+      border-color: #00ffa3 !important;
+      box-shadow: 0 0 25px rgba(0, 255, 163, 0.85) !important;
+    }
+    .couch-mode-local {
+      left: 8% !important; top: auto !important; bottom: 96px !important;
+      width: 140px !important; height: 105px !important;
+    }
+    .couch-mode-remote {
+      left: 54% !important; top: auto !important; bottom: 96px !important;
+      width: 140px !important; height: 105px !important;
     }
 
-    /* Video Grid */
-    .grid-container {
-      position: absolute;
-      top: 52px;
-      bottom: 84px;
-      left: 0;
-      right: 0;
-      padding: 8px;
-      display: grid;
-      gap: 8px;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      align-content: center;
-      overflow-y: auto;
+    /* Thermal Canvas Layer */
+    #thermalCanvas {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      pointer-events: none; touch-action: none; z-index: 70;
     }
-    .video-card {
-      position: relative;
-      background: #18181b;
-      border-radius: 16px;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      aspect-ratio: 9 / 16;
-      max-height: 100%;
+    #thermalCanvas.drawing-active { pointer-events: auto; }
+
+    /* Dynamic Whispers Stream */
+    .whisper-container {
+      position: absolute; bottom: 140px; left: 16px; right: 16px;
+      display: flex; flex-direction: column; gap: 8px; pointer-events: none; z-index: 75;
     }
-    @media (min-width: 600px) {
-      .video-card { aspect-ratio: 4 / 3; }
+    .whisper-bubble {
+      padding: 8px 14px; border-radius: 16px; font-size: 13px; max-width: 75%;
+      animation: floatUp 4s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
     }
-    video { width: 100%; height: 100%; object-fit: cover; }
-    .audio-ph { display: none; font-size: 44px; }
-    .audio-only .audio-ph { display: block; }
-    .audio-only video { display: none; }
-    .card-label {
-      position: absolute;
-      bottom: 8px;
-      left: 8px;
-      background: rgba(0,0,0,0.6);
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 11px;
+    .whisper-local { background: rgba(14, 165, 233, 0.85); align-self: flex-end; }
+    .whisper-remote { background: rgba(236, 72, 153, 0.85); align-self: flex-start; }
+    @keyframes floatUp {
+      0% { opacity: 0; transform: translateY(15px); }
+      15% { opacity: 1; transform: translateY(0); }
+      80% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-40px); }
     }
 
-    /* Fixed Bottom Controls */
+    /* Subtitles Banner */
+    #subtitleBanner {
+      position: absolute; bottom: 92px; left: 16px; right: 16px;
+      background: rgba(0,0,0,0.8); border-radius: 10px; padding: 6px 12px;
+      font-size: 13px; color: #fde047; text-align: center; display: none; z-index: 80;
+    }
+
+    /* Emoji Burst Layer */
+    .reaction-burst-box {
+      position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+      font-size: 54px; pointer-events: none; z-index: 90;
+      animation: popBurst 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    }
+    @keyframes popBurst {
+      0% { transform: translate(-50%, 0) scale(0.3); opacity: 0; }
+      20% { transform: translate(-50%, -40px) scale(1.4); opacity: 1; }
+      80% { transform: translate(-50%, -120px) scale(1.0); opacity: 1; }
+      100% { transform: translate(-50%, -180px) scale(0.6); opacity: 0; }
+    }
+
+    /* Sunrise Overlay */
+    #sunriseOverlay {
+      position: fixed; inset: 0; pointer-events: none; display: none; opacity: 0;
+      background: radial-gradient(circle at bottom, #fbbf24 0%, #ea580c 45%, #431407 100%);
+      transition: opacity 20s ease-in; z-index: 85;
+    }
+    #sunriseOverlay.rising { display: block; opacity: 0.88; }
+
+    /* Fixed Bottom Action Dock */
     .controls-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 84px;
+      position: fixed; bottom: 0; left: 0; right: 0; height: 84px;
       padding: 8px 10px max(12px, env(safe-area-inset-bottom));
-      background: #18181b;
-      border-top: 1px solid #27272a;
-      display: flex;
-      justify-content: space-evenly;
-      align-items: center;
-      z-index: 100;
+      background: rgba(24, 24, 27, 0.95); backdrop-filter: blur(10px);
+      border-top: 1px solid #27272a; display: flex; justify-content: flex-start;
+      align-items: center; gap: 10px; overflow-x: auto; z-index: 100;
+      scrollbar-width: none;
     }
+    .controls-bar::-webkit-scrollbar { display: none; }
     .c-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 22px;
-      border: none;
-      background: #27272a;
-      color: white;
-      font-size: 17px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
+      width: 44px; height: 44px; border-radius: 22px; border: none;
+      background: #27272a; color: white; font-size: 17px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.15s ease, background 0.2s ease; flex-shrink: 0;
     }
     .c-btn:active { transform: scale(0.88); }
-    .c-btn.btn-active-pink {
-      background: #ec4899 !important;
-      box-shadow: 0 0 16px rgba(236, 72, 153, 0.7);
-    }
-    .c-btn.btn-active-purple {
-      background: #8b5cf6 !important;
-      box-shadow: 0 0 16px rgba(139, 92, 246, 0.7);
-    }
-    .c-btn.btn-active-blue {
-      background: #0ea5e9 !important;
-      box-shadow: 0 0 16px rgba(14, 165, 233, 0.7);
-    }
-    .c-btn.btn-active-amber {
-      background: #f59e0b !important;
-      box-shadow: 0 0 16px rgba(245, 158, 11, 0.7);
-    }
+    .c-btn.btn-active-pink { background: #ec4899 !important; box-shadow: 0 0 16px rgba(236,72,153,0.7); }
+    .c-btn.btn-active-blue { background: #0ea5e9 !important; box-shadow: 0 0 16px rgba(14,165,233,0.7); }
+    .c-btn.btn-active-amber { background: #f59e0b !important; box-shadow: 0 0 16px rgba(245,158,11,0.7); }
     .c-btn-end { background: #ef4444 !important; }
 
-    /* Floating Heart Sprinkles */
-    .floating-heart {
-      position: fixed;
-      bottom: 90px;
-      font-size: 28px;
-      pointer-events: none;
-      user-select: none;
-      z-index: 9999;
-      animation: floatUp 3.2s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+    /* Drawers & Modals */
+    .drawer {
+      position: fixed; bottom: 84px; left: 0; right: 0;
+      background: rgba(24, 24, 27, 0.97); backdrop-filter: blur(12px);
+      padding: 14px 16px; border-top: 1px solid #3f3f46; display: none;
+      flex-direction: column; gap: 10px; z-index: 95;
     }
-    @keyframes floatUp {
-      0% { transform: translateY(0) scale(0.6) rotate(0deg); opacity: 1; }
-      50% { transform: translateY(-40vh) scale(1.3) rotate(20deg); opacity: 0.9; }
-      100% { transform: translateY(-85vh) scale(1.6) rotate(-20deg); opacity: 0; }
+    .drawer input, .drawer select {
+      padding: 8px 12px; background: #27272a; border: 1px solid #3f3f46;
+      border-radius: 8px; color: white; outline: none; font-size: 13px;
     }
 
-    /* Screen Tap Ripple */
-    .heart-ripple {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: rgba(236, 72, 153, 0.4);
-      border: 2px solid #ec4899;
-      pointer-events: none;
-      transform: translate(-50%, -50%) scale(1);
-      animation: rippleAnim 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
-      z-index: 998;
+    #recapModal {
+      position: fixed; inset: 15% 10%; background: #18181b; border: 2px solid #ec4899;
+      border-radius: 20px; display: none; flex-direction: column; padding: 20px;
+      z-index: 1000; box-shadow: 0 0 30px rgba(236,72,153,0.3);
     }
-    @keyframes rippleAnim {
-      to { transform: translate(-50%, -50%) scale(8); opacity: 0; }
-    }
-
-    /* 1-Minute Call Pause Overlay */
-    #pauseOverlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.92);
-      backdrop-filter: blur(10px);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 99990;
-    }
-    #pauseTimer {
-      font-size: 56px;
-      font-weight: 700;
-      color: #f59e0b;
-      margin: 12px 0;
-    }
-
-    /* Proximity Blackout Indicator */
-    #proximityCover {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      display: none;
-      z-index: 99999;
-      align-items: center;
-      justify-content: center;
-      color: #71717a;
-      font-size: 14px;
-    }
-
-    /* AMOLED 15-Minute Sleep Saver */
-    #sleepDimmer {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      display: none;
-      opacity: 0;
-      transition: opacity 1.5s ease;
-      z-index: 99998;
-      cursor: pointer;
-    }
-    #sleepDimmer.asleep {
-      display: block;
-      opacity: 1;
+    #recapList { flex: 1; overflow-y: auto; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+    .recap-item {
+      background: #27272a; padding: 10px 14px; border-radius: 8px;
+      display: flex; justify-content: space-between; align-items: center; cursor: pointer;
     }
 
     /* Lobby */
     #lobbyModal {
-      position: fixed;
-      inset: 0;
-      background: #09090b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 2000;
+      position: fixed; inset: 0; background: #09090b;
+      display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 2000;
     }
     .lobby-card {
-      background: #18181b;
-      padding: 28px;
-      border-radius: 20px;
-      width: 100%;
-      max-width: 330px;
-      text-align: center;
-      border: 1px solid #27272a;
+      background: #18181b; padding: 28px; border-radius: 20px;
+      width: 100%; max-width: 330px; text-align: center; border: 1px solid #27272a;
     }
     .lobby-card input {
-      width: 100%;
-      height: 46px;
-      background: #27272a;
-      border: 1px solid #3f3f46;
-      border-radius: 12px;
-      color: white;
-      text-align: center;
-      margin: 14px 0;
-      outline: none;
-      font-size: 15px;
+      width: 100%; height: 46px; background: #27272a; border: 1px solid #3f3f46;
+      border-radius: 12px; color: white; text-align: center; margin: 14px 0; outline: none; font-size: 15px;
     }
     .lobby-card button {
-      width: 100%;
-      height: 48px;
-      border-radius: 24px;
-      border: none;
-      background: #22c55e;
-      color: white;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
+      width: 100%; height: 48px; border-radius: 24px; border: none;
+      background: #22c55e; color: white; font-size: 16px; font-weight: 600; cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Navigation -->
+  <!-- Top Header Navigation -->
   <div class="top-bar">
     <div class="room-badge">
+      <span class="status-dot" id="statusDot"></span>
       <span id="roomTitle">...</span>
-      <button class="copy-btn" id="copyUrlBtn">Copy Link</button>
+      <button class="btn-text" id="copyUrlBtn">Copy</button>
     </div>
-    <span id="callStatus" style="font-size: 12px; color: #a1a1aa;">Ready</span>
-  </div>
-
-  <!-- Ear Proximity Screen -->
-  <div id="proximityCover">📱 Ear Mode (Audio Active)</div>
-
-  <!-- 1-Minute Call Pause Screen -->
-  <div id="pauseOverlay">
-    <h2>Call Paused</h2>
-    <div id="pauseTimer">60s</div>
-    <p style="color: #a1a1aa; font-size: 13px;">Microphone and Video Temporarily Paused</p>
-    <button class="c-btn" id="resumeCallBtn" style="width: auto; padding: 0 24px; height: 42px; margin-top: 18px; border-radius: 21px; background: #f59e0b;">Resume Now</button>
-  </div>
-
-  <!-- 15-Minute Sleep Saver Screen -->
-  <div id="sleepDimmer"></div>
-
-  <!-- Video Grid Container -->
-  <div class="grid-container" id="videoGrid">
-    <div class="video-card" id="card-local">
-      <div class="audio-ph">🎙️</div>
-      <video id="myVideo" autoplay playsinline muted></video>
-      <span class="card-label">You</span>
+    <div style="display: flex; gap: 8px;">
+      <span id="sleepStatusBadge" style="font-size: 11px; color: #a1a1aa; align-self: center;">Sleep: Awake</span>
+      <button class="btn-text" id="recapBtn">🎬 Recap</button>
+      <button class="btn-text" id="pipSysBtn">🪟 Sys PiP</button>
     </div>
   </div>
 
-  <!-- Bottom Floating Navigation Controls -->
+  <!-- Sunrise & Thermal Visual Overlays -->
+  <div id="sunriseOverlay"></div>
+  <canvas id="thermalCanvas"></canvas>
+
+  <!-- Dynamic Whispers & Subtitles Stream -->
+  <div class="whisper-container" id="whisperContainer"></div>
+  <div id="subtitleBanner">Listening...</div>
+
+  <!-- Synced Main Video Player -->
+  <div id="mainVideoContainer">
+    <video id="mainPlayer" playsinline src="https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4"></video>
+  </div>
+
+  <!-- Dual Draggable/Resizable PiP Windows -->
+  <div class="pip-box" id="localPip" style="top: 70px; right: 16px;">
+    <video id="myVideo" autoplay playsinline muted></video>
+    <span class="pip-label">You</span>
+  </div>
+
+  <div class="pip-box" id="remotePip" style="top: 70px; left: 16px;">
+    <video id="partnerVideo" autoplay playsinline></video>
+    <span class="pip-label">Partner</span>
+  </div>
+
+  <!-- Drawer 1: Dual-PiP & Synced Watch Party Controls -->
+  <div class="drawer" id="watchDrawer">
+    <div style="display: flex; gap: 8px;">
+      <input type="text" id="videoUrlInput" placeholder="Paste Direct MP4 Link..." style="flex: 1;" />
+      <button class="c-btn" id="loadVideoBtn" style="height: 36px; border-radius: 8px; width: 60px; font-size: 12px;">Load</button>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center; font-size: 12px;">
+      <span>Speed:</span>
+      <select id="rateSelect" style="flex: 1;">
+        <option value="1.0">1.0x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2.0">2.0x</option>
+      </select>
+      <button class="btn-text" id="couchModeToggle" style="color: #00ffa3;">🛋️ Couch Mode</button>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center; font-size: 12px;">
+      <span>PiP Scale:</span>
+      <input type="range" id="pipScaleSlider" min="80" max="200" value="110" style="flex: 1;" />
+      <span>Opacity:</span>
+      <input type="range" id="pipOpacitySlider" min="30" max="100" value="85" style="flex: 1;" />
+    </div>
+  </div>
+
+  <!-- Drawer 2: Whispers & Secrets Vault -->
+  <div class="drawer" id="whisperDrawer">
+    <div style="display: flex; gap: 8px;">
+      <input type="text" id="whisperInput" placeholder="Type floating whisper..." style="flex: 1;" />
+      <button class="c-btn" id="sendWhisperBtn" style="height: 36px; border-radius: 8px; width: 60px; font-size: 12px;">Send</button>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <input type="text" id="cipherPassInput" placeholder="Secret Key Phrase..." style="flex: 1;" />
+      <button class="c-btn" id="encryptSendBtn" style="height: 36px; border-radius: 8px; width: 80px; font-size: 11px;">Lock Post</button>
+    </div>
+  </div>
+
+  <!-- Reaction Recap Modal -->
+  <div id="recapModal">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="color: #ec4899; font-size: 16px;">🎬 Reaction Highlights & Recap</h3>
+      <button class="btn-text" id="closeRecapBtn" style="color: #ef4444; font-size: 16px;">✕</button>
+    </div>
+    <div id="recapList"></div>
+  </div>
+
+  <!-- Fixed Bottom Dock -->
   <div class="controls-bar" id="controlsBar" style="display: none;">
-    <button class="c-btn" id="muteBtn" title="Mute/Unmute">🎙️</button>
-    <button class="c-btn" id="flipCamBtn" title="Flip Camera">🔄</button>
-    <button class="c-btn" id="coupleHeartBtn" title="Couple Mode">❤️</button>
-    <button class="c-btn" id="whisperBtn" title="Whisper Mode">🤫</button>
-    <button class="c-btn" id="spatialBtn" title="3D Spatial Audio">🎧</button>
-    <button class="c-btn" id="pauseCallBtn" title="Pause Call (1 Min)">⏸️</button>
-    <button class="c-btn c-btn-end" id="hangupBtn" title="End Call">📞</button>
+    <button class="c-btn" id="playPauseBtn" title="Play/Pause Video">▶</button>
+    <button class="c-btn" id="rewindBtn" title="Rewind 10s">⏪</button>
+    <button class="c-btn" id="forwardBtn" title="Forward 10s">⏩</button>
+    <button class="c-btn" id="muteBtn" title="Toggle Mic">🎙️</button>
+    <button class="c-btn" id="screenShareBtn" title="Screen Share">🖥️</button>
+    <button class="c-btn" id="thermalBtn" title="Thermal Canvas">🎨</button>
+    <button class="c-btn" id="subsBtn" title="Live Subtitles">💬</button>
+    <button class="c-btn" id="fileBeamBtn" title="P2P 1GB Beam">⚡</button>
+    <button class="c-btn" id="pillowNoteBtn" title="Record Pillow Note">💌</button>
+    <button class="c-btn" id="nudgeBtn" title="Smart Nudge Wake">🌅</button>
+    <button class="c-btn" id="watchDrawerBtn" title="Watch Party & PiP">🍿</button>
+    <button class="c-btn" id="whisperDrawerBtn" title="Whispers & Vault">🤫</button>
+    <button class="c-btn c-btn-end" id="hangupBtn" title="Leave">📞</button>
   </div>
 
-  <!-- Lobby Screen -->
+  <input type="file" id="p2pFileInput" style="display: none;" />
+
+  <!-- Entry Lobby Modal -->
   <div id="lobbyModal">
     <div class="lobby-card">
-      <h2 style="margin-bottom: 6px;">Couple Lounge</h2>
-      <p style="font-size: 13px; color: #a1a1aa;">2 People or Group Calling</p>
+      <h2 style="margin-bottom: 6px;">Lounge Suite</h2>
+      <p style="font-size: 13px; color: #a1a1aa;">Dual-PiP Synced Watch Party</p>
       <input type="text" id="roomCodeInput" placeholder="Room Name" />
-      <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 18px; font-size: 13px;">
-        <label><input type="radio" name="startMode" value="video" checked> 📹 Video</label>
-        <label><input type="radio" name="startMode" value="audio"> 🎙️ Audio Only</label>
-      </div>
-      <button id="joinLoungeBtn">Join Lounge</button>
+      <button id="joinLoungeBtn">Enter Lounge</button>
     </div>
   </div>
 
@@ -345,31 +297,21 @@
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(protocol + '//' + window.location.host);
 
-    let myId = null;
-    let localStream = null;
-    let currentFacingMode = 'user';
-    let isMuted = false;
-    let isCoupleActive = false;
-    let isWhisperActive = false;
-    let isSpatialActive = false;
-    let isPaused = false;
-    let pauseCountdown = null;
-    let room = window.location.hash.substring(1).trim() || 'love-' + Math.random().toString(36).substring(2, 6);
+    let myId = null, localStream = null, processedAudioTrack = null, currentScreenTrack = null;
+    let room = window.location.hash.substring(1).trim() || 'lounge-' + Math.random().toString(36).substring(2, 6);
+    const peers = {}, dataChannels = {};
 
-    const peers = {}; // peerId -> RTCPeerConnection
-    const dataChannels = {}; // peerId -> RTCDataChannel
-    const panners = {}; // peerId -> PannerNode
-
-    // --- Audio Pipeline Nodes ---
+    // DSP & Audio Energy Detection
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null;
-    let micSource = null;
-    let hpFilter = null;
-    let whisperPeaking = null;
-    let voiceCompressor = null;
-    let voiceAnalyser = null;
-    let ambientGainNode = null;
-    let ambientSourceNode = null;
+    let audioCtx = null, micSource = null, hpFilter = null, vocalPeak = null;
+    let voiceCompressor = null, processedDest = null, analyser = null;
+
+    // Feature Flags & Memory
+    let isMuted = false, isScreenSharing = false, isThermalActive = false, isSubsActive = false;
+    let isCouchMode = false, isRemoteVideoAction = false;
+    let localSleepState = 'Awake', lastReactionTime = 0;
+    const reactionHistory = [];
+    let strokes = [];
 
     // DOM Elements
     const lobbyModal = document.getElementById('lobbyModal');
@@ -377,23 +319,52 @@
     const joinLoungeBtn = document.getElementById('joinLoungeBtn');
     const roomTitle = document.getElementById('roomTitle');
     const copyUrlBtn = document.getElementById('copyUrlBtn');
-    const callStatus = document.getElementById('callStatus');
     const controlsBar = document.getElementById('controlsBar');
-    const videoGrid = document.getElementById('videoGrid');
     const myVideo = document.getElementById('myVideo');
-    const proximityCover = document.getElementById('proximityCover');
-    const pauseOverlay = document.getElementById('pauseOverlay');
-    const pauseTimer = document.getElementById('pauseTimer');
-    const resumeCallBtn = document.getElementById('resumeCallBtn');
-    const sleepDimmer = document.getElementById('sleepDimmer');
+    const partnerVideo = document.getElementById('partnerVideo');
+    const mainPlayer = document.getElementById('mainPlayer');
+    const localPip = document.getElementById('localPip');
+    const remotePip = document.getElementById('remotePip');
+    const thermalCanvas = document.getElementById('thermalCanvas');
+    const ctx = thermalCanvas.getContext('2d');
+    const whisperContainer = document.getElementById('whisperContainer');
+    const subtitleBanner = document.getElementById('subtitleBanner');
+    const sunriseOverlay = document.getElementById('sunriseOverlay');
+    const sleepStatusBadge = document.getElementById('sleepStatusBadge');
+
+    // Controls & Drawers
+    const watchDrawer = document.getElementById('watchDrawer');
+    const whisperDrawer = document.getElementById('whisperDrawer');
+    const recapModal = document.getElementById('recapModal');
+    const recapList = document.getElementById('recapList');
+    const recapBtn = document.getElementById('recapBtn');
+    const closeRecapBtn = document.getElementById('closeRecapBtn');
+    const pipSysBtn = document.getElementById('pipSysBtn');
+    const couchModeToggle = document.getElementById('couchModeToggle');
+    const pipScaleSlider = document.getElementById('pipScaleSlider');
+    const pipOpacitySlider = document.getElementById('pipOpacitySlider');
+    const videoUrlInput = document.getElementById('videoUrlInput');
+    const loadVideoBtn = document.getElementById('loadVideoBtn');
+    const rateSelect = document.getElementById('rateSelect');
 
     // Action Buttons
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const rewindBtn = document.getElementById('rewindBtn');
+    const forwardBtn = document.getElementById('forwardBtn');
     const muteBtn = document.getElementById('muteBtn');
-    const flipCamBtn = document.getElementById('flipCamBtn');
-    const coupleHeartBtn = document.getElementById('coupleHeartBtn');
-    const whisperBtn = document.getElementById('whisperBtn');
-    const spatialBtn = document.getElementById('spatialBtn');
-    const pauseCallBtn = document.getElementById('pauseCallBtn');
+    const screenShareBtn = document.getElementById('screenShareBtn');
+    const thermalBtn = document.getElementById('thermalBtn');
+    const subsBtn = document.getElementById('subsBtn');
+    const fileBeamBtn = document.getElementById('fileBeamBtn');
+    const p2pFileInput = document.getElementById('p2pFileInput');
+    const pillowNoteBtn = document.getElementById('pillowNoteBtn');
+    const nudgeBtn = document.getElementById('nudgeBtn');
+    const watchDrawerBtn = document.getElementById('watchDrawerBtn');
+    const whisperDrawerBtn = document.getElementById('whisperDrawerBtn');
+    const sendWhisperBtn = document.getElementById('sendWhisperBtn');
+    const encryptSendBtn = document.getElementById('encryptSendBtn');
+    const whisperInput = document.getElementById('whisperInput');
+    const cipherPassInput = document.getElementById('cipherPassInput');
     const hangupBtn = document.getElementById('hangupBtn');
 
     roomCodeInput.value = room;
@@ -401,456 +372,611 @@
     const rtcConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
         { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
       ]
     };
 
+    function resizeCanvas() {
+      thermalCanvas.width = window.innerWidth;
+      thermalCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
     // -------------------------------------------------------------
-    // Web Audio Engine: Whisper DSP + Auto-Ducking Ambience
+    // 1. DUAL-PIP DRAGGING & INTERACTIONS
     // -------------------------------------------------------------
-    function initWebAudio(stream) {
+    function makeDraggable(el) {
+      let ox = 0, oy = 0, sx = 0, sy = 0;
+      el.onpointerdown = (e) => {
+        if (isCouchMode) return;
+        e.preventDefault();
+        sx = e.clientX; sy = e.clientY;
+        ox = el.offsetLeft; oy = el.offsetTop;
+        window.onpointermove = (ev) => {
+          el.style.left = (ox + ev.clientX - sx) + 'px';
+          el.style.top = (oy + ev.clientY - sy) + 'px';
+        };
+        window.onpointerup = () => {
+          window.onpointermove = null;
+          window.onpointerup = null;
+        };
+      };
+    }
+    makeDraggable(localPip);
+    makeDraggable(remotePip);
+
+    // Double-tap PiP to swap; Single-tap to rewind 5s reaction replay
+    let tapTimeout = null;
+    remotePip.addEventListener('click', () => {
+      if (tapTimeout) {
+        clearTimeout(tapTimeout);
+        tapTimeout = null;
+        // Double-tap: Swap remote video to main background
+        const currentMainSrc = mainPlayer.src;
+        partnerVideo.srcObject = null;
+        mainPlayer.src = '';
+        mainPlayer.srcObject = remotePip.querySelector('video').srcObject;
+      } else {
+        tapTimeout = setTimeout(() => {
+          tapTimeout = null;
+          // Single-tap: Rewind 5 seconds
+          mainPlayer.currentTime = Math.max(0, mainPlayer.currentTime - 5);
+          broadcastData({ type: 'VIDEO_SEEK', time: mainPlayer.currentTime });
+        }, 280);
+      }
+    });
+
+    couchModeToggle.onclick = () => {
+      isCouchMode = !isCouchMode;
+      couchModeToggle.style.color = isCouchMode ? '#ec4899' : '#00ffa3';
+      localPip.classList.toggle('couch-mode-local', isCouchMode);
+      remotePip.classList.toggle('couch-mode-remote', isCouchMode);
+    };
+
+    pipScaleSlider.oninput = (e) => {
+      const w = e.target.value;
+      const h = Math.round(w * 1.33);
+      localPip.style.width = `${w}px`; localPip.style.height = `${h}px`;
+      remotePip.style.width = `${w}px`; remotePip.style.height = `${h}px`;
+    };
+
+    pipOpacitySlider.oninput = (e) => {
+      const op = e.target.value / 100;
+      localPip.style.opacity = op;
+      remotePip.style.opacity = op;
+    };
+
+    // -------------------------------------------------------------
+    // 2. VIDEO SYNC ENGINE (Drift Compensation < 100ms)
+    // -------------------------------------------------------------
+    playPauseBtn.onclick = () => {
+      if (mainPlayer.paused) {
+        mainPlayer.play();
+        playPauseBtn.innerText = '❚❚';
+        broadcastData({ type: 'VIDEO_PLAY', time: mainPlayer.currentTime });
+      } else {
+        mainPlayer.pause();
+        playPauseBtn.innerText = '▶';
+        broadcastData({ type: 'VIDEO_PAUSE', time: mainPlayer.currentTime });
+      }
+    };
+
+    rewindBtn.onclick = () => {
+      mainPlayer.currentTime = Math.max(0, mainPlayer.currentTime - 10);
+      broadcastData({ type: 'VIDEO_SEEK', time: mainPlayer.currentTime });
+    };
+
+    forwardBtn.onclick = () => {
+      mainPlayer.currentTime = Math.min(mainPlayer.duration || 9999, mainPlayer.currentTime + 10);
+      broadcastData({ type: 'VIDEO_SEEK', time: mainPlayer.currentTime });
+    };
+
+    rateSelect.onchange = () => {
+      mainPlayer.playbackRate = parseFloat(rateSelect.value);
+      broadcastData({ type: 'VIDEO_RATE', rate: mainPlayer.playbackRate });
+    };
+
+    loadVideoBtn.onclick = () => {
+      const url = videoUrlInput.value.trim();
+      if (!url) return;
+      mainPlayer.src = url;
+      mainPlayer.play();
+      playPauseBtn.innerText = '❚❚';
+      broadcastData({ type: 'VIDEO_LOAD', url });
+    };
+
+    // Periodic Master Drift Broadcast
+    setInterval(() => {
+      if (!mainPlayer.paused && myId) {
+        broadcastData({
+          type: 'VIDEO_DRIFT_PING',
+          time: mainPlayer.currentTime,
+          rate: mainPlayer.playbackRate
+        });
+      }
+    }, 1000);
+
+    // -------------------------------------------------------------
+    // 3. REACTION SYSTEM & ACOUSTIC AMPLITUDE DETECTION
+    // -------------------------------------------------------------
+    function triggerReactionUI(type, userId) {
+      // Border glow
+      remotePip.classList.add('pip-reacting');
+      setTimeout(() => remotePip.classList.remove('pip-reacting'), 1400);
+
+      // Floating emoji burst
+      const icons = { laugh: '😂', scream: '😱', gasp: '😲' };
+      const bubble = document.createElement('div');
+      bubble.className = 'reaction-burst-box';
+      bubble.innerText = icons[type] || '🔥';
+      document.body.appendChild(bubble);
+      setTimeout(() => bubble.remove(), 1500);
+
+      // Ledger save
+      reactionHistory.push({ type, userId, time: mainPlayer.currentTime, date: new Date().toLocaleTimeString() });
+    }
+
+    recapBtn.onclick = () => {
+      recapList.innerHTML = '';
+      if (reactionHistory.length === 0) {
+        recapList.innerHTML = '<div style="color:#71717a; text-align:center; margin-top:20px;">No reactions recorded yet.</div>';
+      }
+      reactionHistory.forEach((r) => {
+        const item = document.createElement('div');
+        item.className = 'recap-item';
+        item.innerHTML = `<span>${r.type === 'laugh' ? '😂 Laugh' : r.type === 'scream' ? '😱 Scream' : '😲 Gasp'} at ${Math.round(r.time)}s</span><span style="color:#ec4899; font-size:12px;">Jump ➔</span>`;
+        item.onclick = () => {
+          mainPlayer.currentTime = Math.max(0, r.time - 3);
+          broadcastData({ type: 'VIDEO_SEEK', time: mainPlayer.currentTime });
+          recapModal.style.display = 'none';
+        };
+        recapList.appendChild(item);
+      });
+      recapModal.style.display = 'flex';
+    };
+    closeRecapBtn.onclick = () => recapModal.style.display = 'none';
+
+    // Acoustic Analysis Loop
+    function startAcousticListener() {
+      if (!analyser) return;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      setInterval(() => {
+        analyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        const avg = sum / data.length;
+        const now = Date.now();
+
+        if (avg > 72 && now - lastReactionTime > 3000) {
+          lastReactionTime = now;
+          let rType = 'gasp';
+          if (avg > 92) rType = 'scream';
+          else if (avg > 78) rType = 'laugh';
+
+          triggerReactionUI(rType, 'You');
+          broadcastData({ type: 'REACTION_BURST', rType });
+        }
+      }, 200);
+    }
+
+    // -------------------------------------------------------------
+    // 4. WEB AUDIO DSP (Noise Isolator + Auto-Leveler)
+    // -------------------------------------------------------------
+    function initAudioGraph(stream) {
       if (!audioCtx) audioCtx = new AudioContextClass();
       if (audioCtx.state === 'suspended') audioCtx.resume();
 
       micSource = audioCtx.createMediaStreamSource(stream);
 
-      // 1. High Pass (120 Hz)
+      // 120 Hz Highpass to eliminate environmental desk bumps & rumble
       hpFilter = audioCtx.createBiquadFilter();
       hpFilter.type = 'highpass';
       hpFilter.frequency.value = 120;
 
-      // 2. Whisper Peaking Filter (3.5 kHz)
-      whisperPeaking = audioCtx.createBiquadFilter();
-      whisperPeaking.type = 'peaking';
-      whisperPeaking.frequency.value = 3500;
-      whisperPeaking.gain.value = 0;
-      whisperPeaking.Q.value = 1.0;
+      // 3.5 kHz Presence Peaking Filter for crisp speech clarity
+      vocalPeak = audioCtx.createBiquadFilter();
+      vocalPeak.type = 'peaking';
+      vocalPeak.frequency.value = 3500;
+      vocalPeak.gain.value = 4.5;
 
-      // 3. Dynamics Compressor
+      // Dynamic Range Compressor (AGC): Normalizes loud screams & faint whispers
       voiceCompressor = audioCtx.createDynamicsCompressor();
-      voiceCompressor.threshold.value = -24;
-      voiceCompressor.ratio.value = 4;
-      voiceCompressor.knee.value = 8;
+      voiceCompressor.threshold.value = -32;
+      voiceCompressor.knee.value = 10;
+      voiceCompressor.ratio.value = 6;
       voiceCompressor.attack.value = 0.005;
-      voiceCompressor.release.value = 0.08;
+      voiceCompressor.release.value = 0.25;
 
-      // 4. Analyser for Silence Detection & Ambience Ducking
-      voiceAnalyser = audioCtx.createAnalyser();
-      voiceAnalyser.fftSize = 256;
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+
+      processedDest = audioCtx.createMediaStreamDestination();
 
       micSource.connect(hpFilter);
-      hpFilter.connect(whisperPeaking);
-      whisperPeaking.connect(voiceCompressor);
-      voiceCompressor.connect(voiceAnalyser);
+      hpFilter.connect(vocalPeak);
+      vocalPeak.connect(voiceCompressor);
+      voiceCompressor.connect(analyser);
+      voiceCompressor.connect(processedDest);
 
-      // Ambient Bus
-      ambientGainNode = audioCtx.createGain();
-      ambientGainNode.gain.value = 0.0;
-      ambientGainNode.connect(audioCtx.destination);
-
-      startAmbienceDucking();
-      startSleepEnergyMonitor();
-    }
-
-    // Auto-duck background sleep sounds whenever voice is detected
-    function startAmbienceDucking() {
-      const data = new Uint8Array(voiceAnalyser.frequencyBinCount);
-      function duck() {
-        voiceAnalyser.getByteFrequencyData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) sum += data[i];
-        const avg = sum / data.length;
-
-        if (ambientGainNode && ambientSourceNode && !isPaused) {
-          const target = avg > 14 ? 0.07 : 0.28; // Duck by 70%
-          ambientGainNode.gain.setTargetAtTime(target, audioCtx.currentTime, 0.2);
-        }
-        requestAnimationFrame(duck);
-      }
-      duck();
-    }
-
-    // Procedural Warm Rain / Drone Synthesizer
-    function setAmbientSoundscape(enable) {
-      if (!audioCtx) return;
-      if (!enable) {
-        if (ambientSourceNode) {
-          try { ambientSourceNode.stop(); } catch(e){}
-          ambientSourceNode = null;
-        }
-        if (ambientGainNode) ambientGainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.3);
-        return;
-      }
-      if (ambientSourceNode) return;
-
-      const bufferSize = audioCtx.sampleRate * 2;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const out = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] = (Math.random() * 2 - 1) * 0.16;
-      }
-
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
-      noise.loop = true;
-
-      const lp = audioCtx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = 750;
-
-      noise.connect(lp);
-      lp.connect(ambientGainNode);
-      noise.start();
-      ambientSourceNode = noise;
-      ambientGainNode.gain.setTargetAtTime(0.28, audioCtx.currentTime, 0.5);
+      processedAudioTrack = processedDest.stream.getAudioTracks()[0];
+      startAcousticListener();
     }
 
     // -------------------------------------------------------------
-    // Whisper DSP Toggle Handler
+    // 5. SMART NUDGE & SUNRISE ENGINE
     // -------------------------------------------------------------
-    function setWhisperMode(enable) {
-      isWhisperActive = enable;
-      whisperBtn.classList.toggle('btn-active-purple', isWhisperActive);
-
-      if (whisperPeaking && voiceCompressor) {
-        if (isWhisperActive) {
-          whisperPeaking.gain.setTargetAtTime(6.0, audioCtx.currentTime, 0.2); // +6dB at 3.5kHz
-          voiceCompressor.threshold.setTargetAtTime(-42, audioCtx.currentTime, 0.2);
-        } else {
-          whisperPeaking.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
-          voiceCompressor.threshold.setTargetAtTime(-24, audioCtx.currentTime, 0.2);
-        }
-      }
-    }
-
-    whisperBtn.onclick = () => {
-      setWhisperMode(!isWhisperActive);
-    };
-
-    // -------------------------------------------------------------
-    // Floating Hearts FX Generator
-    // -------------------------------------------------------------
-    function spawnFloatingHearts() {
-      const emojis = ['❤️', '💖', '💕', '✨', '💓', '💗'];
-      for (let i = 0; i < 24; i++) {
-        setTimeout(() => {
-          const heart = document.createElement('div');
-          heart.className = 'floating-heart';
-          heart.innerText = emojis[Math.floor(Math.random() * emojis.length)];
-          heart.style.left = (Math.random() * 85 + 5) + 'vw';
-          heart.style.animationDuration = (2.2 + Math.random() * 1.5) + 's';
-          document.body.appendChild(heart);
-          setTimeout(() => heart.remove(), 3500);
-        }, i * 90);
-      }
-    }
-
-    // -------------------------------------------------------------
-    // Automated One-Tap Heart Button (Couple Suite Activation)
-    // -------------------------------------------------------------
-    function applyCoupleSuite(enable) {
-      isCoupleActive = enable;
-      document.body.classList.toggle('couple-active', isCoupleActive);
-      coupleHeartBtn.classList.toggle('btn-active-pink', isCoupleActive);
-
-      setWhisperMode(enable);
-      setAmbientSoundscape(enable);
-
-      if (enable) spawnFloatingHearts();
-    }
-
-    coupleHeartBtn.onclick = () => {
-      const next = !isCoupleActive;
-      applyCoupleSuite(next);
-      ws.send(JSON.stringify({ room, type: 'couple-suite-sync', enabled: next }));
-    };
-
-    // -------------------------------------------------------------
-    // 3D Spatial Room Audio (HRTF)
-    // -------------------------------------------------------------
-    function toggleSpatialAudio() {
-      isSpatialActive = !isSpatialActive;
-      spatialBtn.classList.toggle('btn-active-blue', isSpatialActive);
-
-      Object.values(panners).forEach((panner, index) => {
-        if (isSpatialActive) {
-          // Spread callers evenly around the listener's head
-          const angle = (index % 2 === 0 ? 1 : -1) * 3.5;
-          panner.positionX.setTargetAtTime(angle, audioCtx.currentTime, 0.3);
-          panner.positionZ.setTargetAtTime(-2, audioCtx.currentTime, 0.3);
-        } else {
-          // Center audio
-          panner.positionX.setTargetAtTime(0, audioCtx.currentTime, 0.3);
-          panner.positionZ.setTargetAtTime(0, audioCtx.currentTime, 0.3);
+    let accelSamples = [];
+    if (window.DeviceMotionEvent) {
+      window.addEventListener('devicemotion', (e) => {
+        const acc = e.accelerationIncludingGravity;
+        if (!acc) return;
+        const mag = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
+        accelSamples.push(mag);
+        if (accelSamples.length > 50) {
+          accelSamples.shift();
+          const mean = accelSamples.reduce((a, b) => a + b, 0) / 50;
+          const variance = accelSamples.reduce((a, b) => a + (b - mean)**2, 0) / 50;
+          const sd = Math.sqrt(variance);
+          const state = sd < 0.05 ? 'Asleep' : 'Awake';
+          if (state !== localSleepState) {
+            localSleepState = state;
+            sleepStatusBadge.innerText = `Sleep: ${localSleepState}`;
+            broadcastData({ type: 'SLEEP_STATE', state });
+          }
         }
       });
     }
-    spatialBtn.onclick = toggleSpatialAudio;
 
-    // -------------------------------------------------------------
-    // 1-Minute Call Pause Feature
-    // -------------------------------------------------------------
-    function setCallPause(paused, triggeredLocally = true) {
-      isPaused = paused;
-      pauseCallBtn.classList.toggle('btn-active-amber', isPaused);
-      clearInterval(pauseCountdown);
-
-      // Mute local microphone & video track while paused
-      if (localStream) {
-        localStream.getAudioTracks().forEach(t => t.enabled = !isPaused);
-        localStream.getVideoTracks().forEach(t => t.enabled = !isPaused);
-      }
-      if (ambientGainNode) {
-        ambientGainNode.gain.setTargetAtTime(isPaused ? 0 : 0.28, audioCtx.currentTime, 0.2);
-      }
-
-      if (isPaused) {
-        let timeLeft = 60;
-        pauseTimer.innerText = timeLeft + 's';
-        pauseOverlay.style.display = 'flex';
-
-        pauseCountdown = setInterval(() => {
-          timeLeft--;
-          pauseTimer.innerText = timeLeft + 's';
-          if (timeLeft <= 0) {
-            setCallPause(false, true);
-          }
-        }, 1000);
-
-        if (triggeredLocally) {
-          ws.send(JSON.stringify({ room, type: 'pause-sync', paused: true }));
-        }
-      } else {
-        pauseOverlay.style.display = 'none';
-        if (triggeredLocally) {
-          ws.send(JSON.stringify({ room, type: 'pause-sync', paused: false }));
-        }
-      }
+    function triggerSunrise() {
+      sunriseOverlay.classList.add('rising');
+      if (navigator.vibrate) navigator.vibrate([150, 300, 150, 300, 500]);
+      setTimeout(() => sunriseOverlay.classList.remove('rising'), 20000);
     }
-
-    pauseCallBtn.onclick = () => setCallPause(!isPaused, true);
-    resumeCallBtn.onclick = () => setCallPause(false, true);
-
-    // -------------------------------------------------------------
-    // Near-Ear Proximity / Far-Ear Video Switcher
-    // -------------------------------------------------------------
-    let isNearEar = false;
-    function handleProximityChange(near) {
-      if (isNearEar === near || isPaused) return;
-      isNearEar = near;
-      if (isNearEar) {
-        proximityCover.style.display = 'flex';
-        toggleVideo(false);
-      } else {
-        proximityCover.style.display = 'none';
-        toggleVideo(true);
-      }
-    }
-
-    function toggleVideo(enable) {
-      if (localStream && localStream.getVideoTracks().length > 0) {
-        localStream.getVideoTracks()[0].enabled = enable;
-        document.getElementById('card-local').classList.toggle('audio-only', !enable);
-      }
-    }
-
-    if ('ProximitySensor' in window) {
-      try {
-        const prox = new ProximitySensor();
-        prox.onreading = () => handleProximityChange(prox.distance < 4);
-        prox.start();
-      } catch(e){}
-    }
-    if ('AmbientLightSensor' in window) {
-      try {
-        const light = new AmbientLightSensor();
-        light.onreading = () => handleProximityChange(light.illuminance < 2.5);
-        light.start();
-      } catch(e){}
-    }
-
-    // -------------------------------------------------------------
-    // Camera Flip (Front <-> Back)
-    // -------------------------------------------------------------
-    flipCamBtn.onclick = async () => {
-      if (!localStream) return;
-      currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-
-      const oldTrack = localStream.getVideoTracks()[0];
-      if (oldTrack) oldTrack.stop();
-
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: currentFacingMode }
-        });
-        const newTrack = newStream.getVideoTracks()[0];
-
-        Object.values(peers).forEach(pc => {
-          const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-          if (sender) sender.replaceTrack(newTrack);
-        });
-
-        localStream.removeTrack(oldTrack);
-        localStream.addTrack(newTrack);
-        myVideo.srcObject = localStream;
-      } catch (err) {
-        alert('Could not switch camera: ' + err.message);
-      }
+    nudgeBtn.onclick = () => {
+      triggerSunrise();
+      broadcastData({ type: 'SUNRISE_ALARM' });
     };
 
     // -------------------------------------------------------------
-    // AMOLED Sleep Saver (15 Min Silence Blackout)
+    // 6. SCREEN SHARE & LIVE CO-BROWSE
     // -------------------------------------------------------------
-    let silenceSecs = 0;
-    function startSleepEnergyMonitor() {
-      const data = new Uint8Array(voiceAnalyser.frequencyBinCount);
-      setInterval(() => {
-        voiceAnalyser.getByteFrequencyData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) sum += data[i];
-        const avg = sum / data.length;
-
-        if (avg < 5) {
-          silenceSecs += 2;
-          if (silenceSecs >= 900) sleepDimmer.classList.add('asleep');
+    screenShareBtn.onclick = async () => {
+      try {
+        if (!isScreenSharing) {
+          const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+          currentScreenTrack = screenStream.getVideoTracks()[0];
+          Object.values(peers).forEach(pc => {
+            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (sender) sender.replaceTrack(currentScreenTrack);
+          });
+          myVideo.srcObject = screenStream;
+          screenShareBtn.classList.add('btn-active-blue');
+          isScreenSharing = true;
+          currentScreenTrack.onended = () => restoreCamera();
         } else {
-          silenceSecs = 0;
+          restoreCamera();
         }
-      }, 2000);
-    }
-    sleepDimmer.onclick = () => {
-      sleepDimmer.classList.remove('asleep');
-      silenceSecs = 0;
+      } catch(e) { console.warn(e); }
     };
 
+    function restoreCamera() {
+      if (currentScreenTrack) currentScreenTrack.stop();
+      const orig = localStream.getVideoTracks()[0];
+      Object.values(peers).forEach(pc => {
+        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender) sender.replaceTrack(orig);
+      });
+      myVideo.srcObject = localStream;
+      screenShareBtn.classList.remove('btn-active-blue');
+      isScreenSharing = false;
+    }
+
     // -------------------------------------------------------------
-    // Screen Touch Haptic Heartbeat (WebRTC DataChannel)
+    // 7. LIVE SUBTITLES & FLOATING WHISPERS
     // -------------------------------------------------------------
-    function setupChannel(peerId, dc) {
-      dataChannels[peerId] = dc;
-      dc.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'heart-beat') renderHeartPulse(msg.x, msg.y);
+    const SpeechAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognizer = null;
+    if (SpeechAPI) {
+      recognizer = new SpeechAPI();
+      recognizer.continuous = true;
+      recognizer.interimResults = true;
+      recognizer.onresult = (e) => {
+        let text = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) text += e.results[i][0].transcript;
+        subtitleBanner.innerText = text;
+        broadcastData({ type: 'SUBTITLE', text });
       };
     }
 
-    window.addEventListener('pointerdown', (e) => {
-      if (e.clientY < 56 || e.clientY > window.innerHeight - 86 || lobbyModal.style.display !== 'none') return;
-      const xNorm = e.clientX / window.innerWidth;
-      const yNorm = e.clientY / window.innerHeight;
+    subsBtn.onclick = () => {
+      if (!recognizer) return alert('Speech Recognition unavailable.');
+      isSubsActive = !isSubsActive;
+      subsBtn.classList.toggle('btn-active-amber', isSubsActive);
+      subtitleBanner.style.display = isSubsActive ? 'block' : 'none';
+      if (isSubsActive) recognizer.start();
+      else recognizer.stop();
+    };
 
-      renderHeartPulse(xNorm, yNorm);
-
-      const packet = JSON.stringify({ type: 'heart-beat', x: xNorm, y: yNorm });
-      Object.values(dataChannels).forEach(dc => {
-        if (dc.readyState === 'open') dc.send(packet);
-      });
-    });
-
-    function renderHeartPulse(xNorm, yNorm) {
-      if (navigator.vibrate) navigator.vibrate([100, 100, 200]);
-      const ripple = document.createElement('div');
-      ripple.className = 'heart-ripple';
-      ripple.style.left = (xNorm * window.innerWidth) + 'px';
-      ripple.style.top = (yNorm * window.innerHeight) + 'px';
-      document.body.appendChild(ripple);
-      setTimeout(() => ripple.remove(), 1200);
+    function displayWhisper(text, isLocal) {
+      const b = document.createElement('div');
+      b.className = `whisper-bubble ${isLocal ? 'whisper-local' : 'whisper-remote'}`;
+      b.innerText = text;
+      whisperContainer.appendChild(b);
+      setTimeout(() => b.remove(), 4000);
     }
 
+    sendWhisperBtn.onclick = () => {
+      const txt = whisperInput.value.trim();
+      if (!txt) return;
+      displayWhisper(txt, true);
+      broadcastData({ type: 'WHISPER', text: txt });
+      whisperInput.value = '';
+    };
+
     // -------------------------------------------------------------
-    // WebRTC Signaling & Mesh Engine
+    // 8. ZERO-BANDWIDTH 1GB+ P2P BEAM
     // -------------------------------------------------------------
+    fileBeamBtn.onclick = () => p2pFileInput.click();
+    p2pFileInput.onchange = () => {
+      const file = p2pFileInput.files[0];
+      if (!file) return;
+
+      const firstChan = Object.values(dataChannels)[0];
+      if (!firstChan || firstChan.readyState !== 'open') return alert('Partner not connected yet.');
+
+      const CHUNK_SIZE = 64 * 1024;
+      let offset = 0;
+      firstChan.bufferedAmountLowThreshold = 256 * 1024;
+      firstChan.send(JSON.stringify({ type: 'FILE_START', name: file.name, size: file.size, mime: file.type }));
+
+      function pump() {
+        while (offset < file.size) {
+          if (firstChan.bufferedAmount > firstChan.bufferedAmountLowThreshold) {
+            firstChan.onbufferedamountlow = () => {
+              firstChan.onbufferedamountlow = null;
+              pump();
+            };
+            return;
+          }
+          const slice = file.slice(offset, offset + CHUNK_SIZE);
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            firstChan.send(e.target.result);
+            offset += CHUNK_SIZE;
+            pump();
+          };
+          reader.readAsArrayBuffer(slice);
+          return;
+        }
+        firstChan.send(JSON.stringify({ type: 'FILE_END' }));
+        alert('File Beam finished sending!');
+      }
+      pump();
+    };
+
+    let incomingMeta = null, incomingChunks = [];
+
+    // -------------------------------------------------------------
+    // 9. THERMAL WARMTH CANVAS
+    // -------------------------------------------------------------
+    thermalBtn.onclick = () => {
+      isThermalActive = !isThermalActive;
+      thermalBtn.classList.toggle('btn-active-pink', isThermalActive);
+      thermalCanvas.classList.toggle('drawing-active', isThermalActive);
+    };
+
+    let isDrawing = false;
+    thermalCanvas.addEventListener('pointerdown', (e) => {
+      if (!isThermalActive) return;
+      isDrawing = true;
+      strokes.push({ x: e.clientX, y: e.clientY, t: Date.now() });
+      broadcastData({ type: 'CANVAS_POINT', x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
+    });
+    thermalCanvas.addEventListener('pointermove', (e) => {
+      if (!isDrawing || !isThermalActive) return;
+      strokes.push({ x: e.clientX, y: e.clientY, t: Date.now() });
+      broadcastData({ type: 'CANVAS_POINT', x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
+    });
+    window.addEventListener('pointerup', () => isDrawing = false);
+
+    function renderThermal() {
+      ctx.clearRect(0, 0, thermalCanvas.width, thermalCanvas.height);
+      const now = Date.now();
+      strokes = strokes.filter(p => now - p.t < 20000);
+      strokes.forEach(p => {
+        const age = (now - p.t) / 1000;
+        let col = '#ff3b30';
+        if (age >= 5 && age < 12) col = '#ff9500';
+        else if (age >= 12) col = '#6366f1';
+
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      requestAnimationFrame(renderThermal);
+    }
+    renderThermal();
+
+    // -------------------------------------------------------------
+    // 10. AUDIO PILLOW NOTES & WHISPER DECRYPTOR
+    // -------------------------------------------------------------
+    let mediaRecorder = null, pillowSlices = [];
+    pillowNoteBtn.onclick = () => {
+      if (!localStream) return;
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        pillowNoteBtn.classList.remove('btn-active-pink');
+        return;
+      }
+      pillowSlices = [];
+      const st = new MediaStream(localStream.getAudioTracks());
+      mediaRecorder = new MediaRecorder(st);
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) pillowSlices.push(e.data); };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(pillowSlices, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          broadcastData({ type: 'PILLOW_NOTE', base64: reader.result });
+          alert('Pillow Note sent to partner!');
+        };
+        reader.readAsDataURL(blob);
+      };
+      mediaRecorder.start();
+      pillowNoteBtn.classList.add('btn-active-pink');
+      setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+          pillowNoteBtn.classList.remove('btn-active-pink');
+        }
+      }, 15000);
+    };
+
+    function xorCipher(txt, key) {
+      let r = '';
+      for (let i = 0; i < txt.length; i++) r += String.fromCharCode(txt.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      return btoa(r);
+    }
+    function xorDecipher(b64, key) {
+      try {
+        const s = atob(b64);
+        let r = '';
+        for (let i = 0; i < s.length; i++) r += String.fromCharCode(s.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+        return r;
+      } catch(e) { return null; }
+    }
+
+    encryptSendBtn.onclick = () => {
+      const phrase = cipherPassInput.value.trim();
+      const txt = whisperInput.value.trim();
+      if (!phrase || !txt) return alert('Key phrase and message required.');
+      const cipher = xorCipher(txt, phrase);
+      broadcastData({ type: 'SECRET_VAULT', cipher });
+      displayWhisper('🔒 Locked Whisper Sent', true);
+      whisperInput.value = '';
+    };
+
+    // -------------------------------------------------------------
+    // 11. WEBRTC DATA CHANNELS & SIGNALING
+    // -------------------------------------------------------------
+    function broadcastData(obj) {
+      const payload = JSON.stringify(obj);
+      Object.values(dataChannels).forEach(dc => {
+        if (dc.readyState === 'open') dc.send(payload);
+      });
+    }
+
+    function setupChannel(id, dc) {
+      dc.binaryType = 'arraybuffer';
+      dataChannels[id] = dc;
+      dc.onmessage = (e) => {
+        if (typeof e.data !== 'string') {
+          incomingChunks.push(e.data);
+          return;
+        }
+        const m = JSON.parse(e.data);
+        if (m.type === 'VIDEO_PLAY') {
+          if (Math.abs(mainPlayer.currentTime - m.time) > 0.1) mainPlayer.currentTime = m.time;
+          mainPlayer.play();
+          playPauseBtn.innerText = '❚❚';
+        } else if (m.type === 'VIDEO_PAUSE') {
+          mainPlayer.currentTime = m.time;
+          mainPlayer.pause();
+          playPauseBtn.innerText = '▶';
+        } else if (m.type === 'VIDEO_SEEK') {
+          mainPlayer.currentTime = m.time;
+        } else if (m.type === 'VIDEO_RATE') {
+          mainPlayer.playbackRate = m.rate;
+          rateSelect.value = m.rate.toString();
+        } else if (m.type === 'VIDEO_LOAD') {
+          mainPlayer.src = m.url;
+          mainPlayer.play();
+          playPauseBtn.innerText = '❚❚';
+        } else if (m.type === 'VIDEO_DRIFT_PING') {
+          const drift = Math.abs(mainPlayer.currentTime - m.time);
+          if (drift > 0.12) mainPlayer.currentTime = m.time;
+        } else if (m.type === 'REACTION_BURST') {
+          triggerReactionUI(m.rType, 'Partner');
+        } else if (m.type === 'FILE_START') {
+          incomingMeta = m; incomingChunks = [];
+        } else if (m.type === 'FILE_END') {
+          const blob = new Blob(incomingChunks, { type: incomingMeta.mime });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = incomingMeta.name; a.click();
+          alert(`Received File: ${incomingMeta.name}`);
+        } else if (m.type === 'SUBTITLE') {
+          subtitleBanner.style.display = 'block';
+          subtitleBanner.innerText = m.text;
+        } else if (m.type === 'WHISPER') {
+          displayWhisper(m.text, false);
+        } else if (m.type === 'CANVAS_POINT') {
+          strokes.push({ x: m.x * window.innerWidth, y: m.y * window.innerHeight, t: Date.now() });
+        } else if (m.type === 'SUNRISE_ALARM') {
+          triggerSunrise();
+        } else if (m.type === 'SLEEP_STATE') {
+          sleepStatusBadge.innerText = `Partner Sleep: ${m.state}`;
+        } else if (m.type === 'PILLOW_NOTE') {
+          const a = new Audio(m.base64);
+          a.play();
+          alert('Playing partner Pillow Note!');
+        } else if (m.type === 'SECRET_VAULT') {
+          const phrase = prompt('Partner sent a secret whisper! Enter key phrase:');
+          if (phrase) {
+            const dec = xorDecipher(m.cipher, phrase);
+            if (dec) alert(`Decrypted: "${dec}"`);
+            else alert('Incorrect Secret Phrase!');
+          }
+        }
+      };
+    }
+
     ws.onmessage = async (e) => {
       const data = JSON.parse(e.data);
-
       if (data.type === 'room-info') {
         myId = data.myId;
-        callStatus.innerText = `${data.peers.length + 1} connected`;
-        for (const pId of data.peers) createPeerConnection(pId, true);
-      } else if (data.type === 'peer-joined') {
-        callStatus.innerText = `Connected`;
+        data.peers.forEach(pId => createPeer(pId, true));
       } else if (data.type === 'offer') {
-        const pc = createPeerConnection(data.sender, false);
+        const pc = createPeer(data.sender, false);
         await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        ws.send(JSON.stringify({ target: data.sender, type: 'answer', payload: answer }));
+        const ans = await pc.createAnswer();
+        await pc.setLocalDescription(ans);
+        ws.send(JSON.stringify({ target: data.sender, type: 'answer', payload: ans }));
       } else if (data.type === 'answer') {
         const pc = peers[data.sender];
         if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
       } else if (data.type === 'candidate') {
         const pc = peers[data.sender];
-        if (pc && data.payload) pc.addIceCandidate(new RTCIceCandidate(data.payload)).catch(console.error);
+        if (pc && data.payload) pc.addIceCandidate(new RTCIceCandidate(data.payload));
       } else if (data.type === 'peer-left') {
-        if (peers[data.peerId]) {
-          peers[data.peerId].close();
-          delete peers[data.peerId];
-        }
-        delete panners[data.peerId];
-        const card = document.getElementById(`card-${data.peerId}`);
-        if (card) card.remove();
-      } else if (data.type === 'couple-suite-sync') {
-        applyCoupleSuite(data.enabled);
-      } else if (data.type === 'pause-sync') {
-        setCallPause(data.paused, false);
+        if (peers[data.peerId]) { peers[data.peerId].close(); delete peers[data.peerId]; }
+        partnerVideo.srcObject = null;
       }
     };
 
-    function createPeerConnection(peerId, isInitiator) {
+    function createPeer(peerId, isInit) {
       const pc = new RTCPeerConnection(rtcConfig);
       peers[peerId] = pc;
 
-      if (localStream) {
-        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-      }
+      if (processedAudioTrack) pc.addTrack(processedAudioTrack, localStream);
+      if (localStream) localStream.getVideoTracks().forEach(t => pc.addTrack(t, localStream));
 
-      if (isInitiator) {
-        const dc = pc.createDataChannel('touch');
+      if (isInit) {
+        const dc = pc.createDataChannel('fullSuiteChannel');
         setupChannel(peerId, dc);
         pc.onnegotiationneeded = async () => {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          ws.send(JSON.stringify({ target: peerId, type: 'offer', payload: offer }));
+          const off = await pc.createOffer();
+          await pc.setLocalDescription(off);
+          ws.send(JSON.stringify({ target: peerId, type: 'offer', payload: off }));
         };
       } else {
         pc.ondatachannel = (e) => setupChannel(peerId, e.channel);
       }
 
-      pc.ontrack = (event) => {
-        let card = document.getElementById(`card-${peerId}`);
-        if (!card) {
-          card = document.createElement('div');
-          card.id = `card-${peerId}`;
-          card.className = 'video-card';
-          const isAudio = event.streams[0].getVideoTracks().length === 0;
-          if (isAudio) card.classList.add('audio-only');
-
-          card.innerHTML = `
-            <div class="audio-ph">🎙️</div>
-            <video id="v-${peerId}" autoplay playsinline></video>
-            <span class="card-label">Partner</span>
-          `;
-          videoGrid.appendChild(card);
-        }
-        const vid = card.querySelector('video');
-        vid.srcObject = event.streams[0];
-
-        // 3D Spatial Audio Setup for this peer
-        if (audioCtx) {
-          const remoteSource = audioCtx.createMediaStreamSource(event.streams[0]);
-          const panner = audioCtx.createPanner();
-          panner.panningModel = 'HRTF';
-          panner.distanceModel = 'inverse';
-          panner.positionX.value = 0;
-          panner.positionY.value = 0;
-          panner.positionZ.value = 0;
-
-          remoteSource.connect(panner);
-          panner.connect(audioCtx.destination);
-          panners[peerId] = panner;
-        }
+      pc.ontrack = (evt) => {
+        partnerVideo.srcObject = evt.streams[0];
       };
 
       pc.onicecandidate = (e) => {
@@ -861,51 +987,58 @@
     }
 
     // -------------------------------------------------------------
-    // Join & Controls Execution
+    // 12. RUNTIME INITIALIZATION
     // -------------------------------------------------------------
     joinLoungeBtn.onclick = async () => {
-      room = roomCodeInput.value.trim().toLowerCase().replace(/\s+/g, '-') || 'love-lounge';
+      room = roomCodeInput.value.trim().toLowerCase().replace(/\s+/g, '-') || 'suite-room';
       window.location.hash = room;
       roomTitle.innerText = room;
-
-      const isVideo = document.querySelector('input[name="startMode"]:checked').value === 'video';
 
       try {
         localStream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true },
-          video: isVideo ? { facingMode: currentFacingMode } : false
+          video: { facingMode: 'user' }
         });
 
-        initWebAudio(localStream);
-
-        const localBox = document.getElementById('card-local');
-        if (!isVideo) {
-          localBox.classList.add('audio-only');
-        } else {
-          localBox.classList.remove('audio-only');
-          myVideo.srcObject = localStream;
-        }
+        initAudioGraph(localStream);
+        myVideo.srcObject = localStream;
 
         lobbyModal.style.display = 'none';
         controlsBar.style.display = 'flex';
 
         ws.send(JSON.stringify({ room, type: 'join' }));
       } catch (err) {
-        alert('Microphone/Camera permission required.');
+        alert('Camera & microphone permissions required.');
       }
     };
 
     muteBtn.onclick = () => {
       isMuted = !isMuted;
       localStream.getAudioTracks()[0].enabled = !isMuted;
+      if (processedAudioTrack) processedAudioTrack.enabled = !isMuted;
       muteBtn.style.background = isMuted ? '#f59e0b' : '#27272a';
+    };
+
+    watchDrawerBtn.onclick = () => {
+      watchDrawer.style.display = watchDrawer.style.display === 'flex' ? 'none' : 'flex';
+      whisperDrawer.style.display = 'none';
+    };
+
+    whisperDrawerBtn.onclick = () => {
+      whisperDrawer.style.display = whisperDrawer.style.display === 'flex' ? 'none' : 'flex';
+      watchDrawer.style.display = 'none';
     };
 
     copyUrlBtn.onclick = () => {
       navigator.clipboard.writeText(window.location.origin + '/#' + room).then(() => {
         copyUrlBtn.innerText = 'Copied!';
-        setTimeout(() => copyUrlBtn.innerText = 'Copy Link', 2000);
+        setTimeout(() => copyUrlBtn.innerText = 'Copy', 2000);
       });
+    };
+
+    pipSysBtn.onclick = async () => {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else if (mainPlayer) await mainPlayer.requestPictureInPicture();
     };
 
     hangupBtn.onclick = () => {

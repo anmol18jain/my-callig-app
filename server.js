@@ -26,11 +26,9 @@ wss.on('connection', (ws) => {
 
       if (data.type === 'join') {
         userRoom = data.room;
-        if (!rooms[userRoom]) {
-          rooms[userRoom] = new Map();
-        }
+        if (!rooms[userRoom]) rooms[userRoom] = new Map();
 
-        // Evict any dead sockets
+        // Evict terminated connections
         for (const [id, client] of rooms[userRoom].entries()) {
           if (client.readyState !== 1) rooms[userRoom].delete(id);
         }
@@ -52,7 +50,7 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      // Targeted signaling (Offer / Answer / Candidate)
+      // Point-to-point WebRTC signaling (Offer/Answer/ICE)
       if (data.target && rooms[userRoom] && rooms[userRoom].has(data.target)) {
         const targetClient = rooms[userRoom].get(data.target);
         if (targetClient && targetClient.readyState === 1) {
@@ -61,7 +59,7 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      // Broadcast room-wide synchronization (Couple mode toggles, Ambience changes)
+      // Synchronized room broadcasts (Video Sync, Reactions, Nudges, Whispers)
       if (userRoom && rooms[userRoom]) {
         rooms[userRoom].forEach((client) => {
           if (client !== ws && client.readyState === 1) {
@@ -70,7 +68,7 @@ wss.on('connection', (ws) => {
         });
       }
     } catch (err) {
-      console.error('Socket error:', err);
+      console.error('Signaling error:', err);
     }
   });
 
@@ -82,12 +80,10 @@ wss.on('connection', (ws) => {
           client.send(JSON.stringify({ type: 'peer-left', peerId: ws.id }));
         }
       });
-      if (rooms[userRoom].size === 0) {
-        delete rooms[userRoom];
-      }
+      if (rooms[userRoom].size === 0) delete rooms[userRoom];
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Lounge Server online on port ${PORT}`));
