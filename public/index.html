@@ -3,16 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Lounge Suite • Pure Audio</title>
+  <title>Lounge Suite • Master Edition</title>
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
   <style>
     :root {
       --bg: #09090b;
-      --card: #141417;
-      --border: #27272a;
+      --card: #121215;
+      --card-blur: rgba(18, 18, 21, 0.82);
+      --border: #232328;
       --accent: #6366f1;
-      --accent-glow: rgba(99, 102, 241, 0.25);
+      --accent-glow: rgba(99, 102, 241, 0.35);
       --green: #22c55e;
       --pink: #ec4899;
+      --amber: #f59e0b;
       --text: #f4f4f5;
       --text-dim: #71717a;
     }
@@ -26,93 +30,174 @@
       overflow: hidden; display: flex; flex-direction: column;
     }
 
-    /* Top Minimal Bar */
+    /* Top Minimal Glass Navigation */
     .top-bar {
-      height: 56px; padding: 0 18px; display: flex; align-items: center;
+      height: 54px; padding: 0 16px; display: flex; align-items: center;
       justify-content: space-between; border-bottom: 1px solid var(--border);
-      background: rgba(9, 9, 11, 0.85); backdrop-filter: blur(12px); z-index: 40;
+      background: rgba(9, 9, 11, 0.9); backdrop-filter: blur(14px); z-index: 60;
     }
     .room-pill {
       display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500;
       background: var(--card); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
     }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
     .btn-pill {
       background: none; border: 1px solid var(--border); color: #38bdf8;
       font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+      transition: background 0.15s ease;
     }
     .btn-pill:active { background: var(--border); }
 
-    /* Central Soundstage / Voice Avatar Stage */
-    .stage-container {
-      flex: 1; display: flex; flex-direction: column; align-items: center;
-      justify-content: center; position: relative; padding: 20px;
+    /* Central Layout Viewports */
+    .viewport-container {
+      flex: 1; position: relative; overflow: hidden; display: flex;
+      align-items: center; justify-content: center;
     }
-    .peers-row {
+
+    /* 1. Pure Audio Stage (Active when mode is audio-only) */
+    #audioStage {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      width: 100%; height: 100%; position: absolute; inset: 0; z-index: 10;
+    }
+    .peers-audio-row {
       display: flex; align-items: center; justify-content: center;
-      gap: 40px; flex-wrap: wrap; width: 100%; max-width: 600px;
+      gap: 40px; flex-wrap: wrap; width: 100%; max-width: 520px;
     }
-    .avatar-card {
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-      position: relative;
-    }
+    .avatar-card { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .avatar-disc {
-      width: 110px; height: 110px; border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #27272a, #141417);
+      width: 100px; height: 100px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #27272a, #121215);
       border: 2px solid var(--border); display: flex; align-items: center;
-      justify-content: center; font-size: 40px; position: relative;
-      transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      justify-content: center; font-size: 38px; position: relative;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .avatar-disc.speaking {
-      border-color: var(--accent);
-      box-shadow: 0 0 35px var(--accent-glow);
-      transform: scale(1.05);
+      border-color: var(--accent); box-shadow: 0 0 35px var(--accent-glow);
+      transform: scale(1.06);
     }
     .avatar-disc.partner-speaking {
-      border-color: var(--pink);
-      box-shadow: 0 0 35px rgba(236, 72, 153, 0.35);
-      transform: scale(1.05);
+      border-color: var(--pink); box-shadow: 0 0 35px rgba(236, 72, 153, 0.4);
+      transform: scale(1.06);
     }
-    .avatar-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .avatar-name { font-size: 13px; font-weight: 600; }
     .avatar-badge {
       font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
       background: var(--card); border: 1px solid var(--border); color: var(--text-dim);
     }
-
-    /* Frequency Wave Canvas */
     #waveCanvas {
-      position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
-      width: 300px; height: 60px; pointer-events: none; opacity: 0.8;
+      position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+      width: 280px; height: 50px; pointer-events: none; opacity: 0.85;
     }
 
-    /* Subtitles Banner (Streamlined, Accurate) */
+    /* 2. Video Watch & Video Call Stage */
+    #mainVideoContainer {
+      position: absolute; inset: 0; background: #000; display: flex;
+      align-items: center; justify-content: center; z-index: 15;
+    }
+    #mainPlayer { width: 100%; height: 100%; object-fit: contain; }
+    #ytWrapper { width: 100%; height: 100%; display: none; }
+    #ytPlayer { width: 100%; height: 100%; }
+
+    /* Face-to-Face Split Screen Call Mode */
+    #callGridWrapper {
+      display: none; position: absolute; inset: 0; padding: 8px; gap: 8px;
+      z-index: 25; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr;
+    }
+    @media (min-width: 650px) {
+      #callGridWrapper { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+    }
+    body.call-only-mode #mainVideoContainer { display: none !important; }
+    body.call-only-mode #callGridWrapper { display: grid !important; }
+    body.call-only-mode .pip-box {
+      position: relative !important; top: auto !important; bottom: auto !important;
+      left: auto !important; right: auto !important; width: 100% !important; height: 100% !important;
+      border-radius: 14px; cursor: default; box-shadow: none;
+    }
+
+    /* Dual-PiP Tiles */
+    .pip-box {
+      position: absolute; width: 110px; height: 146px; border-radius: 14px;
+      overflow: hidden; background: #18181b; border: 2px solid #3f3f46;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 45; cursor: grab;
+      touch-action: none; transition: box-shadow 0.2s, border-color 0.2s, opacity 0.2s;
+    }
+    .pip-box:active { cursor: grabbing; }
+    .pip-box video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+    .pip-box video.mirror-mode { transform: scaleX(-1); }
+    .pip-label {
+      position: absolute; bottom: 4px; left: 6px; background: rgba(0,0,0,0.7);
+      padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;
+    }
+    .pip-reacting {
+      border-color: #00ffa3 !important;
+      box-shadow: 0 0 25px rgba(0, 255, 163, 0.85) !important;
+    }
+    .couch-mode-local {
+      left: 8% !important; top: auto !important; bottom: 88px !important;
+      width: 140px !important; height: 105px !important;
+    }
+    .couch-mode-remote {
+      left: 54% !important; top: auto !important; bottom: 88px !important;
+      width: 140px !important; height: 105px !important;
+    }
+
+    /* Thermal Warmth Canvas */
+    #doodleCanvas {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      pointer-events: none; touch-action: none; z-index: 50;
+    }
+    #doodleCanvas.drawing-active { pointer-events: auto !important; }
+
+    /* Subtitles Banner (Direct, High-Confidence) */
     #subtitlesBanner {
-      position: absolute; bottom: 105px; left: 20px; right: 20px;
-      background: rgba(20, 20, 23, 0.88); border: 1px solid var(--border);
-      border-radius: 16px; padding: 12px 18px; text-align: center;
-      backdrop-filter: blur(16px); display: none; z-index: 30;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.5); max-width: 600px; margin: 0 auto;
+      position: fixed; bottom: 84px; left: 16px; right: 16px;
+      background: rgba(18, 18, 22, 0.92); border: 1px solid var(--border);
+      border-radius: 14px; padding: 10px 16px; text-align: center;
+      backdrop-filter: blur(14px); display: none; z-index: 70;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6); max-width: 550px; margin: 0 auto;
     }
     .sub-speaker { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
-    .sub-text { font-size: 14px; font-weight: 500; color: #fef08a; line-height: 1.4; }
+    .sub-text { font-size: 14px; font-weight: 500; color: #fde047; line-height: 1.4; }
 
-    /* Bottom Minimal Controls Bar */
+    /* Floating Reaction Emoji Bursts */
+    .reaction-burst-box {
+      position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+      font-size: 54px; pointer-events: none; z-index: 85;
+      animation: popBurst 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    }
+    @keyframes popBurst {
+      0% { transform: translate(-50%, 0) scale(0.3); opacity: 0; }
+      20% { transform: translate(-50%, -40px) scale(1.4); opacity: 1; }
+      80% { transform: translate(-50%, -120px) scale(1.0); opacity: 1; }
+      100% { transform: translate(-50%, -180px) scale(0.6); opacity: 0; }
+    }
+
+    /* Sunrise Alarm Overlay */
+    #sunriseOverlay {
+      position: fixed; inset: 0; pointer-events: none; display: none; opacity: 0;
+      background: radial-gradient(circle at bottom, #fbbf24 0%, #ea580c 45%, #431407 100%);
+      transition: opacity 18s ease-in; z-index: 80;
+    }
+    #sunriseOverlay.rising { display: block; opacity: 0.88; }
+
+    /* Bottom Minimal Controls Dock */
     .controls-dock {
-      height: 76px; padding: 0 16px max(10px, env(safe-area-inset-bottom));
-      display: flex; align-items: center; justify-content: center; gap: 12px;
-      background: rgba(9, 9, 11, 0.9); border-top: 1px solid var(--border);
-      z-index: 40; backdrop-filter: blur(12px);
+      height: 74px; padding: 0 14px max(10px, env(safe-area-inset-bottom));
+      display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+      background: rgba(9, 9, 11, 0.94); border-top: 1px solid var(--border);
+      z-index: 60; backdrop-filter: blur(14px); overflow-x: auto; scrollbar-width: none;
     }
+    .controls-dock::-webkit-scrollbar { display: none; }
     .c-btn {
-      width: 48px; height: 48px; border-radius: 24px; border: 1px solid var(--border);
-      background: var(--card); color: var(--text); font-size: 18px; cursor: pointer;
+      width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-size: 17px; cursor: pointer;
       display: flex; align-items: center; justify-content: center; position: relative;
-      transition: all 0.2s ease;
+      flex-shrink: 0; transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s;
     }
-    .c-btn:active { transform: scale(0.92); }
-    .c-btn.active-blue { background: #0284c7 !important; border-color: #38bdf8 !important; box-shadow: 0 0 16px rgba(56, 189, 248, 0.4); }
-    .c-btn.active-purple { background: var(--accent) !important; border-color: #818cf8 !important; box-shadow: 0 0 16px var(--accent-glow); }
-    .c-btn.active-pink { background: var(--pink) !important; border-color: #f472b6 !important; box-shadow: 0 0 16px rgba(236,72,153,0.4); }
+    .c-btn:active { transform: scale(0.9); }
+    .c-btn.active-blue { background: #0284c7 !important; border-color: #38bdf8 !important; }
+    .c-btn.active-purple { background: var(--accent) !important; border-color: #818cf8 !important; }
+    .c-btn.active-pink { background: var(--pink) !important; border-color: #f472b6 !important; }
     .c-btn.active-amber { background: #d97706 !important; border-color: #fbbf24 !important; }
     .c-btn-end { background: #ef4444 !important; border-color: #dc2626 !important; }
     .badge-counter {
@@ -121,16 +206,16 @@
       display: none; align-items: center; justify-content: center;
     }
 
-    /* WhatsApp-Style Slide-In Chat Drawer */
+    /* WhatsApp-Style Chat Slide-Over Drawer */
     #chatDrawer {
-      position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 380px;
+      position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 360px;
       background: #111114; border-left: 1px solid var(--border); z-index: 100;
       display: flex; flex-direction: column; transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
     #chatDrawer.open { transform: translateX(0); }
     .chat-header {
-      height: 56px; padding: 0 16px; border-bottom: 1px solid var(--border);
+      height: 54px; padding: 0 16px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
       background: rgba(17, 17, 20, 0.95);
     }
@@ -142,47 +227,62 @@
       max-width: 78%; padding: 8px 12px; border-radius: 14px; font-size: 13px;
       line-height: 1.4; word-break: break-word; display: flex; flex-direction: column;
     }
-    .chat-mine {
-      align-self: flex-end; background: #005c4b; color: #e9edef;
-      border-bottom-right-radius: 3px;
-    }
-    .chat-theirs {
-      align-self: flex-start; background: #202c33; color: #e9edef;
-      border-bottom-left-radius: 3px;
-    }
-    .chat-time {
-      font-size: 9.5px; color: rgba(255,255,255,0.5); align-self: flex-end; margin-top: 2px;
-    }
+    .chat-mine { align-self: flex-end; background: #005c4b; color: #e9edef; border-bottom-right-radius: 3px; }
+    .chat-theirs { align-self: flex-start; background: #202c33; color: #e9edef; border-bottom-left-radius: 3px; }
+    .chat-time { font-size: 9px; color: rgba(255,255,255,0.5); align-self: flex-end; margin-top: 2px; }
     .chat-input-bar {
       padding: 10px 14px max(12px, env(safe-area-inset-bottom));
       border-top: 1px solid var(--border); display: flex; gap: 8px; background: #18181b;
     }
     .chat-input {
-      flex: 1; height: 40px; background: #27272a; border: 1px solid var(--border);
-      border-radius: 20px; color: white; padding: 0 14px; font-size: 13px; outline: none;
+      flex: 1; height: 38px; background: #27272a; border: 1px solid var(--border);
+      border-radius: 19px; color: white; padding: 0 14px; font-size: 13px; outline: none;
     }
     .chat-send-btn {
-      width: 40px; height: 40px; border-radius: 50%; border: none;
+      width: 38px; height: 38px; border-radius: 50%; border: none;
       background: #00a884; color: white; cursor: pointer; display: flex;
-      align-items: center; justify-content: center; font-size: 16px;
+      align-items: center; justify-content: center; font-size: 15px;
     }
 
-    /* Audio Soundstage Panel (The Unique Co-Listen Ambience Feature) */
+    /* Co-Listen Soundstage Drawer */
     #soundstageDrawer {
-      position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%);
-      width: calc(100% - 24px); max-width: 440px; background: rgba(20, 20, 24, 0.96);
+      position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 24px); max-width: 440px; background: rgba(18, 18, 22, 0.96);
       border: 1px solid var(--border); border-radius: 20px; padding: 16px;
       backdrop-filter: blur(16px); z-index: 90; display: none; flex-direction: column;
-      gap: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      gap: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
     }
-    .soundstage-title { font-size: 13px; font-weight: 700; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px; }
     .stage-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
-    .stage-chips { display: flex; gap: 8px; }
+    .stage-chips { display: flex; gap: 6px; }
     .amb-chip {
       background: var(--card); border: 1px solid var(--border); color: var(--text);
-      padding: 6px 12px; border-radius: 12px; font-size: 12px; cursor: pointer;
+      padding: 5px 10px; border-radius: 10px; font-size: 12px; cursor: pointer;
     }
     .amb-chip.active { background: var(--accent); border-color: var(--accent); }
+
+    /* Watch Party Controls Drawer */
+    #watchDrawer {
+      position: fixed; bottom: 82px; left: 0; right: 0;
+      background: rgba(18, 18, 22, 0.97); backdrop-filter: blur(14px);
+      padding: 14px 16px; border-top: 1px solid var(--border); display: none;
+      flex-direction: column; gap: 10px; z-index: 90;
+    }
+    #watchDrawer input, #watchDrawer select {
+      padding: 8px 12px; background: #27272a; border: 1px solid var(--border);
+      border-radius: 8px; color: white; outline: none; font-size: 13px;
+    }
+
+    /* Modals */
+    .app-modal {
+      position: fixed; inset: 15% 10%; background: #18181b; border: 1px solid var(--border);
+      border-radius: 20px; display: none; flex-direction: column; padding: 20px;
+      z-index: 1000; box-shadow: 0 0 35px rgba(0,0,0,0.8);
+    }
+    .app-modal-list { flex: 1; overflow-y: auto; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+    .modal-item {
+      background: #27272a; padding: 10px 14px; border-radius: 8px;
+      display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+    }
 
     /* Lobby */
     #lobbyModal {
@@ -190,129 +290,211 @@
       align-items: center; justify-content: center; padding: 20px; z-index: 2000;
     }
     .lobby-box {
-      background: var(--card); padding: 32px; border-radius: 24px;
-      width: 100%; max-width: 340px; text-align: center; border: 1px solid var(--border);
+      background: var(--card); padding: 30px; border-radius: 24px;
+      width: 100%; max-width: 330px; text-align: center; border: 1px solid var(--border);
     }
     .lobby-box input {
-      width: 100%; height: 48px; background: #27272a; border: 1px solid var(--border);
-      border-radius: 14px; color: white; text-align: center; margin: 18px 0;
-      outline: none; font-size: 15px;
+      width: 100%; height: 46px; background: #27272a; border: 1px solid var(--border);
+      border-radius: 12px; color: white; text-align: center; margin: 16px 0;
+      outline: none; font-size: 14px;
     }
     .lobby-box button {
-      width: 100%; height: 48px; border-radius: 24px; border: none;
+      width: 100%; height: 46px; border-radius: 23px; border: none;
       background: var(--accent); color: white; font-size: 15px; font-weight: 600; cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Minimal Bar -->
+  <!-- Top Glass Bar -->
   <div class="top-bar">
     <div class="room-pill">
       <span class="status-dot"></span>
-      <span id="roomNameDisplay">...</span>
-      <button class="btn-pill" id="copyLinkBtn">Copy</button>
+      <span id="roomDisplay">...</span>
+      <button class="btn-pill" id="copyBtn">Copy</button>
     </div>
-    <button class="btn-pill" id="openSoundstageBtn">🎧 Soundstage</button>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn-pill" id="soundstageToggleBtn">🎧 Soundstage</button>
+      <button class="btn-pill" id="recapBtn">🎬 Highlights</button>
+      <button class="btn-pill" id="pipSysBtn">🪟 Sys PiP</button>
+    </div>
   </div>
 
-  <!-- Central Audio Stage -->
-  <div class="stage-container">
-    <div class="peers-row">
-      <!-- Local User -->
-      <div class="avatar-card">
-        <div class="avatar-disc" id="myAvatarDisc">🎙️</div>
-        <span class="avatar-name">You</span>
-        <span class="avatar-badge" id="myMicStatus">Mic Active</span>
-      </div>
+  <!-- Sunrise & Thermal Canvas Layers -->
+  <div id="sunriseOverlay"></div>
+  <canvas id="doodleCanvas"></canvas>
 
-      <!-- Remote Partner -->
-      <div class="avatar-card">
-        <div class="avatar-disc" id="partnerAvatarDisc">👤</div>
-        <span class="avatar-name" id="partnerName">Waiting for partner...</span>
-        <span class="avatar-badge" id="partnerAudioStatus">Disconnected</span>
+  <!-- Viewport Stage -->
+  <div class="viewport-container">
+    
+    <!-- 1. Pure Audio Stage (Shown in Audio-Only Mode) -->
+    <div id="audioStage">
+      <div class="peers-audio-row">
+        <div class="avatar-card">
+          <div class="avatar-disc" id="localAudioDisc">🎙️</div>
+          <span class="avatar-name">You</span>
+          <span class="avatar-badge" id="localAudioBadge">Mic Active</span>
+        </div>
+        <div class="avatar-card">
+          <div class="avatar-disc" id="partnerAudioDisc">👤</div>
+          <span class="avatar-name" id="partnerAudioName">Waiting for partner...</span>
+          <span class="avatar-badge" id="partnerAudioBadge">Disconnected</span>
+        </div>
       </div>
+      <canvas id="waveCanvas"></canvas>
     </div>
 
-    <!-- Live Audio Frequency Waves -->
-    <canvas id="waveCanvas"></canvas>
+    <!-- 2. Synced Video Watch Container -->
+    <div id="mainVideoContainer">
+      <video id="mainPlayer" playsinline src="https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4"></video>
+      <div id="ytWrapper"><div id="ytPlayer"></div></div>
+    </div>
 
-    <!-- Clear, Accurate Live Subtitles Banner -->
+    <!-- 3. Face-to-Face Call Mode Split Grid -->
+    <div id="callGridWrapper"></div>
+
+    <!-- Dual-PiP Floating Windows (Shown in Video Watch Mode) -->
+    <div class="pip-box" id="localPip" style="top: 65px; right: 16px;">
+      <video id="myVideo" class="mirror-mode" autoplay playsinline muted></video>
+      <span class="pip-label">You</span>
+    </div>
+
+    <div class="pip-box" id="remotePip" style="top: 65px; left: 16px;">
+      <video id="partnerVideo" autoplay playsinline></video>
+      <span class="pip-label">Partner</span>
+    </div>
+
+    <!-- Live Subtitles Banner -->
     <div id="subtitlesBanner">
       <div class="sub-speaker" id="subSpeaker">You:</div>
       <div class="sub-text" id="subText">Listening...</div>
     </div>
   </div>
 
-  <!-- Unique Audio Co-Listen Soundstage Drawer -->
+  <!-- Audio Soundstage Drawer -->
   <div id="soundstageDrawer">
-    <div class="soundstage-title">Audio Ambience & Co-Listen Soundstage</div>
-    
+    <div style="font-size: 12px; font-weight: 700; color: #a1a1aa; text-transform: uppercase;">Co-Listen Ambience & Soundstage</div>
     <div class="stage-row">
       <span>Ambient Soundscape</span>
       <div class="stage-chips">
-        <button class="amb-chip" id="ambRainBtn">🌧️ Rain</button>
-        <button class="amb-chip" id="ambCampBtn">🔥 Fire</button>
-        <button class="amb-chip" id="ambThetaBtn">🧠 Theta</button>
+        <button class="amb-chip" id="rainBtn">🌧️ Rain</button>
+        <button class="amb-chip" id="campBtn">🔥 Fire</button>
+        <button class="amb-chip" id="thetaBtn">🧠 Theta</button>
       </div>
     </div>
-
     <div class="stage-row">
-      <span>Partner Ear Position (3D HRTF)</span>
-      <select id="pannerSelect" style="background:#27272a; color:#fff; border:1px solid var(--border); border-radius:8px; padding:4px 8px; font-size:12px; outline:none;">
+      <span>3D Partner Ear Position</span>
+      <select id="pannerSelect" style="background:#27272a; color:#fff; border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px; outline:none;">
         <option value="center">Center</option>
         <option value="left">Left Ear</option>
         <option value="right">Right Ear</option>
       </select>
     </div>
-
     <div class="stage-row">
-      <span>Whisper Boost (AGC EQ)</span>
+      <span>Whisper Boost (+8dB EQ)</span>
       <button class="amb-chip" id="whisperBoostBtn">🤫 Off</button>
     </div>
   </div>
 
-  <!-- WhatsApp-Style Chat Slide-Over Drawer -->
+  <!-- Watch Party & PiP Controls Drawer -->
+  <div id="watchDrawer">
+    <div style="display: flex; gap: 8px;">
+      <input type="text" id="videoUrlInput" placeholder="Paste YouTube Link or Direct MP4..." style="flex: 1;" />
+      <button class="c-btn" id="loadVideoBtn" style="height: 36px; border-radius: 8px; width: 60px; font-size: 12px;">Load</button>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center; font-size: 12px;">
+      <span>Speed:</span>
+      <select id="rateSelect" style="flex: 1;">
+        <option value="1.0">1.0x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2.0">2.0x</option>
+      </select>
+      <button class="btn-pill" id="couchModeToggle" style="color: #00ffa3;">🛋️ Couch Mode</button>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center; font-size: 12px;">
+      <span>Scale:</span>
+      <input type="range" id="pipScaleSlider" min="80" max="200" value="110" style="flex: 1;" />
+      <span>Opacity:</span>
+      <input type="range" id="pipOpacitySlider" min="30" max="100" value="85" style="flex: 1;" />
+    </div>
+  </div>
+
+  <!-- WhatsApp-Style P2P Chat Slide-Over Drawer -->
   <div id="chatDrawer">
     <div class="chat-header">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 18px;">💬</span>
-        <span style="font-size: 14px; font-weight: 600;">Lounge Chat</span>
+        <span style="font-size: 17px;">💬</span>
+        <span style="font-size: 14px; font-weight: 600;">Peer Chat</span>
       </div>
-      <button class="btn-pill" id="closeChatBtn" style="color:#ef4444; border:none; font-size:14px;">✕</button>
+      <button class="btn-pill" id="closeChatBtn" style="color:#ef4444; border:none;">✕</button>
     </div>
     <div class="chat-messages" id="chatMessages">
-      <div style="text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 20px;">
-        Messages are end-to-end P2P encrypted via WebRTC.
+      <div style="text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 15px;">
+        Zero server database storage. P2P encrypted via WebRTC.
       </div>
     </div>
     <div class="chat-input-bar">
       <input type="text" id="chatInput" class="chat-input" placeholder="Message..." />
-      <button id="sendMsgBtn" class="chat-send-btn">➤</button>
+      <button id="sendChatBtn" class="chat-send-btn">➤</button>
     </div>
   </div>
 
-  <!-- Bottom Floating Control Dock -->
+  <!-- Reaction Highlights & Bookmarks Modal -->
+  <div class="app-modal" id="recapModal">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="color: #ec4899; font-size: 15px;">🎬 Reaction Highlights & Bookmarks</h3>
+      <button class="btn-pill" id="closeRecapBtn" style="color: #ef4444; font-size: 14px; border: none;">✕</button>
+    </div>
+    <div class="app-modal-list" id="recapList"></div>
+  </div>
+
+  <!-- Bottom Action Dock -->
   <div class="controls-dock">
+    <button class="c-btn" id="callModeToggleBtn" title="Toggle Full Video Call / Watch Mode">👥</button>
+    <button class="c-btn" id="playPauseBtn" title="Play/Pause Video">▶</button>
+    <button class="c-btn" id="rewindBtn" title="Rewind 10s">⏪</button>
+    <button class="c-btn" id="forwardBtn" title="Forward 10s">⏩</button>
+    <button class="c-btn" id="bookmarkBtn" title="Bookmark Video Moment">📌</button>
+    <button class="c-btn" id="camFlipBtn" title="Flip Camera">🔄</button>
+    <button class="c-btn" id="camToggleBtn" title="Camera On/Off">📹</button>
     <button class="c-btn" id="muteMicBtn" title="Mute/Unmute Mic">🎙️</button>
-    <button class="c-btn" id="subsToggleBtn" title="Toggle Live Subtitles">💬</button>
-    <button class="c-btn" id="chatToggleBtn" title="Chat">
+    <button class="c-btn" id="screenShareBtn" title="Screen Share">🖥️</button>
+    <button class="c-btn" id="doodleBtn" title="Thermal Canvas">🎨</button>
+    <button class="c-btn" id="subsBtn" title="Live Subtitles">💬</button>
+    <button class="c-btn" id="fileBeamBtn" title="P2P 1GB Beam">⚡</button>
+    <button class="c-btn" id="nudgeBtn" title="Smart Sunrise Nudge">🌅</button>
+    <button class="c-btn" id="watchDrawerBtn" title="Watch Party Controls">🍿</button>
+    <button class="c-btn" id="chatBtn" title="Chat">
       ✉️
       <span class="badge-counter" id="chatBadge">0</span>
     </button>
-    <button class="c-btn c-btn-end" id="leaveBtn" title="Leave Call">📞</button>
+    <button class="c-btn c-btn-end" id="hangupBtn" title="Leave">📞</button>
   </div>
 
-  <!-- Audio Element to sink remote stream safely without video frame pipeline -->
+  <input type="file" id="p2pFileInput" style="display: none;" />
+
+  <!-- Safe audio sink for browser playback -->
   <audio id="remoteAudioSink" autoplay playsinline></audio>
 
-  <!-- Entry Lobby Modal -->
+  <!-- Pre-Join Entry Lobby Modal -->
   <div id="lobbyModal">
     <div class="lobby-box">
-      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">Audio Lounge</h2>
-      <p style="font-size: 13px; color: var(--text-dim);">Pure WebRTC Soundstage & Chat</p>
+      <h2 style="font-size: 19px; font-weight: 700; margin-bottom: 6px;">Lounge Suite</h2>
+      <p style="font-size: 13px; color: var(--text-dim);">Modern Hybrid Call & Watch Party</p>
       <input type="text" id="roomInput" placeholder="Room Name" />
-      <button id="enterRoomBtn">Start Call</button>
+      
+      <!-- Pre-Join Mode Selection -->
+      <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 16px; font-size: 13px;">
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <input type="radio" name="initialMode" value="video" checked /> 📹 Video Call
+        </label>
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <input type="radio" name="initialMode" value="audio" /> 🎙️ Pure Audio
+        </label>
+      </div>
+
+      <button id="joinBtn">Enter Room</button>
     </div>
   </div>
 
@@ -320,70 +502,118 @@
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(protocol + '//' + window.location.host);
 
-    let myId = null, localAudioStream = null, processedAudioTrack = null;
+    let myId = null, localStream = null, processedAudioTrack = null;
+    let screenStream = null, isScreenSharing = false, isCamOff = false, isMuted = false;
+    let isAudioOnlyMode = false, currentFacingMode = 'user';
     let room = window.location.hash.substring(1).trim() || 'lounge-' + Math.random().toString(36).substring(2, 6);
     const peers = {}, dataChannels = {};
 
-    // Web Audio Engine: DSP, HRTF Spatial Audio & Ambience Synthesis
+    // Web Audio Variables (DSP, Ambience, 3D Spatial HRTF)
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null, micSource = null, hpFilter = null, whisperBoostNode = null;
-    let compressorNode = null, processedDest = null, localAnalyser = null, remoteAnalyser = null;
-    let remoteSourceNode = null, partnerPannerNode = null;
+    let audioCtx = null, micSource = null, hpFilter = null, whisperNode = null, compressorNode = null;
+    let processedDest = null, localAnalyser = null, remoteAnalyser = null;
+    let partnerPanner = null, ambGain = null, ambSource = null, activeAmbience = null;
 
-    // Ambient Synthesizers
-    let activeAmbience = null; // 'rain', 'fire', 'theta'
-    let ambGain = null, ambSource = null;
+    // Doodle Canvas
+    const doodleCanvas = document.getElementById('doodleCanvas');
+    const ctx = doodleCanvas.getContext('2d');
+    let isDoodlingActive = false, isDrawingLocal = false, remoteLastPos = null;
+    let strokes = [];
+
+    // Synced Video & YouTube State
+    let ytPlayer = null, isYouTubeMode = false, ytReady = false, isSyncing = false;
+    let isCouchMode = false, isFaceToFaceCall = false, lastReactionTime = 0;
+    const reactionHistory = [];
 
     // Subtitles Engine
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognizer = null, isSubsActive = false, shouldKeepSubsListening = false;
+    let recognizer = null, isSubsActive = false, shouldKeepListening = false;
 
     // Chat State
-    let unreadChatCount = 0;
-    let isChatOpen = false;
+    let unreadCount = 0, isChatOpen = false;
 
-    // DOM References
+    // DOM Elements
     const lobbyModal = document.getElementById('lobbyModal');
     const roomInput = document.getElementById('roomInput');
-    const enterRoomBtn = document.getElementById('enterRoomBtn');
-    const roomNameDisplay = document.getElementById('roomNameDisplay');
-    const copyLinkBtn = document.getElementById('copyLinkBtn');
-    const myAvatarDisc = document.getElementById('myAvatarDisc');
-    const partnerAvatarDisc = document.getElementById('partnerAvatarDisc');
-    const partnerName = document.getElementById('partnerName');
-    const myMicStatus = document.getElementById('myMicStatus');
-    const partnerAudioStatus = document.getElementById('partnerAudioStatus');
+    const joinBtn = document.getElementById('joinBtn');
+    const roomDisplay = document.getElementById('roomDisplay');
+    const copyBtn = document.getElementById('copyBtn');
+    const audioStage = document.getElementById('audioStage');
+    const mainVideoContainer = document.getElementById('mainVideoContainer');
+    const callGridWrapper = document.getElementById('callGridWrapper');
+    const localAudioDisc = document.getElementById('localAudioDisc');
+    const partnerAudioDisc = document.getElementById('partnerAudioDisc');
+    const partnerAudioName = document.getElementById('partnerAudioName');
+    const localAudioBadge = document.getElementById('localAudioBadge');
+    const partnerAudioBadge = document.getElementById('partnerAudioBadge');
     const waveCanvas = document.getElementById('waveCanvas');
     const waveCtx = waveCanvas.getContext('2d');
+    const mainPlayer = document.getElementById('mainPlayer');
+    const ytWrapper = document.getElementById('ytWrapper');
+    const localPip = document.getElementById('localPip');
+    const remotePip = document.getElementById('remotePip');
+    const myVideo = document.getElementById('myVideo');
+    const partnerVideo = document.getElementById('partnerVideo');
+    const sunriseOverlay = document.getElementById('sunriseOverlay');
+    const remoteAudioSink = document.getElementById('remoteAudioSink');
+
+    // Controls & Drawers
+    const callModeToggleBtn = document.getElementById('callModeToggleBtn');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const rewindBtn = document.getElementById('rewindBtn');
+    const forwardBtn = document.getElementById('forwardBtn');
+    const bookmarkBtn = document.getElementById('bookmarkBtn');
+    const camFlipBtn = document.getElementById('camFlipBtn');
+    const camToggleBtn = document.getElementById('camToggleBtn');
+    const muteMicBtn = document.getElementById('muteMicBtn');
+    const screenShareBtn = document.getElementById('screenShareBtn');
+    const doodleBtn = document.getElementById('doodleBtn');
+    const subsBtn = document.getElementById('subsBtn');
     const subtitlesBanner = document.getElementById('subtitlesBanner');
     const subSpeaker = document.getElementById('subSpeaker');
     const subText = document.getElementById('subText');
-
-    // Drawer Elements
-    const soundstageDrawer = document.getElementById('soundstageDrawer');
-    const openSoundstageBtn = document.getElementById('openSoundstageBtn');
-    const ambRainBtn = document.getElementById('ambRainBtn');
-    const ambCampBtn = document.getElementById('ambCampBtn');
-    const ambThetaBtn = document.getElementById('ambThetaBtn');
-    const pannerSelect = document.getElementById('pannerSelect');
-    const whisperBoostBtn = document.getElementById('whisperBoostBtn');
-
-    // Chat Elements
-    const chatDrawer = document.getElementById('chatDrawer');
-    const chatToggleBtn = document.getElementById('chatToggleBtn');
-    const closeChatBtn = document.getElementById('closeChatBtn');
+    const fileBeamBtn = document.getElementById('fileBeamBtn');
+    const p2pFileInput = document.getElementById('p2pFileInput');
+    const nudgeBtn = document.getElementById('nudgeBtn');
+    const watchDrawerBtn = document.getElementById('watchDrawerBtn');
+    const watchDrawer = document.getElementById('watchDrawer');
+    const chatBtn = document.getElementById('chatBtn');
     const chatBadge = document.getElementById('chatBadge');
+    const chatDrawer = document.getElementById('chatDrawer');
+    const closeChatBtn = document.getElementById('closeChatBtn');
     const chatMessages = document.getElementById('chatMessages');
     const chatInput = document.getElementById('chatInput');
-    const sendMsgBtn = document.getElementById('sendMsgBtn');
-
-    // Controls
-    const muteMicBtn = document.getElementById('muteMicBtn');
-    const subsToggleBtn = document.getElementById('subsToggleBtn');
-    const leaveBtn = document.getElementById('leaveBtn');
-    const remoteAudioSink = document.getElementById('remoteAudioSink');
+    const sendChatBtn = document.getElementById('sendChatBtn');
+    const soundstageToggleBtn = document.getElementById('soundstageToggleBtn');
+    const soundstageDrawer = document.getElementById('soundstageDrawer');
+    const rainBtn = document.getElementById('rainBtn');
+    const campBtn = document.getElementById('campBtn');
+    const thetaBtn = document.getElementById('thetaBtn');
+    const pannerSelect = document.getElementById('pannerSelect');
+    const whisperBoostBtn = document.getElementById('whisperBoostBtn');
+    const recapBtn = document.getElementById('recapBtn');
+    const recapModal = document.getElementById('recapModal');
+    const recapList = document.getElementById('recapList');
+    const closeRecapBtn = document.getElementById('closeRecapBtn');
+    const pipSysBtn = document.getElementById('pipSysBtn');
+    const couchModeToggle = document.getElementById('couchModeToggle');
+    const pipScaleSlider = document.getElementById('pipScaleSlider');
+    const pipOpacitySlider = document.getElementById('pipOpacitySlider');
+    const videoUrlInput = document.getElementById('videoUrlInput');
+    const loadVideoBtn = document.getElementById('loadVideoBtn');
+    const rateSelect = document.getElementById('rateSelect');
+    const hangupBtn = document.getElementById('hangupBtn');
 
     roomInput.value = room;
+    waveCanvas.width = 280;
+    waveCanvas.height = 50;
+
+    function resizeDoodleCanvas() {
+      doodleCanvas.width = window.innerWidth;
+      doodleCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeDoodleCanvas);
+    resizeDoodleCanvas();
 
     const rtcConfig = {
       iceServers: [
@@ -393,14 +623,8 @@
       ]
     };
 
-    function resizeWaveCanvas() {
-      waveCanvas.width = 300;
-      waveCanvas.height = 60;
-    }
-    resizeWaveCanvas();
-
     // -------------------------------------------------------------
-    // 1. WEB AUDIO DSP PIPELINE & 3D SPATIAL HRTF
+    // 1. WEB AUDIO DSP PIPELINE & 3D HRTF SPATIAL AUDIO
     // -------------------------------------------------------------
     function initWebAudio(stream) {
       if (!audioCtx) audioCtx = new AudioContextClass();
@@ -408,18 +632,18 @@
 
       micSource = audioCtx.createMediaStreamSource(stream);
 
-      // High-pass Rumble Filter (100 Hz cutoff)
+      // High-pass Rumble Filter
       hpFilter = audioCtx.createBiquadFilter();
       hpFilter.type = 'highpass';
       hpFilter.frequency.value = 100;
 
-      // Vocal Presence Peaking Node (3.5 kHz)
-      whisperBoostNode = audioCtx.createBiquadFilter();
-      whisperBoostNode.type = 'peaking';
-      whisperBoostNode.frequency.value = 3500;
-      whisperBoostNode.gain.value = 0; // Off by default
+      // Vocal Presence Peaking Node
+      whisperNode = audioCtx.createBiquadFilter();
+      whisperNode.type = 'peaking';
+      whisperNode.frequency.value = 3500;
+      whisperNode.gain.value = 0;
 
-      // Auto Gain Control / Compressor
+      // Auto Gain Control / Dynamics Compressor
       compressorNode = audioCtx.createDynamicsCompressor();
       compressorNode.threshold.value = -24;
       compressorNode.knee.value = 8;
@@ -433,89 +657,80 @@
       processedDest = audioCtx.createMediaStreamDestination();
 
       micSource.connect(hpFilter);
-      hpFilter.connect(whisperBoostNode);
-      whisperBoostNode.connect(compressorNode);
+      hpFilter.connect(whisperNode);
+      whisperNode.connect(compressorNode);
       compressorNode.connect(localAnalyser);
       compressorNode.connect(processedDest);
 
       processedAudioTrack = processedDest.stream.getAudioTracks()[0];
 
-      // Master Ambient Gain Node
       ambGain = audioCtx.createGain();
-      ambGain.gain.value = 0.0;
+      ambGain.gain.value = 0;
       ambGain.connect(audioCtx.destination);
 
       startVisualizerLoop();
+      startAcousticAnalyser();
     }
 
-    // Connect remote partner stream directly to 3D HRTF Panner
-    function connectRemoteSpatialAudio(stream) {
+    function setupRemoteSpatialAudio(stream) {
       if (!audioCtx) return;
       try {
-        remoteSourceNode = audioCtx.createMediaStreamSource(stream);
-
-        partnerPannerNode = audioCtx.createPanner();
-        partnerPannerNode.panningModel = 'HRTF';
-        partnerPannerNode.distanceModel = 'inverse';
-        partnerPannerNode.positionX.value = 0.0; // Center
-        partnerPannerNode.positionY.value = 0.0;
-        partnerPannerNode.positionZ.value = -1.0;
+        const remoteSource = audioCtx.createMediaStreamSource(stream);
+        partnerPanner = audioCtx.createPanner();
+        partnerPanner.panningModel = 'HRTF';
+        partnerPanner.distanceModel = 'inverse';
+        partnerPanner.positionX.value = 0;
+        partnerPanner.positionY.value = 0;
+        partnerPanner.positionZ.value = -1;
 
         remoteAnalyser = audioCtx.createAnalyser();
         remoteAnalyser.fftSize = 64;
 
-        remoteSourceNode.connect(partnerPannerNode);
-        partnerPannerNode.connect(remoteAnalyser);
+        remoteSource.connect(partnerPanner);
+        partnerPanner.connect(remoteAnalyser);
         remoteAnalyser.connect(audioCtx.destination);
 
-        // Keep sink element active for browser autoplay permissions
         remoteAudioSink.srcObject = stream;
-        remoteAudioSink.muted = true; // Audio is rendered through AudioContext destination
+        remoteAudioSink.muted = true;
       } catch (e) {
-        console.warn('Spatial audio routing:', e);
         remoteAudioSink.srcObject = stream;
         remoteAudioSink.muted = false;
       }
     }
 
-    // Panner selection (Left, Center, Right)
     pannerSelect.onchange = () => {
-      if (!partnerPannerNode || !audioCtx) return;
-      const val = pannerSelect.value;
-      const xPos = val === 'left' ? -3.0 : val === 'right' ? 3.0 : 0.0;
-      partnerPannerNode.positionX.setTargetAtTime(xPos, audioCtx.currentTime, 0.1);
+      if (!partnerPanner || !audioCtx) return;
+      const x = pannerSelect.value === 'left' ? -3 : pannerSelect.value === 'right' ? 3 : 0;
+      partnerPanner.positionX.setTargetAtTime(x, audioCtx.currentTime, 0.1);
     };
 
-    // Whisper boost toggle
     let isWhisperBoost = false;
     whisperBoostBtn.onclick = () => {
       isWhisperBoost = !isWhisperBoost;
       whisperBoostBtn.innerText = isWhisperBoost ? '🤫 Active (+8dB)' : '🤫 Off';
       whisperBoostBtn.classList.toggle('active', isWhisperBoost);
-      if (whisperBoostNode && audioCtx) {
-        whisperBoostNode.gain.setTargetAtTime(isWhisperBoost ? 8 : 0, audioCtx.currentTime, 0.1);
+      if (whisperNode && audioCtx) {
+        whisperNode.gain.setTargetAtTime(isWhisperBoost ? 8 : 0, audioCtx.currentTime, 0.1);
         compressorNode.threshold.setTargetAtTime(isWhisperBoost ? -45 : -24, audioCtx.currentTime, 0.1);
       }
     };
 
     // -------------------------------------------------------------
-    // 2. THE UNIQUE FEATURE: SYNTHESIZED CO-LISTEN AMBIENCE
+    // 2. CO-LISTEN AMBIENCE SOUNDSCAPES
     // -------------------------------------------------------------
     function stopAmbience() {
       if (ambSource) {
         try { ambSource.stop(); } catch(e){}
         ambSource = null;
       }
-      if (ambGain && audioCtx) {
-        ambGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
-      }
-      ambRainBtn.classList.remove('active');
-      ambCampBtn.classList.remove('active');
-      ambThetaBtn.classList.remove('active');
+      if (ambGain && audioCtx) ambGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
+      rainBtn.classList.remove('active');
+      campBtn.classList.remove('active');
+      thetaBtn.classList.remove('active');
       activeAmbience = null;
     }
 
-    function playPinkNoise(filterFreq = 800) {
+    function createNoiseNode(cutoff = 800) {
       const bufferSize = audioCtx.sampleRate * 2;
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -527,137 +742,181 @@
         b2 = 0.96900 * b2 + white * 0.1538520;
         data[i] = (b0 + b1 + b2 + white * 0.5362) * 0.08;
       }
-
       const noise = audioCtx.createBufferSource();
       noise.buffer = buffer;
       noise.loop = true;
-
       const filter = audioCtx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.value = filterFreq;
-
+      filter.frequency.value = cutoff;
       noise.connect(filter);
       filter.connect(ambGain);
       noise.start();
       return noise;
     }
 
-    ambRainBtn.onclick = () => {
+    rainBtn.onclick = () => {
       if (activeAmbience === 'rain') { stopAmbience(); return; }
       stopAmbience();
-      ambSource = playPinkNoise(900);
+      ambSource = createNoiseNode(900);
       ambGain.gain.setTargetAtTime(0.18, audioCtx.currentTime, 0.3);
-      ambRainBtn.classList.add('active');
+      rainBtn.classList.add('active');
       activeAmbience = 'rain';
     };
 
-    ambCampBtn.onclick = () => {
+    campBtn.onclick = () => {
       if (activeAmbience === 'camp') { stopAmbience(); return; }
       stopAmbience();
-      ambSource = playPinkNoise(450);
+      ambSource = createNoiseNode(420);
       ambGain.gain.setTargetAtTime(0.22, audioCtx.currentTime, 0.3);
-      ambCampBtn.classList.add('active');
+      campBtn.classList.add('active');
       activeAmbience = 'camp';
     };
 
-    ambThetaBtn.onclick = () => {
+    thetaBtn.onclick = () => {
       if (activeAmbience === 'theta') { stopAmbience(); return; }
       stopAmbience();
-
       const merger = audioCtx.createChannelMerger(2);
       const oscL = audioCtx.createOscillator();
       const oscR = audioCtx.createOscillator();
-      oscL.frequency.value = 200; // Left ear
-      oscR.frequency.value = 206; // Right ear (6 Hz Theta beat)
-
+      oscL.frequency.value = 200;
+      oscR.frequency.value = 206;
       const gain = audioCtx.createGain();
       gain.gain.value = 0.06;
-
       oscL.connect(merger, 0, 0);
       oscR.connect(merger, 0, 1);
       merger.connect(gain);
       gain.connect(ambGain);
-
       oscL.start(); oscR.start();
       ambGain.gain.setTargetAtTime(0.2, audioCtx.currentTime, 0.3);
-      ambThetaBtn.classList.add('active');
+      thetaBtn.classList.add('active');
       ambSource = oscL;
       activeAmbience = 'theta';
     };
 
-    openSoundstageBtn.onclick = () => {
+    soundstageToggleBtn.onclick = () => {
       const isHidden = soundstageDrawer.style.display !== 'flex';
       soundstageDrawer.style.display = isHidden ? 'flex' : 'none';
-      openSoundstageBtn.innerText = isHidden ? '✕ Close' : '🎧 Soundstage';
+      soundstageToggleBtn.innerText = isHidden ? '✕ Close' : '🎧 Soundstage';
     };
 
     // -------------------------------------------------------------
-    // 3. VOICE PULSE ANIMATION & AUDIO FREQUENCY WAVE VISUALIZER
+    // 3. VOICE PULSE ANIMATION & CENTER FREQUENCY WAVES
     // -------------------------------------------------------------
     function startVisualizerLoop() {
-      const localBuf = new Uint8Array(32);
-      const remoteBuf = new Uint8Array(32);
+      const bufL = new Uint8Array(32);
+      const bufR = new Uint8Array(32);
 
       function render() {
         waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
-
-        let localLevel = 0;
-        let remoteLevel = 0;
+        let lvlL = 0, lvlR = 0;
 
         if (localAnalyser) {
-          localAnalyser.getByteFrequencyData(localBuf);
-          let sum = 0;
-          for (let i = 0; i < localBuf.length; i++) sum += localBuf[i];
-          localLevel = sum / localBuf.length;
+          localAnalyser.getByteFrequencyData(bufL);
+          let sum = 0; for (let i = 0; i < bufL.length; i++) sum += bufL[i];
+          lvlL = sum / bufL.length;
         }
-
         if (remoteAnalyser) {
-          remoteAnalyser.getByteFrequencyData(remoteBuf);
-          let sum = 0;
-          for (let i = 0; i < remoteBuf.length; i++) sum += remoteBuf[i];
-          remoteLevel = sum / remoteBuf.length;
+          remoteAnalyser.getByteFrequencyData(bufR);
+          let sum = 0; for (let i = 0; i < bufR.length; i++) sum += bufR[i];
+          lvlR = sum / bufR.length;
         }
 
-        // Pulse User Avatar
-        if (localLevel > 18 && !isMuted) {
-          myAvatarDisc.classList.add('speaking');
-        } else {
-          myAvatarDisc.classList.remove('speaking');
-        }
+        if (lvlL > 18 && !isMuted) localAudioDisc.classList.add('speaking');
+        else localAudioDisc.classList.remove('speaking');
 
-        // Pulse Partner Avatar
-        if (remoteLevel > 16) {
-          partnerAvatarDisc.classList.add('partner-speaking');
-        } else {
-          partnerAvatarDisc.classList.remove('partner-speaking');
-        }
+        if (lvlR > 16) partnerAudioDisc.classList.add('partner-speaking');
+        else partnerAudioDisc.classList.remove('partner-speaking');
 
-        // Draw Minimal Center Waves
-        const activeLevel = Math.max(localLevel, remoteLevel);
-        const barWidth = 4;
-        const gap = 3;
-        const count = 28;
+        const activeLvl = Math.max(lvlL, lvlR);
+        const barWidth = 4, gap = 3, count = 28;
         const startX = (waveCanvas.width - (count * (barWidth + gap))) / 2;
 
         for (let i = 0; i < count; i++) {
           const factor = Math.sin((i / count) * Math.PI);
-          const height = Math.min(50, Math.max(4, (activeLevel / 3) * factor + Math.random() * 2));
+          const height = Math.min(46, Math.max(4, (activeLvl / 3.2) * factor + Math.random() * 2));
           const x = startX + i * (barWidth + gap);
           const y = (waveCanvas.height - height) / 2;
-
-          waveCtx.fillStyle = remoteLevel > localLevel ? '#ec4899' : '#6366f1';
+          waveCtx.fillStyle = lvlR > lvlL ? '#ec4899' : '#6366f1';
           waveCtx.beginPath();
           waveCtx.roundRect(x, y, barWidth, height, 2);
           waveCtx.fill();
         }
-
         requestAnimationFrame(render);
       }
       render();
     }
 
     // -------------------------------------------------------------
-    // 4. ACCURATE, CONTINUOUS LIVE SUBTITLES (WITHOUT TRANSLATION)
+    // 4. ACOUSTIC ANALYSIS & REACTION HIGHLIGHTS
+    // -------------------------------------------------------------
+    function triggerReactionUI(type, userId) {
+      remotePip.classList.add('pip-reacting');
+      setTimeout(() => remotePip.classList.remove('pip-reacting'), 1400);
+
+      const icons = { laugh: '😂', scream: '😱', gasp: '😲', bookmark: '📌' };
+      const bubble = document.createElement('div');
+      bubble.className = 'reaction-burst-box';
+      bubble.innerText = icons[type] || '🔥';
+      document.body.appendChild(bubble);
+      setTimeout(() => bubble.remove(), 1500);
+
+      const currentTime = isYouTubeMode && ytPlayer && ytReady ? ytPlayer.getCurrentTime() : mainPlayer.currentTime;
+      reactionHistory.push({ type, userId, time: currentTime });
+    }
+
+    bookmarkBtn.onclick = () => {
+      const cur = isYouTubeMode && ytPlayer && ytReady ? ytPlayer.getCurrentTime() : mainPlayer.currentTime;
+      triggerReactionUI('bookmark', 'You');
+      broadcastData({ type: 'BOOKMARK_MOMENT', time: cur });
+    };
+
+    recapBtn.onclick = () => {
+      recapList.innerHTML = '';
+      if (reactionHistory.length === 0) {
+        recapList.innerHTML = '<div style="color:#71717a; text-align:center; margin-top:20px;">No reactions or bookmarks logged.</div>';
+      }
+      reactionHistory.forEach((r) => {
+        const item = document.createElement('div');
+        item.className = 'modal-item';
+        const label = r.type === 'bookmark' ? '📌 Bookmark' : (r.type === 'laugh' ? '😂 Laugh' : r.type === 'scream' ? '😱 Scream' : '😲 Gasp');
+        item.innerHTML = `<span>${label} at ${Math.round(r.time)}s (${r.userId})</span><span style="color:#ec4899; font-size:12px;">Jump ➔</span>`;
+        item.onclick = () => {
+          const t = Math.max(0, r.time - 2);
+          if (isYouTubeMode && ytPlayer && ytReady) ytPlayer.seekTo(t, true);
+          else mainPlayer.currentTime = t;
+          broadcastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: isYouTubeMode });
+          recapModal.style.display = 'none';
+        };
+        recapList.appendChild(item);
+      });
+      recapModal.style.display = 'flex';
+    };
+    closeRecapBtn.onclick = () => recapModal.style.display = 'none';
+
+    function startAcousticAnalyser() {
+      if (!localAnalyser) return;
+      const data = new Uint8Array(localAnalyser.frequencyBinCount);
+      setInterval(() => {
+        localAnalyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        const avg = sum / data.length;
+        const now = Date.now();
+
+        if (avg > 75 && now - lastReactionTime > 3000) {
+          lastReactionTime = now;
+          let rType = 'gasp';
+          if (avg > 92) rType = 'scream';
+          else if (avg > 80) rType = 'laugh';
+
+          triggerReactionUI(rType, 'You');
+          broadcastData({ type: 'REACTION_BURST', rType });
+        }
+      }, 200);
+    }
+
+    // -------------------------------------------------------------
+    // 5. ACCURATE CONTINUOUS LIVE SUBTITLES (NO TRANSLATION LATENCY)
     // -------------------------------------------------------------
     if (SpeechRecognition) {
       recognizer = new SpeechRecognition();
@@ -666,8 +925,7 @@
       recognizer.lang = 'en-US';
 
       recognizer.onresult = (e) => {
-        let interim = '';
-        let final = '';
+        let interim = '', final = '';
         for (let i = e.resultIndex; i < e.results.length; ++i) {
           if (e.results[i].isFinal) final += e.results[i][0].transcript;
           else interim += e.results[i][0].transcript;
@@ -680,25 +938,25 @@
       };
 
       recognizer.onend = () => {
-        if (shouldKeepSubsListening && isSubsActive) {
+        if (shouldKeepListening && isSubsActive) {
           try { recognizer.start(); } catch (err) {}
         }
       };
     }
 
-    subsToggleBtn.onclick = () => {
-      if (!SpeechRecognition) return alert('Speech recognition is supported in Chrome & Edge over HTTPS.');
+    subsBtn.onclick = () => {
+      if (!SpeechRecognition) return alert('Speech recognition supported on Chrome & Edge.');
       isSubsActive = !isSubsActive;
-      subsToggleBtn.classList.toggle('active-amber', isSubsActive);
+      subsBtn.classList.toggle('active-amber', isSubsActive);
 
       if (isSubsActive) {
-        shouldKeepSubsListening = true;
+        shouldKeepListening = true;
         try { recognizer.start(); } catch(e){}
         subtitlesBanner.style.display = 'block';
         subSpeaker.innerText = 'You:';
         subText.innerText = 'Listening...';
       } else {
-        shouldKeepSubsListening = false;
+        shouldKeepListening = false;
         try { recognizer.stop(); } catch(e){}
         subtitlesBanner.style.display = 'none';
       }
@@ -718,13 +976,13 @@
     }
 
     // -------------------------------------------------------------
-    // 5. WHATSAPP-STYLE P2P CHAT SYSTEM
+    // 6. WHATSAPP-STYLE P2P CHAT
     // -------------------------------------------------------------
-    chatToggleBtn.onclick = () => {
+    chatBtn.onclick = () => {
       isChatOpen = !isChatOpen;
       chatDrawer.classList.toggle('open', isChatOpen);
       if (isChatOpen) {
-        unreadChatCount = 0;
+        unreadCount = 0;
         chatBadge.style.display = 'none';
         chatInput.focus();
       }
@@ -737,24 +995,22 @@
     function appendMessage(text, isMine) {
       const bubble = document.createElement('div');
       bubble.className = `chat-bubble ${isMine ? 'chat-mine' : 'chat-theirs'}`;
-      
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       bubble.innerHTML = `<span>${escapeHtml(text)}</span><span class="chat-time">${timeStr}</span>`;
-      
       chatMessages.appendChild(bubble);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
       if (!isMine && !isChatOpen) {
-        unreadChatCount++;
-        chatBadge.innerText = unreadChatCount;
+        unreadCount++;
+        chatBadge.innerText = unreadCount;
         chatBadge.style.display = 'flex';
       }
     }
 
-    sendMsgBtn.onclick = sendChatMessage;
-    chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendChatMessage(); };
+    sendChatBtn.onclick = sendMsg;
+    chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendMsg(); };
 
-    function sendChatMessage() {
+    function sendMsg() {
       const text = chatInput.value.trim();
       if (!text) return;
       appendMessage(text, true);
@@ -767,7 +1023,441 @@
     }
 
     // -------------------------------------------------------------
-    // 6. WEBRTC P2P SIGNALING & MEDIA FLOW
+    // 7. YOUTUBE IFRAME & DIRECT MP4 SYNCHRONIZATION
+    // -------------------------------------------------------------
+    function extractYouTubeId(url) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    window.onYouTubeIframeAPIReady = function() {
+      ytPlayer = new YT.Player('ytPlayer', {
+        height: '100%', width: '100%',
+        playerVars: { autoplay: 1, controls: 1, rel: 0, playsinline: 1 },
+        events: {
+          onReady: () => { ytReady = true; },
+          onStateChange: (e) => {
+            if (isSyncing) return;
+            if (e.data === YT.PlayerState.PLAYING) {
+              playPauseBtn.innerText = '❚❚';
+              broadcastData({ type: 'VIDEO_SYNC', action: 'play', time: ytPlayer.getCurrentTime(), isYT: true });
+            } else if (e.data === YT.PlayerState.PAUSED) {
+              playPauseBtn.innerText = '▶';
+              broadcastData({ type: 'VIDEO_SYNC', action: 'pause', time: ytPlayer.getCurrentTime(), isYT: true });
+            }
+          }
+        }
+      });
+    };
+
+    loadVideoBtn.onclick = () => {
+      const url = videoUrlInput.value.trim();
+      if (!url) return;
+      const ytId = extractYouTubeId(url);
+      if (ytId) {
+        loadYouTubeVideo(ytId);
+        broadcastData({ type: 'LOAD_MEDIA', url, isYT: true, ytId });
+      } else {
+        loadNativeVideo(url);
+        broadcastData({ type: 'LOAD_MEDIA', url, isYT: false });
+      }
+    };
+
+    function loadYouTubeVideo(ytId) {
+      isYouTubeMode = true;
+      mainPlayer.pause();
+      mainPlayer.style.display = 'none';
+      ytWrapper.style.display = 'block';
+      if (ytPlayer && ytReady && ytPlayer.loadVideoById) {
+        ytPlayer.loadVideoById(ytId);
+      } else {
+        const retry = setInterval(() => {
+          if (ytPlayer && ytReady && ytPlayer.loadVideoById) {
+            clearInterval(retry);
+            ytPlayer.loadVideoById(ytId);
+          }
+        }, 200);
+      }
+    }
+
+    function loadNativeVideo(url) {
+      isYouTubeMode = false;
+      if (ytPlayer && ytReady && ytPlayer.stopVideo) ytPlayer.stopVideo();
+      ytWrapper.style.display = 'none';
+      mainPlayer.style.display = 'block';
+      mainPlayer.src = url;
+      mainPlayer.play().catch(() => {});
+    }
+
+    playPauseBtn.onclick = () => {
+      if (isYouTubeMode && ytPlayer && ytReady) {
+        const s = ytPlayer.getPlayerState();
+        if (s === 1) {
+          ytPlayer.pauseVideo();
+          playPauseBtn.innerText = '▶';
+          broadcastData({ type: 'VIDEO_SYNC', action: 'pause', time: ytPlayer.getCurrentTime(), isYT: true });
+        } else {
+          ytPlayer.playVideo();
+          playPauseBtn.innerText = '❚❚';
+          broadcastData({ type: 'VIDEO_SYNC', action: 'play', time: ytPlayer.getCurrentTime(), isYT: true });
+        }
+      } else {
+        if (mainPlayer.paused) {
+          mainPlayer.play();
+          playPauseBtn.innerText = '❚❚';
+          broadcastData({ type: 'VIDEO_SYNC', action: 'play', time: mainPlayer.currentTime, isYT: false });
+        } else {
+          mainPlayer.pause();
+          playPauseBtn.innerText = '▶';
+          broadcastData({ type: 'VIDEO_SYNC', action: 'pause', time: mainPlayer.currentTime, isYT: false });
+        }
+      }
+    };
+
+    rewindBtn.onclick = () => {
+      if (isYouTubeMode && ytPlayer && ytReady) {
+        const t = Math.max(0, ytPlayer.getCurrentTime() - 10);
+        ytPlayer.seekTo(t, true);
+        broadcastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: true });
+      } else {
+        mainPlayer.currentTime = Math.max(0, mainPlayer.currentTime - 10);
+        broadcastData({ type: 'VIDEO_SYNC', action: 'seek', time: mainPlayer.currentTime, isYT: false });
+      }
+    };
+
+    forwardBtn.onclick = () => {
+      if (isYouTubeMode && ytPlayer && ytReady) {
+        const t = ytPlayer.getCurrentTime() + 10;
+        ytPlayer.seekTo(t, true);
+        broadcastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: true });
+      } else {
+        mainPlayer.currentTime = Math.min(mainPlayer.duration || 9999, mainPlayer.currentTime + 10);
+        broadcastData({ type: 'VIDEO_SYNC', action: 'seek', time: mainPlayer.currentTime, isYT: false });
+      }
+    };
+
+    rateSelect.onchange = () => {
+      const r = parseFloat(rateSelect.value);
+      if (isYouTubeMode && ytPlayer && ytReady) ytPlayer.setPlaybackRate(r);
+      else mainPlayer.playbackRate = r;
+      broadcastData({ type: 'VIDEO_RATE', rate: r });
+    };
+
+    // -------------------------------------------------------------
+    // 8. DUAL-PIP DRAGGING & INTERACTIONS
+    // -------------------------------------------------------------
+    function makeDraggable(el) {
+      let ox = 0, oy = 0, sx = 0, sy = 0;
+      el.onpointerdown = (e) => {
+        if (isCouchMode || isFaceToFaceCall) return;
+        e.preventDefault();
+        sx = e.clientX; sy = e.clientY;
+        ox = el.offsetLeft; oy = el.offsetTop;
+        window.onpointermove = (ev) => {
+          el.style.left = (ox + ev.clientX - sx) + 'px';
+          el.style.top = (oy + ev.clientY - sy) + 'px';
+        };
+        window.onpointerup = () => {
+          window.onpointermove = null; window.onpointerup = null;
+        };
+      };
+    }
+    makeDraggable(localPip);
+    makeDraggable(remotePip);
+
+    couchModeToggle.onclick = () => {
+      isCouchMode = !isCouchMode;
+      couchModeToggle.style.color = isCouchMode ? '#ec4899' : '#00ffa3';
+      localPip.classList.toggle('couch-mode-local', isCouchMode);
+      remotePip.classList.toggle('couch-mode-remote', isCouchMode);
+    };
+
+    pipScaleSlider.oninput = (e) => {
+      const w = e.target.value;
+      const h = Math.round(w * 1.33);
+      localPip.style.width = `${w}px`; localPip.style.height = `${h}px`;
+      remotePip.style.width = `${w}px`; remotePip.style.height = `${h}px`;
+    };
+
+    pipOpacitySlider.oninput = (e) => {
+      const op = e.target.value / 100;
+      localPip.style.opacity = op;
+      remotePip.style.opacity = op;
+    };
+
+    // Double-tap PiP to swap; single-tap to rewind 5s
+    let tapTimeout = null;
+    remotePip.addEventListener('click', () => {
+      if (tapTimeout) {
+        clearTimeout(tapTimeout);
+        tapTimeout = null;
+        partnerVideo.srcObject = null;
+        mainPlayer.src = '';
+        mainPlayer.srcObject = remotePip.querySelector('video').srcObject;
+      } else {
+        tapTimeout = setTimeout(() => {
+          tapTimeout = null;
+          if (isYouTubeMode && ytPlayer && ytReady) {
+            ytPlayer.seekTo(Math.max(0, ytPlayer.getCurrentTime() - 5), true);
+          } else {
+            mainPlayer.currentTime = Math.max(0, mainPlayer.currentTime - 5);
+          }
+          broadcastData({ type: 'VIDEO_SYNC', action: 'seek', time: isYouTubeMode ? ytPlayer.getCurrentTime() : mainPlayer.currentTime, isYT: isYouTubeMode });
+        }, 280);
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 9. SCREEN SHARE, CAMERA FLIP & FACE-TO-FACE MODE
+    // -------------------------------------------------------------
+    callModeToggleBtn.onclick = () => {
+      toggleCallOnlyMode(!isFaceToFaceCall);
+      broadcastData({ type: 'LAYOUT_MODE_TOGGLE', isCallOnly: isFaceToFaceCall });
+    };
+
+    function toggleCallOnlyMode(enableCallOnly) {
+      isFaceToFaceCall = enableCallOnly;
+      document.body.classList.toggle('call-only-mode', isFaceToFaceCall);
+      callModeToggleBtn.classList.toggle('active-blue', isFaceToFaceCall);
+
+      if (isFaceToFaceCall) {
+        if (isYouTubeMode && ytPlayer && ytReady && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+        else if (mainPlayer) mainPlayer.pause();
+        playPauseBtn.innerText = '▶';
+        callGridWrapper.appendChild(remotePip);
+        callGridWrapper.appendChild(localPip);
+      } else {
+        document.querySelector('.viewport-container').appendChild(localPip);
+        document.querySelector('.viewport-container').appendChild(remotePip);
+        localPip.style.top = '65px'; localPip.style.right = '16px'; localPip.style.left = 'auto';
+        remotePip.style.top = '65px'; remotePip.style.left = '16px'; remotePip.style.right = 'auto';
+        const w = pipScaleSlider.value || 110;
+        const h = Math.round(w * 1.33);
+        localPip.style.width = `${w}px`; localPip.style.height = `${h}px`;
+        remotePip.style.width = `${w}px`; remotePip.style.height = `${h}px`;
+      }
+    }
+
+    camFlipBtn.onclick = async () => {
+      if (!localStream || isCamOff) return;
+      currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: currentFacingMode } }
+        }).catch(async () => {
+          return await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } });
+        });
+
+        const newTrack = stream.getVideoTracks()[0];
+        const oldTrack = localStream.getVideoTracks()[0];
+        if (oldTrack) {
+          oldTrack.stop();
+          localStream.removeTrack(oldTrack);
+        }
+        localStream.addTrack(newTrack);
+
+        myVideo.srcObject = localStream;
+        if (currentFacingMode === 'user') myVideo.classList.add('mirror-mode');
+        else myVideo.classList.remove('mirror-mode');
+
+        Object.values(peers).forEach(pc => {
+          const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) sender.replaceTrack(newTrack);
+        });
+      } catch (err) {
+        alert('Secondary camera unavailable.');
+      }
+    };
+
+    camToggleBtn.onclick = async () => {
+      if (!localStream) return;
+      const track = localStream.getVideoTracks()[0];
+
+      if (track) {
+        isCamOff = !isCamOff;
+        track.enabled = !isCamOff;
+        myVideo.style.display = isCamOff ? 'none' : 'block';
+        camToggleBtn.innerText = isCamOff ? '🙈' : '📹';
+        camToggleBtn.classList.toggle('active-amber', isCamOff);
+        broadcastData({ type: 'REMOTE_CAM_STATE', enabled: !isCamOff });
+      } else {
+        try {
+          const s = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } }
+          });
+          const newTrack = s.getVideoTracks()[0];
+          localStream.addTrack(newTrack);
+
+          Object.values(peers).forEach(pc => {
+            const sender = pc.getSenders().find(x => x.track && x.track.kind === 'video');
+            if (sender) sender.replaceTrack(newTrack);
+            else pc.addTrack(newTrack, localStream);
+          });
+
+          isCamOff = false;
+          myVideo.srcObject = localStream;
+          myVideo.style.display = 'block';
+          camToggleBtn.innerText = '📹';
+          camToggleBtn.classList.remove('active-amber');
+          broadcastData({ type: 'REMOTE_CAM_STATE', enabled: true });
+        } catch (err) {
+          alert('Could not start camera: ' + err.message);
+        }
+      }
+    };
+
+    screenShareBtn.onclick = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        return alert("Screen sharing is supported on desktop browsers.");
+      }
+
+      if (!isScreenSharing) {
+        try {
+          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } });
+          const track = screenStream.getVideoTracks()[0];
+
+          Object.values(peers).forEach(pc => {
+            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (sender) sender.replaceTrack(track);
+            else pc.addTrack(track, localStream);
+          });
+
+          myVideo.srcObject = screenStream;
+          myVideo.classList.remove('mirror-mode');
+          screenShareBtn.classList.add('active-blue');
+          isScreenSharing = true;
+
+          track.onended = () => stopScreenShare();
+        } catch (err) {
+          if (err.name !== 'NotAllowedError') console.error(err);
+        }
+      } else {
+        stopScreenShare();
+      }
+    };
+
+    function stopScreenShare() {
+      if (!isScreenSharing) return;
+      if (screenStream) {
+        screenStream.getTracks().forEach(t => t.stop());
+        screenStream = null;
+      }
+      const camTrack = localStream ? localStream.getVideoTracks()[0] : null;
+      Object.values(peers).forEach(pc => {
+        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender) sender.replaceTrack(camTrack || null);
+      });
+      if (currentFacingMode === 'user') myVideo.classList.add('mirror-mode');
+      myVideo.srcObject = localStream;
+      screenShareBtn.classList.remove('active-blue');
+      isScreenSharing = false;
+    }
+
+    // -------------------------------------------------------------
+    // 10. COLLABORATIVE THERMAL CANVAS & P2P 1GB BEAM
+    // -------------------------------------------------------------
+    doodleBtn.onclick = () => {
+      isDoodlingActive = !isDoodlingActive;
+      doodleBtn.classList.toggle('active-pink', isDoodlingActive);
+      doodleCanvas.classList.toggle('drawing-active', isDoodlingActive);
+    };
+
+    doodleCanvas.addEventListener('pointerdown', (e) => {
+      if (!isDoodlingActive) return;
+      e.preventDefault();
+      isDrawingLocal = true;
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+      drawPoint(e.clientX, e.clientY, false, '#ec4899');
+      strokes.push({ x: e.clientX, y: e.clientY, t: Date.now() });
+      broadcastData({ type: 'DOODLE_STROKE', state: 'start', x, y, color: '#ec4899' });
+    });
+
+    doodleCanvas.addEventListener('pointermove', (e) => {
+      if (!isDrawingLocal || !isDoodlingActive) return;
+      e.preventDefault();
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+      drawPoint(e.clientX, e.clientY, true, '#ec4899');
+      strokes.push({ x: e.clientX, y: e.clientY, t: Date.now() });
+      broadcastData({ type: 'DOODLE_STROKE', state: 'move', x, y, color: '#ec4899' });
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (isDrawingLocal) {
+        isDrawingLocal = false;
+        ctx.beginPath();
+        broadcastData({ type: 'DOODLE_STROKE', state: 'end' });
+      }
+    });
+
+    function drawPoint(pixelX, pixelY, isMove, color) {
+      ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = color;
+      if (!isMove) {
+        ctx.beginPath(); ctx.moveTo(pixelX, pixelY); ctx.lineTo(pixelX, pixelY); ctx.stroke();
+      } else {
+        ctx.lineTo(pixelX, pixelY); ctx.stroke();
+      }
+    }
+
+    fileBeamBtn.onclick = () => p2pFileInput.click();
+    p2pFileInput.onchange = () => {
+      const file = p2pFileInput.files[0];
+      if (!file) return;
+
+      const firstChan = Object.values(dataChannels)[0];
+      if (!firstChan || firstChan.readyState !== 'open') return alert('Partner not connected yet.');
+
+      const CHUNK_SIZE = 64 * 1024;
+      let offset = 0;
+      firstChan.bufferedAmountLowThreshold = 256 * 1024;
+      firstChan.send(JSON.stringify({ type: 'FILE_START', name: file.name, size: file.size, mime: file.type }));
+
+      function pump() {
+        while (offset < file.size) {
+          if (firstChan.bufferedAmount > firstChan.bufferedAmountLowThreshold) {
+            firstChan.onbufferedamountlow = () => {
+              firstChan.onbufferedamountlow = null;
+              pump();
+            };
+            return;
+          }
+          const slice = file.slice(offset, offset + CHUNK_SIZE);
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            firstChan.send(e.target.result);
+            offset += CHUNK_SIZE;
+            pump();
+          };
+          reader.readAsArrayBuffer(slice);
+          return;
+        }
+        firstChan.send(JSON.stringify({ type: 'FILE_END' }));
+        alert('File Beam finished sending!');
+      }
+      pump();
+    };
+
+    let incomingMeta = null, incomingChunks = [];
+
+    // -------------------------------------------------------------
+    // 11. SMART NUDGE & SUNRISE ALARM
+    // -------------------------------------------------------------
+    function triggerSunrise() {
+      sunriseOverlay.classList.add('rising');
+      if (navigator.vibrate) navigator.vibrate([150, 300, 150, 300, 500]);
+      setTimeout(() => sunriseOverlay.classList.remove('rising'), 18000);
+    }
+    nudgeBtn.onclick = () => {
+      triggerSunrise();
+      broadcastData({ type: 'SUNRISE_ALARM' });
+    };
+
+    // -------------------------------------------------------------
+    // 12. WEBRTC SIGNALING & DATA CHANNELS
     // -------------------------------------------------------------
     function broadcastData(obj) {
       const msg = JSON.stringify(obj);
@@ -777,16 +1467,85 @@
     }
 
     function setupDataChannel(id, dc) {
+      dc.binaryType = 'arraybuffer';
       dataChannels[id] = dc;
       dc.onmessage = (e) => {
+        if (typeof e.data !== 'string') {
+          incomingChunks.push(e.data);
+          return;
+        }
+
         const m = JSON.parse(e.data);
+
         if (m.type === 'LIVE_SUB') {
           showSubtitle(m.speaker, m.text);
         } else if (m.type === 'CHAT_MSG') {
           appendMessage(m.text, false);
-        } else if (m.type === 'PARTNER_MIC_STATUS') {
-          partnerAudioStatus.innerText = m.muted ? 'Partner Muted' : 'Speaking';
-          partnerAudioStatus.style.color = m.muted ? '#f59e0b' : '#22c55e';
+        } else if (m.type === 'DOODLE_STROKE') {
+          const targetX = m.x * window.innerWidth;
+          const targetY = m.y * window.innerHeight;
+          if (m.state === 'start') {
+            remoteLastPos = { x: targetX, y: targetY };
+            drawPoint(targetX, targetY, false, m.color || '#38bdf8');
+          } else if (m.state === 'move') {
+            if (!remoteLastPos) ctx.beginPath();
+            drawPoint(targetX, targetY, true, m.color || '#38bdf8');
+            remoteLastPos = { x: targetX, y: targetY };
+          } else if (m.state === 'end') {
+            ctx.beginPath();
+            remoteLastPos = null;
+          }
+        } else if (m.type === 'LOAD_MEDIA') {
+          if (m.isYT && m.ytId) loadYouTubeVideo(m.ytId);
+          else loadNativeVideo(m.url);
+        } else if (m.type === 'VIDEO_SYNC') {
+          isSyncing = true;
+          if (m.isYT && ytPlayer && ytReady) {
+            if (m.action === 'play') {
+              if (Math.abs(ytPlayer.getCurrentTime() - m.time) > 0.4) ytPlayer.seekTo(m.time, true);
+              ytPlayer.playVideo();
+              playPauseBtn.innerText = '❚❚';
+            } else if (m.action === 'pause') {
+              ytPlayer.pauseVideo();
+              playPauseBtn.innerText = '▶';
+            } else if (m.action === 'seek') {
+              ytPlayer.seekTo(m.time, true);
+            }
+          } else if (!m.isYT && mainPlayer) {
+            if (m.action === 'play') {
+              if (Math.abs(mainPlayer.currentTime - m.time) > 0.3) mainPlayer.currentTime = m.time;
+              mainPlayer.play().catch(()=>{});
+              playPauseBtn.innerText = '❚❚';
+            } else if (m.action === 'pause') {
+              mainPlayer.pause();
+              playPauseBtn.innerText = '▶';
+            } else if (m.action === 'seek') {
+              mainPlayer.currentTime = m.time;
+            }
+          }
+          setTimeout(() => { isSyncing = false; }, 350);
+        } else if (m.type === 'VIDEO_RATE') {
+          if (m.isYT && ytPlayer && ytReady) ytPlayer.setPlaybackRate(m.rate);
+          else mainPlayer.playbackRate = m.rate;
+          rateSelect.value = m.rate.toString();
+        } else if (m.type === 'LAYOUT_MODE_TOGGLE') {
+          toggleCallOnlyMode(m.isCallOnly);
+        } else if (m.type === 'REACTION_BURST') {
+          triggerReactionUI(m.rType, 'Partner');
+        } else if (m.type === 'BOOKMARK_MOMENT') {
+          triggerReactionUI('bookmark', 'Partner');
+        } else if (m.type === 'SUNRISE_ALARM') {
+          triggerSunrise();
+        } else if (m.type === 'REMOTE_CAM_STATE') {
+          partnerVideo.style.display = m.enabled ? 'block' : 'none';
+        } else if (m.type === 'FILE_START') {
+          incomingMeta = m; incomingChunks = [];
+        } else if (m.type === 'FILE_END') {
+          const blob = new Blob(incomingChunks, { type: incomingMeta.mime });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = incomingMeta.name; a.click();
+          alert(`Received File: ${incomingMeta.name}`);
         }
       };
     }
@@ -810,9 +1569,9 @@
         if (pc && data.payload) pc.addIceCandidate(new RTCIceCandidate(data.payload));
       } else if (data.type === 'peer-left') {
         if (peers[data.peerId]) { peers[data.peerId].close(); delete peers[data.peerId]; }
-        partnerName.innerText = 'Partner Left';
-        partnerAudioStatus.innerText = 'Disconnected';
-        partnerAudioStatus.style.color = 'var(--text-dim)';
+        partnerAudioName.innerText = 'Partner Left';
+        partnerAudioBadge.innerText = 'Disconnected';
+        partnerVideo.srcObject = null;
       }
     };
 
@@ -820,10 +1579,13 @@
       const pc = new RTCPeerConnection(rtcConfig);
       peers[peerId] = pc;
 
-      if (processedAudioTrack) pc.addTrack(processedAudioTrack, localAudioStream);
+      if (processedAudioTrack) pc.addTrack(processedAudioTrack, localStream);
+      if (localStream && !isAudioOnlyMode) {
+        localStream.getVideoTracks().forEach(t => pc.addTrack(t, localStream));
+      }
 
       if (isInitiator) {
-        const dc = pc.createDataChannel('audioLoungeChat');
+        const dc = pc.createDataChannel('masterLoungeChannel');
         setupDataChannel(peerId, dc);
         pc.onnegotiationneeded = async () => {
           const offer = await pc.createOffer();
@@ -835,10 +1597,16 @@
       }
 
       pc.ontrack = (evt) => {
-        partnerName.innerText = 'Connected Partner';
-        partnerAudioStatus.innerText = 'Speaking';
-        partnerAudioStatus.style.color = '#22c55e';
-        connectRemoteSpatialAudio(evt.streams[0]);
+        partnerAudioName.innerText = 'Connected Partner';
+        partnerAudioBadge.innerText = 'Active';
+        partnerAudioBadge.style.color = '#22c55e';
+
+        if (evt.track.kind === 'audio') {
+          setupRemoteSpatialAudio(evt.streams[0]);
+        }
+        if (evt.track.kind === 'video') {
+          partnerVideo.srcObject = evt.streams[0];
+        }
       };
 
       pc.onicecandidate = (ev) => {
@@ -849,55 +1617,98 @@
     }
 
     // -------------------------------------------------------------
-    // 7. INITIALIZATION & CONTROLS
+    // 13. PRE-JOIN ENTRY & STAGE INITIALIZATION
     // -------------------------------------------------------------
-    enterRoomBtn.onclick = async () => {
-      room = roomInput.value.trim().toLowerCase().replace(/\s+/g, '-') || 'suite-audio';
+    joinBtn.onclick = async () => {
+      room = roomInput.value.trim().toLowerCase().replace(/\s+/g, '-') || 'suite-room';
       window.location.hash = room;
-      roomNameDisplay.innerText = room;
+      roomDisplay.innerText = room;
+
+      const selectedMode = document.querySelector('input[name="initialMode"]:checked').value;
+      isAudioOnlyMode = selectedMode === 'audio';
 
       try {
-        // High quality echo-cancelled microphone capture
-        localAudioStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: false // Handled inside our Web Audio DSP graph
-          },
-          video: false
-        });
+        if (!isAudioOnlyMode) {
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+              audio: { echoCancellation: true, noiseSuppression: true },
+              video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } }
+            });
+          } catch (camErr) {
+            console.warn("Camera fallback applied:", camErr);
+            localStream = await navigator.mediaDevices.getUserMedia({
+              audio: { echoCancellation: true, noiseSuppression: true },
+              video: false
+            });
+            isAudioOnlyMode = true;
+          }
+        } else {
+          localStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true },
+            video: false
+          });
+        }
 
-        initWebAudio(localAudioStream);
+        initWebAudio(localStream);
+
+        // Stage setup
+        if (isAudioOnlyMode) {
+          audioStage.style.display = 'flex';
+          mainVideoContainer.style.display = 'none';
+          localPip.style.display = 'none';
+          remotePip.style.display = 'none';
+          camFlipBtn.style.display = 'none';
+          camToggleBtn.style.display = 'none';
+          callModeToggleBtn.style.display = 'none';
+          screenShareBtn.style.display = 'none';
+          bookmarkBtn.style.display = 'none';
+          watchDrawerBtn.style.display = 'none';
+        } else {
+          audioStage.style.display = 'none';
+          mainVideoContainer.style.display = 'flex';
+          localPip.style.display = 'block';
+          remotePip.style.display = 'block';
+          camFlipBtn.style.display = 'flex';
+          myVideo.srcObject = localStream;
+        }
+
         lobbyModal.style.display = 'none';
-
         ws.send(JSON.stringify({ room, type: 'join' }));
       } catch (err) {
-        alert('Microphone permission required for audio call: ' + err.message);
+        alert('Microphone access is required: ' + err.message);
       }
     };
 
-    let isMuted = false;
     muteMicBtn.onclick = () => {
-      if (!localAudioStream) return;
+      if (!localStream) return;
       isMuted = !isMuted;
-      localAudioStream.getAudioTracks()[0].enabled = !isMuted;
+      localStream.getAudioTracks()[0].enabled = !isMuted;
       if (processedAudioTrack) processedAudioTrack.enabled = !isMuted;
-
       muteMicBtn.classList.toggle('active-amber', isMuted);
-      myMicStatus.innerText = isMuted ? 'Muted' : 'Mic Active';
-      myMicStatus.style.color = isMuted ? '#f59e0b' : 'var(--text-dim)';
-      broadcastData({ type: 'PARTNER_MIC_STATUS', muted: isMuted });
+      localAudioBadge.innerText = isMuted ? 'Muted' : 'Mic Active';
+      localAudioBadge.style.color = isMuted ? '#f59e0b' : 'var(--text-dim)';
     };
 
-    copyLinkBtn.onclick = () => {
+    watchDrawerBtn.onclick = () => {
+      const isHidden = watchDrawer.style.display !== 'flex';
+      watchDrawer.style.display = isHidden ? 'flex' : 'none';
+    };
+
+    copyBtn.onclick = () => {
       navigator.clipboard.writeText(window.location.origin + '/#' + room).then(() => {
-        copyLinkBtn.innerText = 'Copied!';
-        setTimeout(() => copyLinkBtn.innerText = 'Copy', 2000);
+        copyBtn.innerText = 'Copied!';
+        setTimeout(() => copyBtn.innerText = 'Copy', 2000);
       });
     };
 
-    leaveBtn.onclick = () => {
-      if (localAudioStream) localAudioStream.getTracks().forEach(t => t.stop());
+    pipSysBtn.onclick = async () => {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else if (mainPlayer && !isYouTubeMode) await mainPlayer.requestPictureInPicture();
+      else alert("System PiP operates on native MP4 video playback.");
+    };
+
+    hangupBtn.onclick = () => {
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
       location.reload();
     };
   </script>
