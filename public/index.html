@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Lounge Suite</title>
   
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#09090b" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="https://emojicdn.elk.sh/🛋️?style=apple" />
   
@@ -109,9 +112,12 @@
       position: absolute; bottom: 4px; left: 6px; background: rgba(0,0,0,0.75);
       padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; z-index: 2;
     }
-    .pip-reacting { border-color: #00ffa3 !important; box-shadow: 0 0 25px rgba(0, 255, 163, 0.85) !important; }
-    .couch-mode-local { left: 8% !important; bottom: 88px !important; width: 140px !important; height: 105px !important; }
-    .couch-mode-remote { left: 54% !important; bottom: 88px !important; width: 140px !important; height: 105px !important; }
+
+    #diagStatus {
+      position: fixed; bottom: 84px; left: 12px; font-size: 11px;
+      background: rgba(0,0,0,0.75); padding: 4px 8px; border-radius: 6px;
+      color: #38bdf8; z-index: 99; pointer-events: none; font-family: monospace;
+    }
 
     #doodleCanvas {
       position: absolute; inset: 0; width: 100%; height: 100%;
@@ -297,7 +303,6 @@
       </div>
     </div>
 
-    <!-- Dual PiP Floating Elements -->
     <div class="pip-box" id="localPip" style="top: 65px; right: 16px;">
       <video id="myVideo" class="mirror-mode" autoplay playsinline muted></video>
       <span class="pip-label">You</span>
@@ -307,6 +312,8 @@
       <video id="partnerVideo" autoplay playsinline></video>
       <span class="pip-label" id="partnerPipLabel">Waiting...</span>
     </div>
+
+    <div id="diagStatus">Signal: Ready</div>
 
     <div id="subtitlesBanner">
       <div class="sub-speaker" id="subSpeaker">You:</div>
@@ -473,14 +480,17 @@
   </div>
 
   <script>
-    const VAPID_PUBLIC_KEY = 'YOUR_PUBLIC_VAPID_KEY_HERE';
+    // In-app visual diagnostic logger
+    const diagStatus = document.getElementById('diagStatus');
+    function setDiag(msg) {
+      if (diagStatus) diagStatus.innerText = msg;
+      console.log(`[Diagnostic] ${msg}`);
+    }
 
-    // State Variables
     let ws = null;
     let wsReconnectTimer = null;
     let myUsername = localStorage.getItem('lounge_username');
 
-    // Wipe stale placeholder names
     if (myUsername && myUsername.toLowerCase() === 'partner') {
       localStorage.removeItem('lounge_username');
       myUsername = null;
@@ -504,8 +514,7 @@
 
     let localStream = null;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null, micSource = null, hpFilter = null, whisperNode = null, compressorNode = null;
-    let localAnalyser = null, partnerPanner = null, ambGain = null, ambSource = null, activeAmbience = null;
+    let audioCtx = null, micSource = null, localAnalyser = null;
 
     const doodleCanvas = document.getElementById('doodleCanvas');
     const ctx = doodleCanvas.getContext('2d');
@@ -607,7 +616,7 @@
     window.addEventListener('resize', () => { doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight; });
     doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight;
 
-    // Bulletproof TURN + STUN ICE Configuration
+    // Direct, redundant STUN + TURN relay
     const rtcConfig = {
       iceServers: [
         { urls: 'stun:stun1.l.google.com:19302' },
@@ -625,12 +634,12 @@
       iceCandidatePoolSize: 10
     };
 
-    // WebSocket Connection
     function connectWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(protocol + '//' + window.location.host);
 
       ws.onopen = () => {
+        setDiag("Signal: Connected");
         if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
         if (myUsername) registerServer();
       };
@@ -643,29 +652,33 @@
         } else if (data.type === 'INCOMING_CALL') {
           showIncomingCallScreen(data);
         } else if (data.type === 'CALL_ACCEPTED_BY_PEER') {
-          console.log("[Signal] Peer accepted, initializing Offer...");
+          setDiag("Call accepted, offering...");
           const pc = createMeshPeerConnection(data.from, true);
-          const offer = await pc.createOffer();
+          const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
           await pc.setLocalDescription(offer);
           ws.send(JSON.stringify({ target: data.from, type: 'OFFER', payload: offer }));
         } else if (data.type === 'OFFER') {
-          console.log("[Signal] Received Offer from", data.sender);
+          setDiag("Offer received, answering...");
           const pc = createMeshPeerConnection(data.sender, false);
           await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
           if (iceCandidateQueues[data.sender]) {
-            iceCandidateQueues[data.sender].forEach(c => pc.addIceCandidate(c));
+            for (const cand of iceCandidateQueues[data.sender]) {
+              await pc.addIceCandidate(cand).catch(()=>{});
+            }
             iceCandidateQueues[data.sender] = [];
           }
           const ans = await pc.createAnswer();
           await pc.setLocalDescription(ans);
           ws.send(JSON.stringify({ target: data.sender, type: 'ANSWER', payload: ans }));
         } else if (data.type === 'ANSWER') {
-          console.log("[Signal] Received Answer from", data.sender);
+          setDiag("Answer received, finalizing...");
           const pc = peerConnections[data.sender];
           if (pc) {
             await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
             if (iceCandidateQueues[data.sender]) {
-              iceCandidateQueues[data.sender].forEach(c => pc.addIceCandidate(c));
+              for (const cand of iceCandidateQueues[data.sender]) {
+                await pc.addIceCandidate(cand).catch(()=>{});
+              }
               iceCandidateQueues[data.sender] = [];
             }
           }
@@ -682,12 +695,12 @@
       };
 
       ws.onclose = () => {
+        setDiag("Signal: Disconnected");
         wsReconnectTimer = setTimeout(connectWebSocket, 2000);
       };
     }
     connectWebSocket();
 
-    // User Identity Logic
     function setupUserIdentity() {
       if (!myUsername) {
         loginModal.style.display = 'flex';
@@ -802,17 +815,16 @@
     document.getElementById('startGroupAudioBtn').onclick = () => initiateCall(Array.from(selectedContacts), 'audio');
     document.getElementById('startGroupVideoBtn').onclick = () => initiateCall(Array.from(selectedContacts), 'video');
 
-    // Hardware & Media Initialization
     async function startMediaHardware(audioOnly) {
       try {
         if (!audioOnly) {
           try {
             localStream = await navigator.mediaDevices.getUserMedia({
-              audio: true,
+              audio: { echoCancellation: true, noiseSuppression: true },
               video: { facingMode: currentFacingMode }
             });
           } catch (e) {
-            console.warn("Camera failed, using audio-only fallback:", e);
+            console.warn("Camera fallback triggered:", e);
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             isAudioOnly = true;
           }
@@ -820,22 +832,21 @@
           localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         }
 
-        // Explicitly attach stream and play
         if (localStream) {
           myVideo.srcObject = localStream;
           myVideo.muted = true;
           myVideo.setAttribute('playsinline', 'true');
-          myVideo.play().catch(e => console.log("Local myVideo play error:", e));
+          myVideo.play().catch(()=>{});
 
           myMeshVideo.srcObject = localStream;
           myMeshVideo.muted = true;
           myMeshVideo.setAttribute('playsinline', 'true');
-          myMeshVideo.play().catch(e => console.log("Mesh myMeshVideo play error:", e));
+          myMeshVideo.play().catch(()=>{});
 
           initWebAudioDSP(localStream);
         }
       } catch (err) {
-        alert('Permission Denied: Allow camera/mic access in your browser settings.');
+        alert('Permission Denied: Please allow Camera & Microphone access in site settings.');
         console.error(err);
       }
     }
@@ -855,7 +866,6 @@
       }
     }
 
-    // Call Actions
     async function initiateCall(targets, mode) {
       isAudioOnly = mode === 'audio';
       currentSessionToken = 'session-' + Math.random().toString(36).substring(2, 7);
@@ -865,6 +875,7 @@
       if (!localStream) return;
 
       enterCallStage(targets.join(', '));
+      setDiag(`Calling ${targets.join(', ')}...`);
       ws.send(JSON.stringify({
         type: 'CALL_TARGETS',
         targets: targets,
@@ -895,6 +906,7 @@
       if (!localStream) return;
 
       enterCallStage(`In Call`);
+      setDiag("Accepted, notifying peer...");
       ws.send(JSON.stringify({
         type: 'CALL_ACCEPTED',
         target: pendingCallDetails.from,
@@ -910,7 +922,6 @@
       ringtoneAudio.currentTime = 0;
     }
 
-    // Peer Connection & Streams
     function createMeshPeerConnection(remotePeerName, isInitiator) {
       if (peerConnections[remotePeerName]) return peerConnections[remotePeerName];
 
@@ -918,7 +929,12 @@
       peerConnections[remotePeerName] = pc;
       iceCandidateQueues[remotePeerName] = [];
 
-      // Add hardware tracks
+      // Add directional transceivers
+      pc.addTransceiver('audio', { direction: 'sendrecv' });
+      if (!isAudioOnly) {
+        pc.addTransceiver('video', { direction: 'sendrecv' });
+      }
+
       if (localStream) {
         localStream.getTracks().forEach(track => {
           pc.addTrack(track, localStream);
@@ -932,9 +948,8 @@
         pc.ondatachannel = (e) => setupDataChannel(remotePeerName, e.channel);
       }
 
-      // Incoming remote stream handling
       pc.ontrack = (evt) => {
-        console.log(`[Stream Arrived] Track received: ${evt.track.kind}`);
+        setDiag(`Stream arrived: ${evt.track.kind}`);
         const stream = evt.streams[0] || new MediaStream([evt.track]);
         setupRemoteParticipantMedia(remotePeerName, stream, evt.track.kind);
       };
@@ -945,26 +960,29 @@
         }
       };
 
+      pc.onconnectionstatechange = () => {
+        setDiag(`State: ${pc.connectionState}`);
+        if (pc.connectionState === 'connected') {
+          document.getElementById('partnerPipLabel').innerText = remotePeerName;
+        }
+      };
+
       return pc;
     }
 
     function setupRemoteParticipantMedia(peerName, stream, kind) {
       document.getElementById('partnerPipLabel').innerText = peerName;
 
-      // Ensure partner video plays smoothly without auto-mute blocks
       partnerVideo.srcObject = stream;
       partnerVideo.setAttribute('playsinline', 'true');
-      partnerVideo.play().catch(e => {
-        console.warn("Autoplay block detected, retrying muted:", e);
+      partnerVideo.play().catch(() => {
         partnerVideo.muted = true;
         partnerVideo.play().catch(()=>{});
       });
 
-      // Audio Sink
       remoteAudioSink.srcObject = stream;
-      remoteAudioSink.play().catch(e => console.log("Audio sink play error:", e));
+      remoteAudioSink.play().catch(()=>{});
 
-      // Video Grid Tile setup
       if (!remoteMediaElements[peerName]) {
         const audioCard = document.createElement('div');
         audioCard.className = 'avatar-card';
@@ -998,7 +1016,6 @@
     }
     window.addEventListener('resize', updateVideoGridLayout);
 
-    // Chat, Canvas & Media Handlers
     function multicastData(obj) {
       const payload = JSON.stringify(obj);
       Object.values(dataChannels).forEach(dc => {
@@ -1132,6 +1149,22 @@
       }); recapModal.style.display = 'flex';
     }; closeRecapBtn.onclick = () => recapModal.style.display = 'none';
 
+    if (SpeechRecognition) {
+      recognizer = new SpeechRecognition(); recognizer.continuous = true; recognizer.interimResults = true; recognizer.lang = 'en-US';
+      recognizer.onresult = (e) => {
+        let interim = '', final = ''; for (let i = e.resultIndex; i < e.results.length; ++i) { if (e.results[i].isFinal) final += e.results[i][0].transcript; else interim += e.results[i][0].transcript; }
+        const text = (final || interim).trim(); if (text.length > 0) { showSubtitle("You", text); multicastData({ type: 'LIVE_SUB', speaker: myUsername, text }); }
+      };
+      recognizer.onend = () => { if (shouldKeepListening && isSubsActive) try { recognizer.start(); } catch (err) {} };
+    }
+    subsBtn.onclick = () => {
+      if (!SpeechRecognition) return alert('Speech recognition supported on Chrome/Edge.');
+      isSubsActive = !isSubsActive; subsBtn.classList.toggle('active-amber', isSubsActive);
+      if (isSubsActive) { shouldKeepListening = true; try { recognizer.start(); } catch(e){} subtitlesBanner.style.display = 'block'; subSpeaker.innerText = 'You:'; subText.innerText = 'Listening...'; }
+      else { shouldKeepListening = false; try { recognizer.stop(); } catch(e){} subtitlesBanner.style.display = 'none'; }
+    };
+    function showSubtitle(speaker, text) { subtitlesBanner.style.display = 'block'; subSpeaker.innerText = `${speaker}:`; subSpeaker.style.color = speaker === 'You' ? '#38bdf8' : '#ec4899'; subText.innerText = text; clearTimeout(window.subTimer); window.subTimer = setTimeout(() => { if (!isSubsActive) subtitlesBanner.style.display = 'none'; else subText.innerText = 'Listening...'; }, 4000); }
+
     chatBtn.onclick = () => { isChatOpen = !isChatOpen; chatDrawer.classList.toggle('open', isChatOpen); if (isChatOpen) { unreadCount = 0; chatBadge.style.display = 'none'; chatInput.focus(); } };
     closeChatBtn.onclick = () => { isChatOpen = false; chatDrawer.classList.remove('open'); };
     sendChatBtn.onclick = sendChat; chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
@@ -1194,11 +1227,6 @@
       } catch(e) {}
     }
 
-    function setupRemoteSpatialAudio(stream) {
-      remoteAudioSink.srcObject = stream;
-      remoteAudioSink.play().catch(()=>{});
-    }
-
     function startVisualizerLoop() {
       const buf = new Uint8Array(32);
       function draw() {
@@ -1214,9 +1242,6 @@
         } requestAnimationFrame(draw);
       } draw();
     }
-
-    window.addEventListener('deviceorientation', (e) => { if (!isCallActive) return; earShield.style.display = (e.beta > 65 && e.beta < 115 && Math.abs(e.gamma) < 25) ? 'block' : 'none'; });
-    earShield.onclick = () => { earShield.style.display = 'none'; };
 
     setupUserIdentity();
     renderContactsList();

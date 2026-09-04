@@ -9,7 +9,23 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// STRICT NO-CACHE HEADERS: Prevents HTTP 304 cached code on mobile browsers
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
+
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  }
+}));
 
 // VAPID Push Keys
 const PUBLIC_VAPID_KEY = process.env.PUBLIC_VAPID_KEY || 'YOUR_PUBLIC_VAPID_KEY_HERE';
@@ -19,7 +35,6 @@ if (PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
   webpush.setVapidDetails('mailto:admin@loungesuite.local', PUBLIC_VAPID_KEY, PRIVATE_VAPID_KEY);
 }
 
-// Map: username -> { ws, pushSub }
 const users = new Map();
 
 app.post('/api/register-push', (req, res) => {
@@ -56,7 +71,7 @@ app.post('/api/push-ring', async (req, res) => {
   res.status(200).json({ status: 'dispatched' });
 });
 
-app.use((req, res) => {
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -93,7 +108,6 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      // Ring Target Devices
       if (data.type === 'CALL_TARGETS') {
         data.targets.forEach((targetName) => {
           const targetRecord = users.get(targetName);
@@ -110,7 +124,6 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      // Callee accepted call -> notify caller to start WebRTC handshake
       if (data.type === 'CALL_ACCEPTED') {
         const callerRecord = users.get(data.target);
         if (callerRecord && callerRecord.ws && callerRecord.ws.readyState === 1) {
@@ -123,7 +136,6 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      // Forward WebRTC signaling (OFFER, ANSWER, CANDIDATE)
       if (data.target && users.has(data.target)) {
         const destination = users.get(data.target);
         if (destination && destination.ws && destination.ws.readyState === 1) {
@@ -145,7 +157,7 @@ wss.on('connection', (ws) => {
   });
 });
 
-// Render.com Keep-Alive Ping (every 25 seconds prevents proxy drop)
+// Render 25s keepalive ping
 const pingInterval = setInterval(() => {
   wss.clients.forEach((ws) => {
     if (!ws.isAlive) return ws.terminate();
