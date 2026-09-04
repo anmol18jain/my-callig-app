@@ -1,6 +1,4 @@
-const CACHE_NAME = 'lounge-cache-v1';
-
-self.addEventListener('install', (e) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
@@ -8,45 +6,59 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(clients.claim());
 });
 
-// Receive background call push notification
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (err) {
+    data = { title: 'Incoming Call', body: event.data.text() };
+  }
 
-  const title = data.title || '📞 Incoming Lounge Call';
+  const title = data.title || '📞 Incoming Call';
   const options = {
-    body: data.body || 'Your partner is calling...',
-    icon: 'https://cdn-icons-png.flaticon.com/512/3616/3616930.png',
-    badge: 'https://cdn-icons-png.flaticon.com/512/3616/3616930.png',
-    tag: 'incoming-lounge-call',
+    body: data.body || 'Your partner is calling. Tap to answer!',
+    icon: 'https://emojicdn.elk.sh/🛋️?style=apple',
+    badge: 'https://emojicdn.elk.sh/🛋️?style=apple',
+    tag: 'incoming-call-alert',
     renotify: true,
     requireInteraction: true,
-    vibrate: [500, 200, 500, 200, 500, 200, 1000],
+    vibrate: [500, 250, 500, 250, 500, 250, 500],
     actions: [
       { action: 'answer', title: '📞 Answer' },
       { action: 'decline', title: '✕ Decline' }
     ],
     data: {
-      room: data.room,
-      callMode: data.callMode
+      from: data.from,
+      callMode: data.callMode || 'video',
+      sessionToken: data.sessionToken,
+      allParticipants: data.allParticipants || []
     }
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Handle notification actions (Answer or Decline)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   if (event.action === 'decline') return;
 
-  const { room, callMode } = event.notification.data;
-  const targetUrl = `/#${room}?autoAnswer=true&mode=${callMode}`;
+  const payload = event.notification.data || {};
+  const queryParams = new URLSearchParams({
+    autoAnswer: 'true',
+    from: payload.from || '',
+    mode: payload.callMode || 'video',
+    session: payload.sessionToken || '',
+    participants: (payload.allParticipants || []).join(',')
+  }).toString();
+
+  const targetUrl = `/?${queryParams}`;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url.includes(room) && 'focus' in client) {
+        if ('focus' in client) {
+          client.navigate(targetUrl);
           return client.focus();
         }
       }
