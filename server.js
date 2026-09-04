@@ -11,70 +11,47 @@ const wss = new WebSocketServer({ server });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// VAPID Push Keys (Generate using `npx web-push generate-vapid-keys`)
+// VAPID Push Keys (Replace with your keys if generated)
 const PUBLIC_VAPID_KEY = process.env.PUBLIC_VAPID_KEY || 'YOUR_PUBLIC_VAPID_KEY_HERE';
 const PRIVATE_VAPID_KEY = process.env.PRIVATE_VAPID_KEY || 'YOUR_PRIVATE_VAPID_KEY_HERE';
 
 if (PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
-  webpush.setVapidDetails(
-    'mailto:admin@loungesuite.local',
-    PUBLIC_VAPID_KEY,
-    PRIVATE_VAPID_KEY
-  );
+  webpush.setVapidDetails('mailto:admin@loungesuite.local', PUBLIC_VAPID_KEY, PRIVATE_VAPID_KEY);
 }
 
-// Active user registry: username -> { ws: WebSocket|null, pushSub: Object|null }
+// Active users store: username -> { ws, pushSub }
 const users = new Map();
 
 app.post('/api/register-push', (req, res) => {
   const { username, subscription } = req.body;
-  if (!username || !subscription) {
-    return res.status(400).json({ error: 'Missing username or subscription' });
+  if (username && subscription) {
+    const existing = users.get(username) || { ws: null };
+    users.set(username, { ...existing, pushSub: subscription });
+    console.log(`[Push Registered] ${username}`);
   }
-
-  const existing = users.get(username) || { ws: null, pushSub: null };
-  existing.pushSub = subscription;
-  users.set(username, existing);
-
-  console.log(`[Push] Device armed with push subscription for: ${username}`);
-  res.status(200).json({ status: 'subscribed' });
+  res.status(200).json({ status: 'ok' });
 });
 
 app.post('/api/push-ring', async (req, res) => {
   const { from, targets, callMode, sessionToken } = req.body;
-  if (!Array.isArray(targets) || targets.length === 0) {
-    return res.status(400).json({ error: 'Targets array is required' });
-  }
+  if (!Array.isArray(targets)) return res.status(400).json({ error: 'Invalid targets' });
 
-  const pushTasks = targets.map(async (targetName) => {
-    const userRecord = users.get(targetName);
-    if (userRecord && userRecord.pushSub && PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
-      const payload = JSON.stringify({
-        title: `📞 Incoming ${callMode === 'audio' ? 'Audio' : 'Video'} Call`,
-        body: `${from} is calling you. Tap to answer!`,
-        from,
-        callMode,
-        sessionToken,
-        allParticipants: [from, ...targets]
-      });
-
+  for (const to of targets) {
+    const target = users.get(to);
+    if (target && target.pushSub && PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
       try {
-        await webpush.sendNotification(userRecord.pushSub, payload, {
-          Urgency: 'high',
-          TTL: 60
-        });
-        console.log(`[Push] Dispatched call alert to: ${targetName}`);
-      } catch (err) {
-        console.error(`[Push] Delivery failure for ${targetName}:`, err.message);
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          userRecord.pushSub = null;
-        }
+        await webpush.sendNotification(target.pushSub, JSON.stringify({
+          title: `📞 Call from ${from}`,
+          body: `Incoming ${callMode} call. Tap to answer!`,
+          from, callMode, sessionToken, allParticipants: [from, ...targets]
+        }), { Urgency: 'high', TTL: 60 });
+        console.log(`[Push Sent] To ${to} from ${from}`);
+      } catch (e) {
+        console.log(`[Push Error] ${to}:`, e.message);
       }
     }
-  });
-
-  await Promise.all(pushTasks);
-  res.status(200).json({ status: 'dispatched' });
+  }
+  res.status(200).json({ status: 'sent' });
 });
 
 app.use((req, res) => {
@@ -82,16 +59,13 @@ app.use((req, res) => {
 });
 
 function broadcastContactList() {
-  const contactList = Array.from(users.entries()).map(([name, record]) => ({
+  const contactList = Array.from(users.entries()).map(([name, u]) => ({
     name,
-    online: record.ws !== null && record.ws.readyState === 1
+    online: u.ws !== null && u.ws.readyState === 1
   }));
-
-  const message = JSON.stringify({ type: 'CONTACT_UPDATE', contacts: contactList });
-  for (const record of users.values()) {
-    if (record.ws && record.ws.readyState === 1) {
-      record.ws.send(message);
-    }
+  const msg = JSON.stringify({ type: 'CONTACT_UPDATE', contacts: contactList });
+  for (const u of users.values()) {
+    if (u.ws && u.ws.readyState === 1) u.ws.send(msg);
   }
 }
 
@@ -104,25 +78,24 @@ wss.on('connection', (ws) => {
 
       if (data.type === 'REGISTER') {
         boundUser = data.username;
-        const current = users.get(boundUser) || { ws: null, pushSub: null };
-        current.ws = ws;
-        users.set(boundUser, current);
-        console.log(`[WebSocket] Connected: ${boundUser}`);
+        const existing = users.get(boundUser) || { pushSub: null };
+        users.set(boundUser, { ...existing, ws });
+        console.log(`[WS Connected & Registered] User: ${boundUser}`);
         broadcastContactList();
         return;
       }
 
       if (data.type === 'CALL_TARGETS') {
-        const { targets, callMode, sessionToken } = data;
-        targets.forEach((targetName) => {
-          const targetRecord = users.get(targetName);
-          if (targetRecord && targetRecord.ws && targetRecord.ws.readyState === 1) {
-            targetRecord.ws.send(JSON.stringify({
+        console.log(`[Call Dispatch] From ${boundUser} to [${data.targets.join(', ')}]`);
+        data.targets.forEach(tName => {
+          const target = users.get(tName);
+          if (target && target.ws && target.ws.readyState === 1) {
+            target.ws.send(JSON.stringify({
               type: 'INCOMING_CALL',
               from: boundUser,
-              callMode,
-              sessionToken,
-              allParticipants: [boundUser, ...targets]
+              callMode: data.callMode,
+              sessionToken: data.sessionToken,
+              allParticipants: [boundUser, ...data.targets]
             }));
           }
         });
@@ -130,15 +103,14 @@ wss.on('connection', (ws) => {
       }
 
       if (data.type === 'JOIN_CALL_SESSION') {
-        const { sessionToken, participants } = data;
-        participants.forEach((pName) => {
+        data.participants.forEach(pName => {
           if (pName !== boundUser) {
-            const pRecord = users.get(pName);
-            if (pRecord && pRecord.ws && pRecord.ws.readyState === 1) {
-              pRecord.ws.send(JSON.stringify({
+            const peer = users.get(pName);
+            if (peer && peer.ws && peer.ws.readyState === 1) {
+              peer.ws.send(JSON.stringify({
                 type: 'PEER_ENTERED_SESSION',
                 peerName: boundUser,
-                sessionToken
+                sessionToken: data.sessionToken
               }));
             }
           }
@@ -146,26 +118,27 @@ wss.on('connection', (ws) => {
         return;
       }
 
+      // Route WebRTC Offer / Answer / Candidate packets
       if (data.target && users.has(data.target)) {
-        const destination = users.get(data.target);
-        if (destination && destination.ws && destination.ws.readyState === 1) {
-          destination.ws.send(JSON.stringify({ ...data, sender: boundUser }));
+        const target = users.get(data.target);
+        if (target && target.ws && target.ws.readyState === 1) {
+          target.ws.send(JSON.stringify({ ...data, sender: boundUser }));
         }
       }
     } catch (err) {
-      console.error('[WebSocket Error]:', err);
+      console.error('[Server Error]', err);
     }
   });
 
   ws.on('close', () => {
     if (boundUser && users.has(boundUser)) {
-      const current = users.get(boundUser);
-      current.ws = null;
-      console.log(`[WebSocket] Disconnected: ${boundUser}`);
+      const existing = users.get(boundUser);
+      users.set(boundUser, { ...existing, ws: null });
+      console.log(`[WS Disconnected] User: ${boundUser}`);
       broadcastContactList();
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Master Lounge Suite running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server live on port ${PORT}`));
