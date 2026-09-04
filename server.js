@@ -28,7 +28,7 @@ wss.on('connection', (ws) => {
         userRoom = data.room;
         if (!rooms[userRoom]) rooms[userRoom] = new Map();
 
-        // Evict closed/dead connections
+        // Evict dead connections
         for (const [id, client] of rooms[userRoom].entries()) {
           if (client.readyState !== 1) rooms[userRoom].delete(id);
         }
@@ -50,7 +50,7 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      // Targeted P2P signaling (Offer / Answer / ICE)
+      // Targeted P2P Signaling (Offer / Answer / ICE)
       if (data.target && rooms[userRoom] && rooms[userRoom].has(data.target)) {
         const targetClient = rooms[userRoom].get(data.target);
         if (targetClient && targetClient.readyState === 1) {
@@ -59,7 +59,7 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      // Room-wide broadcast
+      // Room-wide sync broadcasting
       if (userRoom && rooms[userRoom]) {
         rooms[userRoom].forEach((client) => {
           if (client !== ws && client.readyState === 1) {
@@ -86,4 +86,4 @@ wss.on('connection', (ws) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Production Lounge Server online on port ${PORT}`));
+server.listen(PORT, () => console.log(`Audio Lounge server online on port ${PORT}`));
