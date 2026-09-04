@@ -11,7 +11,7 @@ const wss = new WebSocketServer({ server });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// VAPID Push Keys (Replace with your keys if generated)
+// VAPID Push Keys
 const PUBLIC_VAPID_KEY = process.env.PUBLIC_VAPID_KEY || 'YOUR_PUBLIC_VAPID_KEY_HERE';
 const PRIVATE_VAPID_KEY = process.env.PRIVATE_VAPID_KEY || 'YOUR_PRIVATE_VAPID_KEY_HERE';
 
@@ -19,39 +19,40 @@ if (PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
   webpush.setVapidDetails('mailto:admin@loungesuite.local', PUBLIC_VAPID_KEY, PRIVATE_VAPID_KEY);
 }
 
-// Active users store: username -> { ws, pushSub }
 const users = new Map();
 
 app.post('/api/register-push', (req, res) => {
   const { username, subscription } = req.body;
-  if (username && subscription) {
-    const existing = users.get(username) || { ws: null };
-    users.set(username, { ...existing, pushSub: subscription });
-    console.log(`[Push Registered] ${username}`);
-  }
-  res.status(200).json({ status: 'ok' });
+  if (!username || !subscription) return res.status(400).json({ error: 'Missing data' });
+
+  const existing = users.get(username) || { ws: null, pushSub: null };
+  existing.pushSub = subscription;
+  users.set(username, existing);
+  res.status(200).json({ status: 'subscribed' });
 });
 
 app.post('/api/push-ring', async (req, res) => {
   const { from, targets, callMode, sessionToken } = req.body;
   if (!Array.isArray(targets)) return res.status(400).json({ error: 'Invalid targets' });
 
-  for (const to of targets) {
-    const target = users.get(to);
-    if (target && target.pushSub && PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
+  const pushTasks = targets.map(async (targetName) => {
+    const userRecord = users.get(targetName);
+    if (userRecord && userRecord.pushSub && PUBLIC_VAPID_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
       try {
-        await webpush.sendNotification(target.pushSub, JSON.stringify({
-          title: `📞 Call from ${from}`,
-          body: `Incoming ${callMode} call. Tap to answer!`,
-          from, callMode, sessionToken, allParticipants: [from, ...targets]
+        await webpush.sendNotification(userRecord.pushSub, JSON.stringify({
+          title: `📞 Incoming ${callMode} call`,
+          body: `${from} is calling. Tap to answer!`,
+          from, callMode, sessionToken,
+          allParticipants: [from, ...targets]
         }), { Urgency: 'high', TTL: 60 });
-        console.log(`[Push Sent] To ${to} from ${from}`);
-      } catch (e) {
-        console.log(`[Push Error] ${to}:`, e.message);
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) userRecord.pushSub = null;
       }
     }
-  }
-  res.status(200).json({ status: 'sent' });
+  });
+
+  await Promise.all(pushTasks);
+  res.status(200).json({ status: 'dispatched' });
 });
 
 app.use((req, res) => {
@@ -59,13 +60,13 @@ app.use((req, res) => {
 });
 
 function broadcastContactList() {
-  const contactList = Array.from(users.entries()).map(([name, u]) => ({
+  const contactList = Array.from(users.entries()).map(([name, record]) => ({
     name,
-    online: u.ws !== null && u.ws.readyState === 1
+    online: record.ws !== null && record.ws.readyState === 1
   }));
-  const msg = JSON.stringify({ type: 'CONTACT_UPDATE', contacts: contactList });
-  for (const u of users.values()) {
-    if (u.ws && u.ws.readyState === 1) u.ws.send(msg);
+  const message = JSON.stringify({ type: 'CONTACT_UPDATE', contacts: contactList });
+  for (const record of users.values()) {
+    if (record.ws && record.ws.readyState === 1) record.ws.send(message);
   }
 }
 
@@ -78,24 +79,20 @@ wss.on('connection', (ws) => {
 
       if (data.type === 'REGISTER') {
         boundUser = data.username;
-        const existing = users.get(boundUser) || { pushSub: null };
-        users.set(boundUser, { ...existing, ws });
-        console.log(`[WS Connected & Registered] User: ${boundUser}`);
+        const current = users.get(boundUser) || { ws: null, pushSub: null };
+        current.ws = ws;
+        users.set(boundUser, current);
         broadcastContactList();
         return;
       }
 
       if (data.type === 'CALL_TARGETS') {
-        console.log(`[Call Dispatch] From ${boundUser} to [${data.targets.join(', ')}]`);
-        data.targets.forEach(tName => {
-          const target = users.get(tName);
-          if (target && target.ws && target.ws.readyState === 1) {
-            target.ws.send(JSON.stringify({
-              type: 'INCOMING_CALL',
-              from: boundUser,
-              callMode: data.callMode,
-              sessionToken: data.sessionToken,
-              allParticipants: [boundUser, ...data.targets]
+        data.targets.forEach((t) => {
+          const tRecord = users.get(t);
+          if (tRecord && tRecord.ws && tRecord.ws.readyState === 1) {
+            tRecord.ws.send(JSON.stringify({
+              type: 'INCOMING_CALL', from: boundUser, callMode: data.callMode,
+              sessionToken: data.sessionToken, allParticipants: [boundUser, ...data.targets]
             }));
           }
         });
@@ -103,14 +100,12 @@ wss.on('connection', (ws) => {
       }
 
       if (data.type === 'JOIN_CALL_SESSION') {
-        data.participants.forEach(pName => {
+        data.participants.forEach((pName) => {
           if (pName !== boundUser) {
-            const peer = users.get(pName);
-            if (peer && peer.ws && peer.ws.readyState === 1) {
-              peer.ws.send(JSON.stringify({
-                type: 'PEER_ENTERED_SESSION',
-                peerName: boundUser,
-                sessionToken: data.sessionToken
+            const pRecord = users.get(pName);
+            if (pRecord && pRecord.ws && pRecord.ws.readyState === 1) {
+              pRecord.ws.send(JSON.stringify({
+                type: 'PEER_ENTERED_SESSION', peerName: boundUser, sessionToken: data.sessionToken
               }));
             }
           }
@@ -118,23 +113,21 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      // Route WebRTC Offer / Answer / Candidate packets
       if (data.target && users.has(data.target)) {
-        const target = users.get(data.target);
-        if (target && target.ws && target.ws.readyState === 1) {
-          target.ws.send(JSON.stringify({ ...data, sender: boundUser }));
+        const dest = users.get(data.target);
+        if (dest && dest.ws && dest.ws.readyState === 1) {
+          dest.ws.send(JSON.stringify({ ...data, sender: boundUser }));
         }
       }
     } catch (err) {
-      console.error('[Server Error]', err);
+      console.error('Signaling Error:', err.message);
     }
   });
 
   ws.on('close', () => {
     if (boundUser && users.has(boundUser)) {
-      const existing = users.get(boundUser);
-      users.set(boundUser, { ...existing, ws: null });
-      console.log(`[WS Disconnected] User: ${boundUser}`);
+      const current = users.get(boundUser);
+      current.ws = null;
       broadcastContactList();
     }
   });

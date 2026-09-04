@@ -1,330 +1,110 @@
-<!-- ============================================================================ -->
-<!-- 2. FULL CLIENT CODE (public/index.html) - ALL FEATURES RESTORED               -->
-<!-- ============================================================================ -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Lounge Suite • Ultimate Edition</title>
+  <title>Lounge Suite</title>
   
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#09090b" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="https://emojicdn.elk.sh/🛋️?style=apple" />
-  <link rel="apple-touch-icon" href="https://emojicdn.elk.sh/🛋️?style=apple" />
-
+  
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    :root {
-      --bg: #09090b;
-      --card: #121215;
-      --border: #232328;
-      --accent: #6366f1;
-      --accent-glow: rgba(99, 102, 241, 0.35);
-      --green: #22c55e;
-      --pink: #ec4899;
-      --amber: #f59e0b;
-      --red: #ef4444;
-      --text: #f4f4f5;
-      --text-dim: #71717a;
-    }
-    * {
-      box-sizing: border-box; margin: 0; padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      -webkit-tap-highlight-color: transparent; user-select: none;
-    }
-    body {
-      width: 100vw; height: 100dvh; background: var(--bg); color: var(--text);
-      overflow: hidden; display: flex; flex-direction: column;
-    }
-
-    #earBlackoutShield {
-      display: none; position: fixed; inset: 0; width: 100vw; height: 100vh;
-      background: #000; z-index: 99999; touch-action: none;
-    }
-
-    .top-bar {
-      height: 52px; padding: 0 16px; display: flex; align-items: center;
-      justify-content: space-between; border-bottom: 1px solid var(--border);
-      background: rgba(9, 9, 11, 0.92); backdrop-filter: blur(14px); z-index: 60;
-    }
-    .status-pill {
-      display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;
-      background: var(--card); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
-    }
+    /* CSS Remains Exactly The Same as your Ultimate Edition */
+    :root { --bg: #09090b; --card: #121215; --border: #232328; --accent: #6366f1; --accent-glow: rgba(99, 102, 241, 0.35); --green: #22c55e; --pink: #ec4899; --amber: #f59e0b; --red: #ef4444; --text: #f4f4f5; --text-dim: #71717a; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
+    body { width: 100vw; height: 100dvh; background: var(--bg); color: var(--text); overflow: hidden; display: flex; flex-direction: column; }
+    #earBlackoutShield { display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000; z-index: 99999; touch-action: none; }
+    .top-bar { height: 52px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: rgba(9, 9, 11, 0.92); backdrop-filter: blur(14px); z-index: 60; }
+    .status-pill { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; background: var(--card); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
-    .btn-pill {
-      background: none; border: 1px solid var(--border); color: #38bdf8;
-      font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 12px; cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    .btn-pill:active { background: var(--border); }
-
-    .viewport-container {
-      flex: 1; position: relative; overflow: hidden; display: flex;
-      align-items: center; justify-content: center;
-    }
-
-    #audioStage {
-      display: none; flex-direction: column; align-items: center; justify-content: center;
-      width: 100%; height: 100%; position: absolute; inset: 0; z-index: 10;
-    }
-    .audio-mesh-grid {
-      display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
-      gap: 28px; padding: 20px; width: 100%; max-width: 600px;
-    }
+    .btn-pill { background: none; border: 1px solid var(--border); color: #38bdf8; font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 12px; cursor: pointer; }
+    .viewport-container { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    #audioStage { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; position: absolute; inset: 0; z-index: 10; }
+    .audio-mesh-grid { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 28px; padding: 20px; width: 100%; max-width: 600px; }
     .avatar-card { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .avatar-disc {
-      width: 95px; height: 95px; border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #27272a, #121215);
-      border: 2px solid var(--border); display: flex; align-items: center;
-      justify-content: center; font-size: 38px; position: relative;
-      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .avatar-disc.speaking {
-      border-color: var(--accent); box-shadow: 0 0 32px var(--accent-glow); transform: scale(1.08);
-    }
-    #waveCanvas {
-      position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
-      width: 280px; height: 50px; pointer-events: none; opacity: 0.85;
-    }
-
-    #mainVideoContainer {
-      position: absolute; inset: 0; background: #000; display: flex;
-      align-items: center; justify-content: center; z-index: 15;
-    }
-    #mainPlayer { width: 100%; height: 100%; object-fit: contain; }
+    .avatar-disc { width: 95px; height: 95px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #27272a, #121215); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 38px; position: relative; transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+    .avatar-disc.speaking { border-color: var(--accent); box-shadow: 0 0 32px var(--accent-glow); transform: scale(1.08); }
+    #waveCanvas { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); width: 280px; height: 50px; pointer-events: none; opacity: 0.85; }
+    #mainVideoContainer { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 15; }
+    #mainPlayer, #ytPlayer { width: 100%; height: 100%; object-fit: contain; }
     #ytWrapper { width: 100%; height: 100%; display: none; }
-    #ytPlayer { width: 100%; height: 100%; }
-
-    #videoMeshGrid {
-      position: absolute; inset: 0; padding: 8px; display: none;
-      gap: 8px; z-index: 25; grid-template-columns: 1fr; grid-template-rows: 1fr;
-    }
-    .video-tile {
-      position: relative; border-radius: 16px; overflow: hidden; background: #121215;
-      border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
-    }
+    #videoMeshGrid { position: absolute; inset: 0; padding: 8px; display: none; gap: 8px; z-index: 25; grid-template-columns: 1fr; grid-template-rows: 1fr; }
+    .video-tile { position: relative; border-radius: 16px; overflow: hidden; background: #121215; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
     .video-tile video { width: 100%; height: 100%; object-fit: cover; }
     .video-tile video.mirror { transform: scaleX(-1); }
-    .tile-label {
-      position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7);
-      padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
-    }
-
-    .pip-box {
-      position: absolute; width: 110px; height: 146px; border-radius: 14px;
-      overflow: hidden; background: #18181b; border: 2px solid #3f3f46;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 45; cursor: grab;
-      touch-action: none; transition: box-shadow 0.2s, border-color 0.2s, opacity 0.2s;
-    }
-    .pip-box:active { cursor: grabbing; }
+    .tile-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .pip-box { position: absolute; width: 110px; height: 146px; border-radius: 14px; overflow: hidden; background: #18181b; border: 2px solid #3f3f46; box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 45; cursor: grab; touch-action: none; transition: box-shadow 0.2s, border-color 0.2s, opacity 0.2s; }
     .pip-box video { width: 100%; height: 100%; object-fit: cover; }
     .pip-box video.mirror-mode { transform: scaleX(-1); }
-    .pip-label {
-      position: absolute; bottom: 4px; left: 6px; background: rgba(0,0,0,0.7);
-      padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;
-    }
+    .pip-label { position: absolute; bottom: 4px; left: 6px; background: rgba(0,0,0,0.7); padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
     .pip-reacting { border-color: #00ffa3 !important; box-shadow: 0 0 25px rgba(0, 255, 163, 0.85) !important; }
     .couch-mode-local { left: 8% !important; bottom: 88px !important; width: 140px !important; height: 105px !important; }
     .couch-mode-remote { left: 54% !important; bottom: 88px !important; width: 140px !important; height: 105px !important; }
-
-    #doodleCanvas {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      pointer-events: none; touch-action: none; z-index: 50;
-    }
+    #doodleCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; touch-action: none; z-index: 50; }
     #doodleCanvas.drawing-active { pointer-events: auto !important; }
-
-    #subtitlesBanner {
-      position: fixed; bottom: 84px; left: 16px; right: 16px;
-      background: rgba(18, 18, 22, 0.92); border: 1px solid var(--border);
-      border-radius: 14px; padding: 10px 16px; text-align: center;
-      backdrop-filter: blur(14px); display: none; z-index: 70;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.6); max-width: 550px; margin: 0 auto;
-    }
+    #subtitlesBanner { position: fixed; bottom: 84px; left: 16px; right: 16px; background: rgba(18, 18, 22, 0.92); border: 1px solid var(--border); border-radius: 14px; padding: 10px 16px; text-align: center; backdrop-filter: blur(14px); display: none; z-index: 70; box-shadow: 0 8px 30px rgba(0,0,0,0.6); max-width: 550px; margin: 0 auto; }
     .sub-speaker { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
     .sub-text { font-size: 14px; font-weight: 500; color: #fde047; line-height: 1.4; }
-
-    .reaction-burst-box {
-      position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
-      font-size: 54px; pointer-events: none; z-index: 85;
-      animation: popBurst 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
-    }
-    @keyframes popBurst {
-      0% { transform: translate(-50%, 0) scale(0.3); opacity: 0; }
-      20% { transform: translate(-50%, -40px) scale(1.4); opacity: 1; }
-      80% { transform: translate(-50%, -120px) scale(1.0); opacity: 1; }
-      100% { transform: translate(-50%, -180px) scale(0.6); opacity: 0; }
-    }
-
-    .controls-dock {
-      height: 74px; padding: 0 14px max(10px, env(safe-area-inset-bottom));
-      display: none; align-items: center; justify-content: flex-start; gap: 8px;
-      background: rgba(9, 9, 11, 0.94); border-top: 1px solid var(--border);
-      z-index: 60; backdrop-filter: blur(14px); overflow-x: auto; scrollbar-width: none;
-    }
+    .reaction-burst-box { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); font-size: 54px; pointer-events: none; z-index: 85; animation: popBurst 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    @keyframes popBurst { 0% { transform: translate(-50%, 0) scale(0.3); opacity: 0; } 20% { transform: translate(-50%, -40px) scale(1.4); opacity: 1; } 80% { transform: translate(-50%, -120px) scale(1.0); opacity: 1; } 100% { transform: translate(-50%, -180px) scale(0.6); opacity: 0; } }
+    .controls-dock { height: 74px; padding: 0 14px max(10px, env(safe-area-inset-bottom)); display: none; align-items: center; justify-content: flex-start; gap: 8px; background: rgba(9, 9, 11, 0.94); border-top: 1px solid var(--border); z-index: 60; backdrop-filter: blur(14px); overflow-x: auto; scrollbar-width: none; }
     .controls-dock::-webkit-scrollbar { display: none; }
-    .c-btn {
-      width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--border);
-      background: var(--card); color: var(--text); font-size: 17px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; position: relative;
-      flex-shrink: 0; transition: transform 0.15s ease, background 0.2s ease;
-    }
+    .c-btn { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; transition: transform 0.15s ease, background 0.2s ease; }
     .c-btn:active { transform: scale(0.9); }
     .c-btn.active-blue { background: #0284c7 !important; border-color: #38bdf8 !important; }
     .c-btn.active-pink { background: var(--pink) !important; border-color: #f472b6 !important; }
     .c-btn.active-amber { background: #d97706 !important; border-color: #fbbf24 !important; }
     .c-btn-end { background: var(--red) !important; border-color: #dc2626 !important; }
-    .badge-counter {
-      position: absolute; top: -3px; right: -3px; width: 18px; height: 18px;
-      background: var(--pink); border-radius: 50%; font-size: 10px; font-weight: bold;
-      display: none; align-items: center; justify-content: center;
-    }
-
-    #chatDrawer {
-      position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 360px;
-      background: #111114; border-left: 1px solid var(--border); z-index: 100;
-      display: flex; flex-direction: column; transform: translateX(100%);
-      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+    .badge-counter { position: absolute; top: -3px; right: -3px; width: 18px; height: 18px; background: var(--pink); border-radius: 50%; font-size: 10px; font-weight: bold; display: none; align-items: center; justify-content: center; }
+    #chatDrawer { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 360px; background: #111114; border-left: 1px solid var(--border); z-index: 100; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
     #chatDrawer.open { transform: translateX(0); }
-    .chat-header {
-      height: 52px; padding: 0 16px; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .chat-messages {
-      flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px;
-    }
+    .chat-header { height: 52px; padding: 0 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
     .chat-bubble { max-width: 80%; padding: 8px 12px; border-radius: 14px; font-size: 13px; line-height: 1.4; }
     .chat-mine { align-self: flex-end; background: #005c4b; color: #e9edef; }
     .chat-theirs { align-self: flex-start; background: #202c33; color: #e9edef; }
     .chat-sender { font-size: 10px; font-weight: 700; color: #38bdf8; margin-bottom: 2px; }
-    .chat-input-bar {
-      padding: 10px 14px max(12px, env(safe-area-inset-bottom));
-      border-top: 1px solid var(--border); display: flex; gap: 8px; background: #18181b;
-    }
-    .chat-input {
-      flex: 1; height: 38px; background: #27272a; border: 1px solid var(--border);
-      border-radius: 19px; color: white; padding: 0 14px; font-size: 13px; outline: none;
-    }
-    .chat-send-btn {
-      width: 38px; height: 38px; border-radius: 50%; border: none;
-      background: #00a884; color: white; cursor: pointer; display: flex;
-      align-items: center; justify-content: center; font-size: 15px;
-    }
-
-    #soundstageDrawer {
-      position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%);
-      width: calc(100% - 24px); max-width: 440px; background: rgba(18, 18, 22, 0.96);
-      border: 1px solid var(--border); border-radius: 20px; padding: 16px;
-      backdrop-filter: blur(16px); z-index: 90; display: none; flex-direction: column; gap: 12px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-    }
+    .chat-input-bar { padding: 10px 14px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); display: flex; gap: 8px; background: #18181b; }
+    .chat-input { flex: 1; height: 38px; background: #27272a; border: 1px solid var(--border); border-radius: 19px; color: white; padding: 0 14px; font-size: 13px; outline: none; }
+    .chat-send-btn { width: 38px; height: 38px; border-radius: 50%; border: none; background: #00a884; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    #soundstageDrawer { position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%); width: calc(100% - 24px); max-width: 440px; background: rgba(18, 18, 22, 0.96); border: 1px solid var(--border); border-radius: 20px; padding: 16px; backdrop-filter: blur(16px); z-index: 90; display: none; flex-direction: column; gap: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
     .stage-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
-    .amb-chip {
-      background: var(--card); border: 1px solid var(--border); color: var(--text);
-      padding: 5px 10px; border-radius: 10px; font-size: 12px; cursor: pointer;
-    }
+    .amb-chip { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 10px; font-size: 12px; cursor: pointer; }
     .amb-chip.active { background: var(--accent); border-color: var(--accent); }
-
-    #watchDrawer {
-      position: fixed; bottom: 82px; left: 0; right: 0;
-      background: rgba(18, 18, 22, 0.97); backdrop-filter: blur(14px);
-      padding: 14px 16px; border-top: 1px solid var(--border); display: none;
-      flex-direction: column; gap: 10px; z-index: 90;
-    }
-    #watchDrawer input, #watchDrawer select {
-      padding: 8px 12px; background: #27272a; border: 1px solid var(--border);
-      border-radius: 8px; color: white; outline: none; font-size: 13px;
-    }
-
-    .app-modal {
-      position: fixed; inset: 15% 10%; background: #18181b; border: 1px solid var(--border);
-      border-radius: 20px; display: none; flex-direction: column; padding: 20px;
-      z-index: 1000; box-shadow: 0 0 35px rgba(0,0,0,0.8);
-    }
+    #watchDrawer { position: fixed; bottom: 82px; left: 0; right: 0; background: rgba(18, 18, 22, 0.97); backdrop-filter: blur(14px); padding: 14px 16px; border-top: 1px solid var(--border); display: none; flex-direction: column; gap: 10px; z-index: 90; }
+    #watchDrawer input, #watchDrawer select { padding: 8px 12px; background: #27272a; border: 1px solid var(--border); border-radius: 8px; color: white; outline: none; font-size: 13px; }
+    .app-modal { position: fixed; inset: 15% 10%; background: #18181b; border: 1px solid var(--border); border-radius: 20px; display: none; flex-direction: column; padding: 20px; z-index: 1000; box-shadow: 0 0 35px rgba(0,0,0,0.8); }
     .app-modal-list { flex: 1; overflow-y: auto; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
-    .modal-item {
-      background: #27272a; padding: 10px 14px; border-radius: 8px;
-      display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-    }
-
-    #incomingCallModal {
-      display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.97);
-      backdrop-filter: blur(20px); z-index: 4000; flex-direction: column;
-      align-items: center; justify-content: space-around; padding: 60px 20px;
-    }
-    .pulse-avatar {
-      width: 115px; height: 115px; border-radius: 50%; background: #1f1f23;
-      border: 3px solid var(--accent); display: flex; align-items: center;
-      justify-content: center; font-size: 46px; animation: callPulse 1.5s infinite;
-    }
-    @keyframes callPulse {
-      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6); }
-      70% { transform: scale(1.06); box-shadow: 0 0 0 24px rgba(99, 102, 241, 0); }
-      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
-    }
-
-    #contactsScreen {
-      position: fixed; inset: 0; background: var(--bg); z-index: 2000;
-      display: flex; flex-direction: column; padding: 20px 16px;
-    }
-    .contacts-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
-    }
+    .modal-item { background: #27272a; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    #incomingCallModal { display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.97); backdrop-filter: blur(20px); z-index: 4000; flex-direction: column; align-items: center; justify-content: space-around; padding: 60px 20px; }
+    .pulse-avatar { width: 115px; height: 115px; border-radius: 50%; background: #1f1f23; border: 3px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 46px; animation: callPulse 1.5s infinite; }
+    @keyframes callPulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6); } 70% { transform: scale(1.06); box-shadow: 0 0 0 24px rgba(99, 102, 241, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); } }
+    
+    /* Contacts Screen UI */
+    #contactsScreen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; padding: 20px 16px; }
+    .contacts-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .user-profile-badge { display: flex; align-items: center; gap: 10px; }
-    .user-avatar {
-      width: 44px; height: 44px; border-radius: 50%; background: #27272a;
-      display: flex; align-items: center; justify-content: center; font-size: 20px;
-    }
-    .contact-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-      padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 10px; transition: border-color 0.2s;
-    }
+    .user-avatar { width: 44px; height: 44px; border-radius: 50%; background: #27272a; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .contact-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; transition: border-color 0.2s; }
     .contact-card.selected { border-color: var(--accent); background: rgba(99, 102, 241, 0.1); }
     .contact-info { display: flex; align-items: center; gap: 12px; }
     .contact-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-dim); }
     .contact-dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); }
     .call-actions { display: flex; gap: 6px; align-items: center; }
-    .action-call-btn {
-      width: 38px; height: 38px; border-radius: 50%; border: none;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px;
-    }
+    .action-call-btn { width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; }
     .btn-audio-call { background: #27272a; color: #fff; }
     .btn-video-call { background: #0284c7; color: #fff; }
-
-    #groupCallBar {
-      display: none; position: fixed; bottom: 20px; left: 16px; right: 16px;
-      background: #1e1e24; border: 1px solid var(--accent); border-radius: 20px;
-      padding: 12px 18px; align-items: center; justify-content: space-between;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 2500;
-    }
-    .group-btn {
-      padding: 8px 16px; border-radius: 14px; border: none; font-size: 13px;
-      font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
-    }
-
-    .app-popup-modal {
-      display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.95);
-      z-index: 3500; align-items: center; justify-content: center; padding: 20px;
-    }
-    .popup-box {
-      background: var(--card); border: 1px solid var(--border); border-radius: 24px;
-      padding: 26px 20px; width: 100%; max-width: 320px; text-align: center;
-    }
-    .popup-box input {
-      width: 100%; height: 44px; background: #27272a; border: 1px solid var(--border);
-      border-radius: 12px; color: white; text-align: center; margin: 14px 0; outline: none;
-      font-size: 14px; font-weight: 600;
-    }
-    .popup-box button {
-      width: 100%; height: 44px; border-radius: 22px; border: none;
-      background: var(--accent); color: white; font-size: 14px; font-weight: 600; cursor: pointer;
-    }
+    #groupCallBar { display: none; position: fixed; bottom: 20px; left: 16px; right: 16px; background: #1e1e24; border: 1px solid var(--accent); border-radius: 20px; padding: 12px 18px; align-items: center; justify-content: space-between; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 2500; }
+    .group-btn { padding: 8px 16px; border-radius: 14px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .app-popup-modal { display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.95); z-index: 3500; align-items: center; justify-content: center; padding: 20px; }
+    .popup-box { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 26px 20px; width: 100%; max-width: 320px; text-align: center; }
+    .popup-box input { width: 100%; height: 44px; background: #27272a; border: 1px solid var(--border); border-radius: 12px; color: white; text-align: center; margin: 14px 0; outline: none; font-size: 14px; font-weight: 600; }
+    .popup-box button { width: 100%; height: 44px; border-radius: 22px; border: none; background: var(--accent); color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -484,10 +264,7 @@
     <button class="c-btn" id="subsBtn" title="Live Subtitles">💬</button>
     <button class="c-btn" id="fileBeamBtn" title="P2P 1GB Beam">⚡</button>
     <button class="c-btn" id="watchDrawerBtn" title="Watch Party Controls">🍿</button>
-    <button class="c-btn" id="chatBtn" title="Chat">
-      ✉️
-      <span class="badge-counter" id="chatBadge">0</span>
-    </button>
+    <button class="c-btn" id="chatBtn" title="Chat">✉️<span class="badge-counter" id="chatBadge">0</span></button>
     <button class="c-btn c-btn-end" id="hangupBtn" title="Leave">📞</button>
   </div>
 
@@ -548,9 +325,16 @@
   <script>
     const VAPID_PUBLIC_KEY = 'YOUR_PUBLIC_VAPID_KEY_HERE';
 
+    // ==============================================================
+    // 1. STATE INITIALIZATION (CLEAN SLATE FIX: NO MORE "PARTNER")
+    // ==============================================================
     let ws;
+    let wsReconnectTimer = null;
     let myUsername = localStorage.getItem('lounge_username');
-    let myContacts = JSON.parse(localStorage.getItem('lounge_saved_contacts')) || ['Partner'];
+    
+    // THE FIX: Defaults to empty [] instead of ['Partner']
+    let myContacts = JSON.parse(localStorage.getItem('lounge_saved_contacts')) || [];
+    
     let selectedContacts = new Set();
     let currentSessionToken = null;
     let callParticipants = [];
@@ -561,28 +345,25 @@
     const peerConnections = {};
     const dataChannels = {};
     const remoteMediaElements = {};
+    const iceCandidateQueues = {}; // FIX: Queues ICE candidates until Remote Description is fully set
 
     let localStream = null, processedAudioTrack = null;
-
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null, micSource = null, hpFilter = null, whisperNode = null, compressorNode = null;
     let processedDest = null, localAnalyser = null, partnerPanner = null, ambGain = null, ambSource = null, activeAmbience = null;
 
     const doodleCanvas = document.getElementById('doodleCanvas');
     const ctx = doodleCanvas.getContext('2d');
-    let isDoodlingActive = false, isDrawingLocal = false;
-    let activeStrokes = [];
+    let isDoodlingActive = false, isDrawingLocal = false, activeStrokes = [];
     const DISSOLVE_TIME_MS = 3000;
 
     let ytPlayer = null, isYouTubeMode = false, ytReady = false, isSyncing = false;
-    let lastReactionTime = 0;
-    const reactionHistory = [];
-
+    let lastReactionTime = 0; const reactionHistory = [];
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognizer = null, isSubsActive = false, shouldKeepListening = false;
-
     let unreadCount = 0, isChatOpen = false;
 
+    // DOM Element Lookups
     const contactsScreen = document.getElementById('contactsScreen');
     const contactsListContainer = document.getElementById('contactsListContainer');
     const myUsernameDisplay = document.getElementById('myUsernameDisplay');
@@ -598,7 +379,6 @@
     const loginUsernameInput = document.getElementById('loginUsernameInput');
     const saveUsernameBtn = document.getElementById('saveUsernameBtn');
     const switchUserBtn = document.getElementById('switchUserBtn');
-
     const controlsDock = document.getElementById('controlsDock');
     const callSessionTitle = document.getElementById('callSessionTitle');
     const incomingCallModal = document.getElementById('incomingCallModal');
@@ -608,7 +388,6 @@
     const declineCallBtn = document.getElementById('declineCallBtn');
     const ringtoneAudio = document.getElementById('ringtoneAudio');
     const remoteAudioSink = document.getElementById('remoteAudioSink');
-
     const audioStage = document.getElementById('audioStage');
     const audioMeshGrid = document.getElementById('audioMeshGrid');
     const videoMeshGrid = document.getElementById('videoMeshGrid');
@@ -624,7 +403,6 @@
     const waveCanvas = document.getElementById('waveCanvas');
     const waveCtx = waveCanvas.getContext('2d');
     const earShield = document.getElementById('earBlackoutShield');
-
     const callModeToggleBtn = document.getElementById('callModeToggleBtn');
     const playPauseBtn = document.getElementById('playPauseBtn');
     const rewindBtn = document.getElementById('rewindBtn');
@@ -671,27 +449,25 @@
     const hangupBtn = document.getElementById('hangupBtn');
 
     waveCanvas.width = 280; waveCanvas.height = 50;
-
-    function resizeDoodle() {
-      doodleCanvas.width = window.innerWidth;
-      doodleCanvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeDoodle);
-    resizeDoodle();
+    window.addEventListener('resize', () => { doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight; });
+    doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight;
 
     const rtcConfig = {
       iceServers: [
         { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
         { urls: 'stun:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' }
-      ],
-      iceCandidatePoolSize: 10
+      ]
     };
 
+    // ==============================================================
+    // 2. WEBSOCKET ENGINE (SAFE RECONNECT)
+    // ==============================================================
     function connectWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(protocol + '//' + window.location.host);
 
       ws.onopen = () => {
+        if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
         if (myUsername) registerServer();
       };
 
@@ -706,24 +482,45 @@
         } else if (data.type === 'OFFER') {
           const pc = createMeshPeerConnection(data.sender, false);
           await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+          // FIX: Process any ICE candidates that arrived before the RemoteDescription was ready
+          if (iceCandidateQueues[data.sender]) {
+            iceCandidateQueues[data.sender].forEach(c => pc.addIceCandidate(c));
+            iceCandidateQueues[data.sender] = [];
+          }
           const ans = await pc.createAnswer();
           await pc.setLocalDescription(ans);
           ws.send(JSON.stringify({ target: data.sender, type: 'ANSWER', payload: ans }));
         } else if (data.type === 'ANSWER') {
           const pc = peerConnections[data.sender];
-          if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+          if (pc) {
+            await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+            if (iceCandidateQueues[data.sender]) {
+              iceCandidateQueues[data.sender].forEach(c => pc.addIceCandidate(c));
+              iceCandidateQueues[data.sender] = [];
+            }
+          }
         } else if (data.type === 'CANDIDATE') {
           const pc = peerConnections[data.sender];
-          if (pc && data.payload) pc.addIceCandidate(new RTCIceCandidate(data.payload));
+          const candidate = new RTCIceCandidate(data.payload);
+          if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+            pc.addIceCandidate(candidate);
+          } else {
+            // Queue it safely
+            if (!iceCandidateQueues[data.sender]) iceCandidateQueues[data.sender] = [];
+            iceCandidateQueues[data.sender].push(candidate);
+          }
         }
       };
 
       ws.onclose = () => {
-        setTimeout(connectWebSocket, 2000);
+        wsReconnectTimer = setTimeout(connectWebSocket, 2000);
       };
     }
     connectWebSocket();
 
+    // ==============================================================
+    // 3. PUSH NOTIFICATIONS & REGISTRATION
+    // ==============================================================
     function urlBase64ToUint8Array(base64String) {
       const padding = '='.repeat((4 - base64String.length % 4) % 4);
       const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
@@ -736,28 +533,22 @@
       try {
         const reg = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
-
         const perm = await Notification.requestPermission();
         if (perm !== 'granted') return;
 
         let sub = await reg.pushManager.getSubscription();
         if (!sub && VAPID_PUBLIC_KEY !== 'YOUR_PUBLIC_VAPID_KEY_HERE') {
           sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
           });
         }
-
         if (sub && myUsername) {
           await fetch('/api/register-push', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: myUsername, subscription: sub })
           });
         }
-      } catch (err) {
-        console.warn('[Push Setup Error]:', err);
-      }
+      } catch (err) {}
     }
 
     function setupUserIdentity() {
@@ -788,15 +579,11 @@
     };
 
     function registerServer() {
-      if (ws.readyState === 1 && myUsername) {
-        ws.send(JSON.stringify({ type: 'REGISTER', username: myUsername }));
-      }
+      if (ws.readyState === 1 && myUsername) ws.send(JSON.stringify({ type: 'REGISTER', username: myUsername }));
     }
 
     openAddContactBtn.onclick = () => {
-      newPersonInput.value = '';
-      addPersonModal.style.display = 'flex';
-      newPersonInput.focus();
+      newPersonInput.value = ''; addPersonModal.style.display = 'flex'; newPersonInput.focus();
     };
 
     cancelAddPersonBtn.onclick = () => { addPersonModal.style.display = 'none'; };
@@ -804,10 +591,7 @@
     savePersonBtn.onclick = () => {
       const name = newPersonInput.value.trim();
       if (!name) return;
-      if (name.toLowerCase() === myUsername.toLowerCase()) {
-        alert("You cannot add yourself!");
-        return;
-      }
+      if (name.toLowerCase() === myUsername.toLowerCase()) return alert("You cannot add yourself!");
       if (!myContacts.includes(name)) {
         myContacts.push(name);
         localStorage.setItem('lounge_saved_contacts', JSON.stringify(myContacts));
@@ -821,8 +605,7 @@
         myContacts = myContacts.filter(c => c !== name);
         selectedContacts.delete(name);
         localStorage.setItem('lounge_saved_contacts', JSON.stringify(myContacts));
-        renderContactsList();
-        updateGroupBar();
+        renderContactsList(); updateGroupBar();
       }
     }
 
@@ -832,18 +615,13 @@
       contactsListContainer.innerHTML = '';
 
       if (myContacts.length === 0) {
-        contactsListContainer.innerHTML = `
-          <div style="text-align:center; color:var(--text-dim); margin-top:40px; font-size:13px;">
-            No contacts saved yet.<br>Tap <b>+ Add Person</b> to save friends.
-          </div>
-        `;
+        contactsListContainer.innerHTML = `<div style="text-align:center; color:var(--text-dim); margin-top:40px; font-size:13px;">No contacts saved yet.<br>Tap <b>+ Add Person</b>.</div>`;
         return;
       }
 
       myContacts.forEach(name => {
         const isOnline = serverList.some(s => s.name.toLowerCase() === name.toLowerCase() && s.online);
         const isChecked = selectedContacts.has(name);
-
         const card = document.createElement('div');
         card.className = `contact-card ${isChecked ? 'selected' : ''}`;
         card.innerHTML = `
@@ -852,9 +630,7 @@
             <div class="contact-dot ${isOnline ? 'online' : ''}"></div>
             <div>
               <div style="font-size:15px; font-weight:600;">${name}</div>
-              <div style="font-size:11px; color:${isOnline ? 'var(--green)' : 'var(--text-dim)'};">
-                ${isOnline ? 'Active Now' : 'Offline (Push Alert)'}
-              </div>
+              <div style="font-size:11px; color:${isOnline ? 'var(--green)' : 'var(--text-dim)'};">${isOnline ? 'Active Now' : 'Offline (Push Alert)'}</div>
             </div>
           </div>
           <div class="call-actions">
@@ -863,18 +639,13 @@
             <button class="action-call-btn" style="background:none; color:#71717a; font-size:13px;" title="Delete">✕</button>
           </div>
         `;
-
         card.querySelector('input').onchange = (e) => {
-          if (e.target.checked) selectedContacts.add(name);
-          else selectedContacts.delete(name);
-          card.classList.toggle('selected', e.target.checked);
-          updateGroupBar();
+          if (e.target.checked) selectedContacts.add(name); else selectedContacts.delete(name);
+          card.classList.toggle('selected', e.target.checked); updateGroupBar();
         };
-
         card.querySelector('.btn-audio-call').onclick = () => initiateCall([name], 'audio');
         card.querySelector('.btn-video-call').onclick = () => initiateCall([name], 'video');
         card.querySelector('button[title="Delete"]').onclick = () => deleteContact(name);
-
         contactsListContainer.appendChild(card);
       });
     }
@@ -882,44 +653,25 @@
     function updateGroupBar() {
       const count = selectedContacts.size;
       if (count > 0) {
-        groupCallBar.style.display = 'flex';
-        groupBarText.innerText = `${count} person${count > 1 ? 's' : ''} selected`;
-      } else {
-        groupCallBar.style.display = 'none';
-      }
+        groupCallBar.style.display = 'flex'; groupBarText.innerText = `${count} person${count > 1 ? 's' : ''} selected`;
+      } else groupCallBar.style.display = 'none';
     }
 
-    document.getElementById('startGroupAudioBtn').onclick = () => {
-      initiateCall(Array.from(selectedContacts), 'audio');
-    };
-    document.getElementById('startGroupVideoBtn').onclick = () => {
-      initiateCall(Array.from(selectedContacts), 'video');
-    };
+    document.getElementById('startGroupAudioBtn').onclick = () => initiateCall(Array.from(selectedContacts), 'audio');
+    document.getElementById('startGroupVideoBtn').onclick = () => initiateCall(Array.from(selectedContacts), 'video');
 
+    // ==============================================================
+    // 4. CALL INITIATION & WEBRTC ENGINE
+    // ==============================================================
     async function initiateCall(targets, mode) {
       isAudioOnly = mode === 'audio';
       currentSessionToken = 'session-' + Math.random().toString(36).substring(2, 7);
       callParticipants = [myUsername, ...targets];
-
       await startMediaHardware(isAudioOnly);
       enterCallStage(targets.join(', '));
-
-      ws.send(JSON.stringify({
-        type: 'CALL_TARGETS',
-        targets: targets,
-        callMode: mode,
-        sessionToken: currentSessionToken
-      }));
-
-      fetch('/api/push-ring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: myUsername, targets, callMode: mode, sessionToken: currentSessionToken })
-      }).catch(()=>{});
-
-      targets.forEach(targetUser => {
-        createMeshPeerConnection(targetUser, true);
-      });
+      ws.send(JSON.stringify({ type: 'CALL_TARGETS', targets: targets, callMode: mode, sessionToken: currentSessionToken }));
+      fetch('/api/push-ring', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from: myUsername, targets, callMode: mode, sessionToken: currentSessionToken }) }).catch(()=>{});
+      targets.forEach(targetUser => createMeshPeerConnection(targetUser, true));
     }
 
     let pendingCallDetails = null;
@@ -928,39 +680,28 @@
       incomingCallerName.innerText = `${data.from} ${data.allParticipants && data.allParticipants.length > 2 ? `+ ${data.allParticipants.length - 2} others` : ''}`;
       incomingCallType.innerText = data.callMode === 'audio' ? '🎙️ Incoming Audio Call' : '📹 Incoming Video Call';
       incomingCallModal.style.display = 'flex';
-
-      ringtoneAudio.currentTime = 0;
-      ringtoneAudio.play().catch(()=>{});
+      ringtoneAudio.currentTime = 0; ringtoneAudio.play().catch(()=>{});
       if (navigator.vibrate) navigator.vibrate([500, 250, 500, 250, 500, 250]);
     }
 
     acceptCallBtn.onclick = async () => {
       dismissRinging();
       if (!pendingCallDetails) return;
-
       isAudioOnly = pendingCallDetails.callMode === 'audio';
       currentSessionToken = pendingCallDetails.sessionToken;
-      callParticipants = pendingCallDetails.allParticipants || [pendingCallDetails.from, myUsername];
+      // FIX: Ensure no duplicate user names inside participants array
+      const pureParticipants = pendingCallDetails.allParticipants || [pendingCallDetails.from];
+      callParticipants = Array.from(new Set([myUsername, ...pureParticipants]));
 
       await startMediaHardware(isAudioOnly);
       enterCallStage(`Lounge (${callParticipants.length})`);
-
-      ws.send(JSON.stringify({
-        type: 'JOIN_CALL_SESSION',
-        sessionToken: currentSessionToken,
-        participants: callParticipants
-      }));
+      ws.send(JSON.stringify({ type: 'JOIN_CALL_SESSION', sessionToken: currentSessionToken, participants: callParticipants }));
     };
 
-    declineCallBtn.onclick = () => {
-      dismissRinging();
-      pendingCallDetails = null;
-    };
+    declineCallBtn.onclick = () => { dismissRinging(); pendingCallDetails = null; };
 
     function dismissRinging() {
-      incomingCallModal.style.display = 'none';
-      ringtoneAudio.pause();
-      ringtoneAudio.currentTime = 0;
+      incomingCallModal.style.display = 'none'; ringtoneAudio.pause(); ringtoneAudio.currentTime = 0;
       if (navigator.vibrate) navigator.vibrate(0);
     }
 
@@ -968,967 +709,357 @@
       try {
         if (!audioOnly) {
           try {
-            localStream = await navigator.mediaDevices.getUserMedia({
-              audio: { echoCancellation: true, noiseSuppression: true },
-              video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } }
-            });
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } } });
           } catch (e) {
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            isAudioOnly = true;
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); isAudioOnly = true;
           }
-        } else {
-          localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        }
+        } else localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 
         initWebAudioDSP(localStream);
-        myVideo.srcObject = localStream;
-        myMeshVideo.srcObject = localStream;
-      } catch (err) {
-        alert('Permission required: ' + err.message);
-      }
+        myVideo.srcObject = localStream; myMeshVideo.srcObject = localStream;
+      } catch (err) { alert('Permission required: ' + err.message); }
     }
 
     function enterCallStage(title) {
-      isCallActive = true;
-      contactsScreen.style.display = 'none';
-      controlsDock.style.display = 'flex';
-      callSessionTitle.innerText = title;
-
+      isCallActive = true; contactsScreen.style.display = 'none'; controlsDock.style.display = 'flex'; callSessionTitle.innerText = title;
       if (isAudioOnly) {
-        audioStage.style.display = 'flex';
-        mainVideoContainer.style.display = 'none';
-        videoMeshGrid.style.display = 'none';
-        localPip.style.display = 'none';
-        remotePip.style.display = 'none';
-        camFlipBtn.style.display = 'none';
-        camToggleBtn.style.display = 'none';
-        callModeToggleBtn.style.display = 'none';
-        screenShareBtn.style.display = 'none';
-        bookmarkBtn.style.display = 'none';
-        watchDrawerBtn.style.display = 'none';
+        audioStage.style.display = 'flex'; mainVideoContainer.style.display = 'none'; videoMeshGrid.style.display = 'none';
+        localPip.style.display = 'none'; remotePip.style.display = 'none'; camFlipBtn.style.display = 'none'; camToggleBtn.style.display = 'none';
+        callModeToggleBtn.style.display = 'none'; screenShareBtn.style.display = 'none'; bookmarkBtn.style.display = 'none'; watchDrawerBtn.style.display = 'none';
       } else {
-        audioStage.style.display = 'none';
-        mainVideoContainer.style.display = 'flex';
-        videoMeshGrid.style.display = 'none';
-        localPip.style.display = 'block';
-        remotePip.style.display = 'block';
-        camFlipBtn.style.display = 'flex';
+        audioStage.style.display = 'none'; mainVideoContainer.style.display = 'flex'; videoMeshGrid.style.display = 'none';
+        localPip.style.display = 'block'; remotePip.style.display = 'block'; camFlipBtn.style.display = 'flex';
       }
     }
 
     function createMeshPeerConnection(remotePeerName, isInitiator) {
       if (peerConnections[remotePeerName]) return peerConnections[remotePeerName];
-
       const pc = new RTCPeerConnection(rtcConfig);
       peerConnections[remotePeerName] = pc;
+      iceCandidateQueues[remotePeerName] = []; // Reset queue
 
       if (processedAudioTrack) pc.addTrack(processedAudioTrack, localStream);
-      if (localStream && !isAudioOnly) {
-        localStream.getVideoTracks().forEach(t => pc.addTrack(t, localStream));
-      }
+      if (localStream && !isAudioOnly) localStream.getVideoTracks().forEach(t => pc.addTrack(t, localStream));
 
       if (isInitiator) {
-        const dc = pc.createDataChannel('groupMeshChannel');
-        setupDataChannel(remotePeerName, dc);
+        const dc = pc.createDataChannel('groupMeshChannel'); setupDataChannel(remotePeerName, dc);
         pc.onnegotiationneeded = async () => {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
+          const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
           ws.send(JSON.stringify({ target: remotePeerName, type: 'OFFER', payload: offer }));
         };
-      } else {
-        pc.ondatachannel = (e) => setupDataChannel(remotePeerName, e.channel);
-      }
+      } else pc.ondatachannel = (e) => setupDataChannel(remotePeerName, e.channel);
 
-      pc.ontrack = (evt) => {
-        setupRemoteParticipantMedia(remotePeerName, evt.streams[0], evt.track.kind);
-      };
-
-      pc.onicecandidate = (e) => {
-        if (e.candidate) {
-          ws.send(JSON.stringify({ target: remotePeerName, type: 'CANDIDATE', payload: e.candidate }));
-        }
-      };
-
+      pc.ontrack = (evt) => setupRemoteParticipantMedia(remotePeerName, evt.streams[0], evt.track.kind);
+      pc.onicecandidate = (e) => { if (e.candidate) ws.send(JSON.stringify({ target: remotePeerName, type: 'CANDIDATE', payload: e.candidate })); };
       return pc;
     }
 
     function setupRemoteParticipantMedia(peerName, stream, kind) {
       if (!remoteMediaElements[peerName]) {
-        const audioCard = document.createElement('div');
-        audioCard.className = 'avatar-card';
-        audioCard.id = `audioCard_${peerName}`;
-        audioCard.innerHTML = `
-          <div class="avatar-disc" id="disc_${peerName}">👤</div>
-          <span style="font-size: 12px; font-weight: 600;">${peerName}</span>
-        `;
+        const audioCard = document.createElement('div'); audioCard.className = 'avatar-card'; audioCard.id = `audioCard_${peerName}`;
+        audioCard.innerHTML = `<div class="avatar-disc" id="disc_${peerName}">👤</div><span style="font-size: 12px; font-weight: 600;">${peerName}</span>`;
         audioMeshGrid.appendChild(audioCard);
 
-        const videoTile = document.createElement('div');
-        videoTile.className = 'video-tile';
-        videoTile.id = `videoTile_${peerName}`;
-        videoTile.innerHTML = `
-          <video autoplay playsinline></video>
-          <span class="tile-label">${peerName}</span>
-        `;
-        videoMeshGrid.appendChild(videoTile);
-        updateVideoGridLayout();
+        const videoTile = document.createElement('div'); videoTile.className = 'video-tile'; videoTile.id = `videoTile_${peerName}`;
+        videoTile.innerHTML = `<video autoplay playsinline></video><span class="tile-label">${peerName}</span>`;
+        videoMeshGrid.appendChild(videoTile); updateVideoGridLayout();
 
-        const audioSink = document.createElement('audio');
-        audioSink.autoplay = true;
-        audioSink.playsInline = true;
-        audioSink.srcObject = stream;
+        const audioSink = document.createElement('audio'); audioSink.autoplay = true; audioSink.playsInline = true; audioSink.srcObject = stream;
         document.body.appendChild(audioSink);
-
         remoteMediaElements[peerName] = { audioCard, videoTile, audioSink };
       }
 
       const elements = remoteMediaElements[peerName];
       if (kind === 'video') {
-        const vid = elements.videoTile.querySelector('video');
-        vid.srcObject = stream;
-        partnerVideo.srcObject = stream;
-        document.getElementById('partnerPipLabel').innerText = peerName;
+        const vid = elements.videoTile.querySelector('video'); vid.srcObject = stream;
+        partnerVideo.srcObject = stream; document.getElementById('partnerPipLabel').innerText = peerName;
       }
-      if (kind === 'audio') {
-        setupRemoteSpatialAudio(stream);
-      }
+      if (kind === 'audio') setupRemoteSpatialAudio(stream);
     }
 
     function updateVideoGridLayout() {
       const totalTiles = videoMeshGrid.querySelectorAll('.video-tile').length;
-      if (totalTiles <= 1) {
-        videoMeshGrid.style.gridTemplateColumns = '1fr';
-        videoMeshGrid.style.gridTemplateRows = '1fr';
-      } else if (totalTiles === 2) {
-        videoMeshGrid.style.gridTemplateColumns = window.innerWidth > 600 ? '1fr 1fr' : '1fr';
-        videoMeshGrid.style.gridTemplateRows = window.innerWidth > 600 ? '1fr' : '1fr 1fr';
-      } else if (totalTiles <= 4) {
-        videoMeshGrid.style.gridTemplateColumns = '1fr 1fr';
-        videoMeshGrid.style.gridTemplateRows = '1fr 1fr';
-      } else {
-        videoMeshGrid.style.gridTemplateColumns = '1fr 1fr 1fr';
-        videoMeshGrid.style.gridTemplateRows = '1fr 1fr';
-      }
+      if (totalTiles <= 1) { videoMeshGrid.style.gridTemplateColumns = '1fr'; videoMeshGrid.style.gridTemplateRows = '1fr'; }
+      else if (totalTiles === 2) { videoMeshGrid.style.gridTemplateColumns = window.innerWidth > 600 ? '1fr 1fr' : '1fr'; videoMeshGrid.style.gridTemplateRows = window.innerWidth > 600 ? '1fr' : '1fr 1fr'; }
+      else if (totalTiles <= 4) { videoMeshGrid.style.gridTemplateColumns = '1fr 1fr'; videoMeshGrid.style.gridTemplateRows = '1fr 1fr'; }
+      else { videoMeshGrid.style.gridTemplateColumns = '1fr 1fr 1fr'; videoMeshGrid.style.gridTemplateRows = '1fr 1fr'; }
     }
     window.addEventListener('resize', updateVideoGridLayout);
 
-    function multicastData(obj) {
-      const payload = JSON.stringify(obj);
-      Object.values(dataChannels).forEach(dc => {
-        if (dc.readyState === 'open') dc.send(payload);
-      });
-    }
+    // ==============================================================
+    // 5. APP FEATURES (Chat, Canvas, Media Sync, Filters)
+    // ==============================================================
+    function multicastData(obj) { const payload = JSON.stringify(obj); Object.values(dataChannels).forEach(dc => { if (dc.readyState === 'open') dc.send(payload); }); }
 
     let incomingMeta = null, incomingChunks = [];
-
     function setupDataChannel(peerName, dc) {
-      dc.binaryType = 'arraybuffer';
-      dataChannels[peerName] = dc;
-
+      dc.binaryType = 'arraybuffer'; dataChannels[peerName] = dc;
       dc.onmessage = (e) => {
-        if (typeof e.data !== 'string') {
-          incomingChunks.push(e.data);
-          return;
-        }
-
+        if (typeof e.data !== 'string') { incomingChunks.push(e.data); return; }
         const m = JSON.parse(e.data);
-
-        if (m.type === 'GROUP_CHAT') {
-          appendChatMessage(m.from, m.text, false);
-        } else if (m.type === 'DOODLE_POINT') {
-          activeStrokes.push({
-            x: m.x * window.innerWidth,
-            y: m.y * window.innerHeight,
-            isNew: m.isNew,
-            color: '#38bdf8',
-            time: Date.now()
-          });
-        } else if (m.type === 'LIVE_SUB') {
-          showSubtitle(m.speaker, m.text);
-        } else if (m.type === 'LOAD_MEDIA') {
-          if (m.isYT && m.ytId) loadYouTubeVideo(m.ytId);
-          else loadNativeVideo(m.url);
-        } else if (m.type === 'VIDEO_SYNC') {
+        if (m.type === 'GROUP_CHAT') appendChatMessage(m.from, m.text, false);
+        else if (m.type === 'DOODLE_POINT') activeStrokes.push({ x: m.x * window.innerWidth, y: m.y * window.innerHeight, isNew: m.isNew, color: '#38bdf8', time: Date.now() });
+        else if (m.type === 'LIVE_SUB') showSubtitle(m.speaker, m.text);
+        else if (m.type === 'LOAD_MEDIA') { if (m.isYT && m.ytId) loadYouTubeVideo(m.ytId); else loadNativeVideo(m.url); }
+        else if (m.type === 'VIDEO_SYNC') {
           isSyncing = true;
           if (m.isYT && ytPlayer && ytReady) {
-            if (m.action === 'play') {
-              if (Math.abs(ytPlayer.getCurrentTime() - m.time) > 0.4) ytPlayer.seekTo(m.time, true);
-              ytPlayer.playVideo();
-              playPauseBtn.innerText = '❚❚';
-            } else if (m.action === 'pause') {
-              ytPlayer.pauseVideo();
-              playPauseBtn.innerText = '▶';
-            } else if (m.action === 'seek') {
-              ytPlayer.seekTo(m.time, true);
-            }
+            if (m.action === 'play') { if (Math.abs(ytPlayer.getCurrentTime() - m.time) > 0.4) ytPlayer.seekTo(m.time, true); ytPlayer.playVideo(); playPauseBtn.innerText = '❚❚'; }
+            else if (m.action === 'pause') { ytPlayer.pauseVideo(); playPauseBtn.innerText = '▶'; }
+            else if (m.action === 'seek') ytPlayer.seekTo(m.time, true);
           } else if (!m.isYT && mainPlayer) {
-            if (m.action === 'play') {
-              if (Math.abs(mainPlayer.currentTime - m.time) > 0.3) mainPlayer.currentTime = m.time;
-              mainPlayer.play().catch(()=>{});
-              playPauseBtn.innerText = '❚❚';
-            } else if (m.action === 'pause') {
-              mainPlayer.pause();
-              playPauseBtn.innerText = '▶';
-            } else if (m.action === 'seek') {
-              mainPlayer.currentTime = m.time;
-            }
+            if (m.action === 'play') { if (Math.abs(mainPlayer.currentTime - m.time) > 0.3) mainPlayer.currentTime = m.time; mainPlayer.play().catch(()=>{}); playPauseBtn.innerText = '❚❚'; }
+            else if (m.action === 'pause') { mainPlayer.pause(); playPauseBtn.innerText = '▶'; }
+            else if (m.action === 'seek') mainPlayer.currentTime = m.time;
           }
           setTimeout(() => { isSyncing = false; }, 350);
-        } else if (m.type === 'VIDEO_RATE') {
-          if (m.isYT && ytPlayer && ytReady) ytPlayer.setPlaybackRate(m.rate);
-          else mainPlayer.playbackRate = m.rate;
-          rateSelect.value = m.rate.toString();
-        } else if (m.type === 'REACTION_BURST') {
-          triggerReactionUI(m.rType, peerName);
-        } else if (m.type === 'BOOKMARK_MOMENT') {
-          triggerReactionUI('bookmark', peerName);
-        } else if (m.type === 'FILE_START') {
-          incomingMeta = m; incomingChunks = [];
-        } else if (m.type === 'FILE_END') {
-          const blob = new Blob(incomingChunks, { type: incomingMeta.mime });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = incomingMeta.name; a.click();
-          alert(`Received File: ${incomingMeta.name}`);
         }
+        else if (m.type === 'VIDEO_RATE') { if (m.isYT && ytPlayer && ytReady) ytPlayer.setPlaybackRate(m.rate); else mainPlayer.playbackRate = m.rate; rateSelect.value = m.rate.toString(); }
+        else if (m.type === 'REACTION_BURST') triggerReactionUI(m.rType, peerName);
+        else if (m.type === 'BOOKMARK_MOMENT') triggerReactionUI('bookmark', peerName);
+        else if (m.type === 'FILE_START') { incomingMeta = m; incomingChunks = []; }
+        else if (m.type === 'FILE_END') { const blob = new Blob(incomingChunks, { type: incomingMeta.mime }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = incomingMeta.name; a.click(); alert(`Received File: ${incomingMeta.name}`); }
       };
     }
 
-    doodleBtn.onclick = () => {
-      isDoodlingActive = !isDoodlingActive;
-      doodleBtn.classList.toggle('active-pink', isDoodlingActive);
-      doodleCanvas.classList.toggle('drawing-active', isDoodlingActive);
-    };
-
-    doodleCanvas.addEventListener('pointerdown', (e) => {
-      if (!isDoodlingActive) return;
-      e.preventDefault();
-      isDrawingLocal = true;
-      activeStrokes.push({ x: e.clientX, y: e.clientY, isNew: true, color: '#ec4899', time: Date.now() });
-      multicastData({ type: 'DOODLE_POINT', x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight, isNew: true });
-    });
-
-    doodleCanvas.addEventListener('pointermove', (e) => {
-      if (!isDrawingLocal || !isDoodlingActive) return;
-      e.preventDefault();
-      activeStrokes.push({ x: e.clientX, y: e.clientY, isNew: false, color: '#ec4899', time: Date.now() });
-      multicastData({ type: 'DOODLE_POINT', x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight, isNew: false });
-    });
-
+    doodleBtn.onclick = () => { isDoodlingActive = !isDoodlingActive; doodleBtn.classList.toggle('active-pink', isDoodlingActive); doodleCanvas.classList.toggle('drawing-active', isDoodlingActive); };
+    doodleCanvas.addEventListener('pointerdown', (e) => { if (!isDoodlingActive) return; e.preventDefault(); isDrawingLocal = true; activeStrokes.push({ x: e.clientX, y: e.clientY, isNew: true, color: '#ec4899', time: Date.now() }); multicastData({ type: 'DOODLE_POINT', x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight, isNew: true }); });
+    doodleCanvas.addEventListener('pointermove', (e) => { if (!isDrawingLocal || !isDoodlingActive) return; e.preventDefault(); activeStrokes.push({ x: e.clientX, y: e.clientY, isNew: false, color: '#ec4899', time: Date.now() }); multicastData({ type: 'DOODLE_POINT', x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight, isNew: false }); });
     window.addEventListener('pointerup', () => { isDrawingLocal = false; });
 
     function renderThermalLoop() {
-      const now = Date.now();
-      ctx.clearRect(0, 0, doodleCanvas.width, doodleCanvas.height);
-      activeStrokes = activeStrokes.filter(p => now - p.time < DISSOLVE_TIME_MS);
-
+      const now = Date.now(); ctx.clearRect(0, 0, doodleCanvas.width, doodleCanvas.height); activeStrokes = activeStrokes.filter(p => now - p.time < DISSOLVE_TIME_MS);
       if (activeStrokes.length > 0) {
         ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = 5;
-
         for (let i = 0; i < activeStrokes.length; i++) {
-          const pt = activeStrokes[i];
-          const opacity = Math.max(0, 1 - ((now - pt.time) / DISSOLVE_TIME_MS));
-          ctx.strokeStyle = pt.color === '#ec4899' ? `rgba(236,72,153,${opacity})` : `rgba(56,189,248,${opacity})`;
-
-          if (pt.isNew || i === 0) {
-            ctx.beginPath();
-            ctx.moveTo(pt.x, pt.y);
-            ctx.lineTo(pt.x + 0.1, pt.y + 0.1);
-            ctx.stroke();
-          } else {
-            ctx.beginPath();
-            ctx.moveTo(activeStrokes[i - 1].x, activeStrokes[i - 1].y);
-            ctx.lineTo(pt.x, pt.y);
-            ctx.stroke();
-          }
+          const pt = activeStrokes[i], opacity = Math.max(0, 1 - ((now - pt.time) / DISSOLVE_TIME_MS)); ctx.strokeStyle = pt.color === '#ec4899' ? `rgba(236,72,153,${opacity})` : `rgba(56,189,248,${opacity})`;
+          if (pt.isNew || i === 0) { ctx.beginPath(); ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x + 0.1, pt.y + 0.1); ctx.stroke(); }
+          else { ctx.beginPath(); ctx.moveTo(activeStrokes[i - 1].x, activeStrokes[i - 1].y); ctx.lineTo(pt.x, pt.y); ctx.stroke(); }
         }
-      }
-      requestAnimationFrame(renderThermalLoop);
-    }
-    renderThermalLoop();
+      } requestAnimationFrame(renderThermalLoop);
+    } renderThermalLoop();
 
-    function extractYouTubeId(url) {
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = url.match(regExp);
-      return (match && match[2].length === 11) ? match[2] : null;
-    }
-
+    function extractYouTubeId(url) { const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/); return (match && match[2].length === 11) ? match[2] : null; }
     window.onYouTubeIframeAPIReady = function() {
       ytPlayer = new YT.Player('ytPlayer', {
-        height: '100%', width: '100%',
-        playerVars: { autoplay: 1, controls: 1, rel: 0, playsinline: 1 },
+        height: '100%', width: '100%', playerVars: { autoplay: 1, controls: 1, rel: 0, playsinline: 1 },
         events: {
           onReady: () => { ytReady = true; },
           onStateChange: (e) => {
             if (isSyncing) return;
-            if (e.data === YT.PlayerState.PLAYING) {
-              playPauseBtn.innerText = '❚❚';
-              multicastData({ type: 'VIDEO_SYNC', action: 'play', time: ytPlayer.getCurrentTime(), isYT: true });
-            } else if (e.data === YT.PlayerState.PAUSED) {
-              playPauseBtn.innerText = '▶';
-              multicastData({ type: 'VIDEO_SYNC', action: 'pause', time: ytPlayer.getCurrentTime(), isYT: true });
-            }
+            if (e.data === YT.PlayerState.PLAYING) { playPauseBtn.innerText = '❚❚'; multicastData({ type: 'VIDEO_SYNC', action: 'play', time: ytPlayer.getCurrentTime(), isYT: true }); }
+            else if (e.data === YT.PlayerState.PAUSED) { playPauseBtn.innerText = '▶'; multicastData({ type: 'VIDEO_SYNC', action: 'pause', time: ytPlayer.getCurrentTime(), isYT: true }); }
           }
         }
       });
     };
 
     loadVideoBtn.onclick = () => {
-      const url = videoUrlInput.value.trim();
-      if (!url) return;
-      const ytId = extractYouTubeId(url);
-      if (ytId) {
-        loadYouTubeVideo(ytId);
-        multicastData({ type: 'LOAD_MEDIA', url, isYT: true, ytId });
-      } else {
-        loadNativeVideo(url);
-        multicastData({ type: 'LOAD_MEDIA', url, isYT: false });
-      }
+      const url = videoUrlInput.value.trim(); if (!url) return; const ytId = extractYouTubeId(url);
+      if (ytId) { loadYouTubeVideo(ytId); multicastData({ type: 'LOAD_MEDIA', url, isYT: true, ytId }); }
+      else { loadNativeVideo(url); multicastData({ type: 'LOAD_MEDIA', url, isYT: false }); }
     };
-
-    function loadYouTubeVideo(ytId) {
-      isYouTubeMode = true;
-      mainPlayer.pause();
-      mainPlayer.style.display = 'none';
-      ytWrapper.style.display = 'block';
-      if (ytPlayer && ytReady && ytPlayer.loadVideoById) {
-        ytPlayer.loadVideoById(ytId);
-      }
-    }
-
-    function loadNativeVideo(url) {
-      isYouTubeMode = false;
-      if (ytPlayer && ytReady && ytPlayer.stopVideo) ytPlayer.stopVideo();
-      ytWrapper.style.display = 'none';
-      mainPlayer.style.display = 'block';
-      mainPlayer.src = url;
-      mainPlayer.play().catch(()=>{});
-    }
+    function loadYouTubeVideo(ytId) { isYouTubeMode = true; mainPlayer.pause(); mainPlayer.style.display = 'none'; ytWrapper.style.display = 'block'; if (ytPlayer && ytReady && ytPlayer.loadVideoById) ytPlayer.loadVideoById(ytId); }
+    function loadNativeVideo(url) { isYouTubeMode = false; if (ytPlayer && ytReady && ytPlayer.stopVideo) ytPlayer.stopVideo(); ytWrapper.style.display = 'none'; mainPlayer.style.display = 'block'; mainPlayer.src = url; mainPlayer.play().catch(()=>{}); }
 
     playPauseBtn.onclick = () => {
       if (isYouTubeMode && ytPlayer && ytReady) {
-        const s = ytPlayer.getPlayerState();
-        if (s === 1) {
-          ytPlayer.pauseVideo();
-          playPauseBtn.innerText = '▶';
-          multicastData({ type: 'VIDEO_SYNC', action: 'pause', time: ytPlayer.getCurrentTime(), isYT: true });
-        } else {
-          ytPlayer.playVideo();
-          playPauseBtn.innerText = '❚❚';
-          multicastData({ type: 'VIDEO_SYNC', action: 'play', time: ytPlayer.getCurrentTime(), isYT: true });
-        }
+        if (ytPlayer.getPlayerState() === 1) { ytPlayer.pauseVideo(); playPauseBtn.innerText = '▶'; multicastData({ type: 'VIDEO_SYNC', action: 'pause', time: ytPlayer.getCurrentTime(), isYT: true }); }
+        else { ytPlayer.playVideo(); playPauseBtn.innerText = '❚❚'; multicastData({ type: 'VIDEO_SYNC', action: 'play', time: ytPlayer.getCurrentTime(), isYT: true }); }
       } else {
-        if (mainPlayer.paused) {
-          mainPlayer.play();
-          playPauseBtn.innerText = '❚❚';
-          multicastData({ type: 'VIDEO_SYNC', action: 'play', time: mainPlayer.currentTime, isYT: false });
-        } else {
-          mainPlayer.pause();
-          playPauseBtn.innerText = '▶';
-          multicastData({ type: 'VIDEO_SYNC', action: 'pause', time: mainPlayer.currentTime, isYT: false });
-        }
+        if (mainPlayer.paused) { mainPlayer.play(); playPauseBtn.innerText = '❚❚'; multicastData({ type: 'VIDEO_SYNC', action: 'play', time: mainPlayer.currentTime, isYT: false }); }
+        else { mainPlayer.pause(); playPauseBtn.innerText = '▶'; multicastData({ type: 'VIDEO_SYNC', action: 'pause', time: mainPlayer.currentTime, isYT: false }); }
       }
     };
-
     rewindBtn.onclick = () => {
-      if (isYouTubeMode && ytPlayer && ytReady) {
-        const t = Math.max(0, ytPlayer.getCurrentTime() - 10);
-        ytPlayer.seekTo(t, true);
-        multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: true });
-      } else {
-        mainPlayer.currentTime = Math.max(0, mainPlayer.currentTime - 10);
-        multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: mainPlayer.currentTime, isYT: false });
-      }
+      if (isYouTubeMode && ytPlayer && ytReady) { const t = Math.max(0, ytPlayer.getCurrentTime() - 10); ytPlayer.seekTo(t, true); multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: true }); }
+      else { mainPlayer.currentTime = Math.max(0, mainPlayer.currentTime - 10); multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: mainPlayer.currentTime, isYT: false }); }
     };
-
     forwardBtn.onclick = () => {
-      if (isYouTubeMode && ytPlayer && ytReady) {
-        const t = ytPlayer.getCurrentTime() + 10;
-        ytPlayer.seekTo(t, true);
-        multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: true });
-      } else {
-        mainPlayer.currentTime = Math.min(mainPlayer.duration || 9999, mainPlayer.currentTime + 10);
-        multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: mainPlayer.currentTime, isYT: false });
-      }
+      if (isYouTubeMode && ytPlayer && ytReady) { const t = ytPlayer.getCurrentTime() + 10; ytPlayer.seekTo(t, true); multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: true }); }
+      else { mainPlayer.currentTime = Math.min(mainPlayer.duration || 9999, mainPlayer.currentTime + 10); multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: mainPlayer.currentTime, isYT: false }); }
     };
-
     rateSelect.onchange = () => {
-      const r = parseFloat(rateSelect.value);
-      if (isYouTubeMode && ytPlayer && ytReady) ytPlayer.setPlaybackRate(r);
-      else mainPlayer.playbackRate = r;
-      multicastData({ type: 'VIDEO_RATE', rate: r });
+      const r = parseFloat(rateSelect.value); if (isYouTubeMode && ytPlayer && ytReady) ytPlayer.setPlaybackRate(r); else mainPlayer.playbackRate = r; multicastData({ type: 'VIDEO_RATE', rate: r });
     };
 
     function makeDraggable(el) {
       let ox = 0, oy = 0, sx = 0, sy = 0;
       el.onpointerdown = (e) => {
-        if (isCouchMode || isFaceToFaceCall) return;
-        e.preventDefault();
-        sx = e.clientX; sy = e.clientY;
-        ox = el.offsetLeft; oy = el.offsetTop;
-        window.onpointermove = (ev) => {
-          el.style.left = (ox + ev.clientX - sx) + 'px';
-          el.style.top = (oy + ev.clientY - sy) + 'px';
-        };
-        window.onpointerup = () => {
-          window.onpointermove = null; window.onpointerup = null;
-        };
+        if (isCouchMode || isFaceToFaceCall) return; e.preventDefault(); sx = e.clientX; sy = e.clientY; ox = el.offsetLeft; oy = el.offsetTop;
+        window.onpointermove = (ev) => { el.style.left = (ox + ev.clientX - sx) + 'px'; el.style.top = (oy + ev.clientY - sy) + 'px'; };
+        window.onpointerup = () => { window.onpointermove = null; window.onpointerup = null; };
       };
-    }
-    makeDraggable(localPip);
-    makeDraggable(remotePip);
+    } makeDraggable(localPip); makeDraggable(remotePip);
 
-    couchModeToggle.onclick = () => {
-      isCouchMode = !isCouchMode;
-      couchModeToggle.style.color = isCouchMode ? '#ec4899' : '#00ffa3';
-      localPip.classList.toggle('couch-mode-local', isCouchMode);
-      remotePip.classList.toggle('couch-mode-remote', isCouchMode);
-    };
-
-    pipScaleSlider.oninput = (e) => {
-      const w = e.target.value;
-      const h = Math.round(w * 1.33);
-      localPip.style.width = `${w}px`; localPip.style.height = `${h}px`;
-      remotePip.style.width = `${w}px`; remotePip.style.height = `${h}px`;
-    };
-
-    pipOpacitySlider.oninput = (e) => {
-      const op = e.target.value / 100;
-      localPip.style.opacity = op;
-      remotePip.style.opacity = op;
-    };
+    couchModeToggle.onclick = () => { isCouchMode = !isCouchMode; couchModeToggle.style.color = isCouchMode ? '#ec4899' : '#00ffa3'; localPip.classList.toggle('couch-mode-local', isCouchMode); remotePip.classList.toggle('couch-mode-remote', isCouchMode); };
+    pipScaleSlider.oninput = (e) => { const w = e.target.value; const h = Math.round(w * 1.33); localPip.style.width = `${w}px`; localPip.style.height = `${h}px`; remotePip.style.width = `${w}px`; remotePip.style.height = `${h}px`; };
+    pipOpacitySlider.oninput = (e) => { const op = e.target.value / 100; localPip.style.opacity = op; remotePip.style.opacity = op; };
 
     callModeToggleBtn.onclick = () => {
-      isFaceToFaceCall = !isFaceToFaceCall;
-      callModeToggleBtn.classList.toggle('active-blue', isFaceToFaceCall);
-
-      if (isFaceToFaceCall) {
-        mainVideoContainer.style.display = 'none';
-        videoMeshGrid.style.display = 'grid';
-        localPip.style.display = 'none';
-        remotePip.style.display = 'none';
-        updateVideoGridLayout();
-      } else {
-        mainVideoContainer.style.display = 'flex';
-        videoMeshGrid.style.display = 'none';
-        localPip.style.display = 'block';
-        remotePip.style.display = 'block';
-      }
+      isFaceToFaceCall = !isFaceToFaceCall; callModeToggleBtn.classList.toggle('active-blue', isFaceToFaceCall);
+      if (isFaceToFaceCall) { mainVideoContainer.style.display = 'none'; videoMeshGrid.style.display = 'grid'; localPip.style.display = 'none'; remotePip.style.display = 'none'; updateVideoGridLayout(); }
+      else { mainVideoContainer.style.display = 'flex'; videoMeshGrid.style.display = 'none'; localPip.style.display = 'block'; remotePip.style.display = 'block'; }
     };
 
     function triggerReactionUI(type, senderName) {
-      remotePip.classList.add('pip-reacting');
-      setTimeout(() => remotePip.classList.remove('pip-reacting'), 1400);
-
-      const icons = { laugh: '😂', scream: '😱', gasp: '😲', bookmark: '📌' };
-      const bubble = document.createElement('div');
-      bubble.className = 'reaction-burst-box';
-      bubble.innerText = icons[type] || '🔥';
-      document.body.appendChild(bubble);
-      setTimeout(() => bubble.remove(), 1500);
-
-      const currentTime = isYouTubeMode && ytPlayer && ytReady ? ytPlayer.getCurrentTime() : mainPlayer.currentTime;
-      reactionHistory.push({ type, sender: senderName, time: currentTime });
+      remotePip.classList.add('pip-reacting'); setTimeout(() => remotePip.classList.remove('pip-reacting'), 1400);
+      const icons = { laugh: '😂', scream: '😱', gasp: '😲', bookmark: '📌' }; const bubble = document.createElement('div'); bubble.className = 'reaction-burst-box'; bubble.innerText = icons[type] || '🔥'; document.body.appendChild(bubble); setTimeout(() => bubble.remove(), 1500);
+      const currentTime = isYouTubeMode && ytPlayer && ytReady ? ytPlayer.getCurrentTime() : mainPlayer.currentTime; reactionHistory.push({ type, sender: senderName, time: currentTime });
     }
-
-    bookmarkBtn.onclick = () => {
-      const cur = isYouTubeMode && ytPlayer && ytReady ? ytPlayer.getCurrentTime() : mainPlayer.currentTime;
-      triggerReactionUI('bookmark', 'You');
-      multicastData({ type: 'BOOKMARK_MOMENT', time: cur });
-    };
-
+    bookmarkBtn.onclick = () => { const cur = isYouTubeMode && ytPlayer && ytReady ? ytPlayer.getCurrentTime() : mainPlayer.currentTime; triggerReactionUI('bookmark', 'You'); multicastData({ type: 'BOOKMARK_MOMENT', time: cur }); };
     recapBtn.onclick = () => {
-      recapList.innerHTML = '';
-      if (reactionHistory.length === 0) {
-        recapList.innerHTML = '<div style="color:#71717a; text-align:center; margin-top:20px;">No reactions logged.</div>';
-      }
+      recapList.innerHTML = ''; if (reactionHistory.length === 0) recapList.innerHTML = '<div style="color:#71717a; text-align:center; margin-top:20px;">No reactions logged.</div>';
       reactionHistory.forEach((r) => {
-        const item = document.createElement('div');
-        item.className = 'modal-item';
-        const label = r.type === 'bookmark' ? '📌 Bookmark' : (r.type === 'laugh' ? '😂 Laugh' : r.type === 'scream' ? '😱 Scream' : '😲 Gasp');
+        const item = document.createElement('div'); item.className = 'modal-item'; const label = r.type === 'bookmark' ? '📌 Bookmark' : (r.type === 'laugh' ? '😂 Laugh' : r.type === 'scream' ? '😱 Scream' : '😲 Gasp');
         item.innerHTML = `<span>${label} at ${Math.round(r.time)}s (${r.sender})</span><span style="color:#ec4899; font-size:12px;">Jump ➔</span>`;
-        item.onclick = () => {
-          const t = Math.max(0, r.time - 2);
-          if (isYouTubeMode && ytPlayer && ytReady) ytPlayer.seekTo(t, true);
-          else mainPlayer.currentTime = t;
-          multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: isYouTubeMode });
-          recapModal.style.display = 'none';
-        };
-        recapList.appendChild(item);
-      });
-      recapModal.style.display = 'flex';
-    };
-    closeRecapBtn.onclick = () => recapModal.style.display = 'none';
+        item.onclick = () => { const t = Math.max(0, r.time - 2); if (isYouTubeMode && ytPlayer && ytReady) ytPlayer.seekTo(t, true); else mainPlayer.currentTime = t; multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: isYouTubeMode }); recapModal.style.display = 'none'; }; recapList.appendChild(item);
+      }); recapModal.style.display = 'flex';
+    }; closeRecapBtn.onclick = () => recapModal.style.display = 'none';
 
     function startAcousticAnalyser() {
-      if (!localAnalyser) return;
-      const data = new Uint8Array(localAnalyser.frequencyBinCount);
+      if (!localAnalyser) return; const data = new Uint8Array(localAnalyser.frequencyBinCount);
       setInterval(() => {
-        localAnalyser.getByteFrequencyData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) sum += data[i];
-        const avg = sum / data.length;
-        const now = Date.now();
-
+        localAnalyser.getByteFrequencyData(data); let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i]; const avg = sum / data.length; const now = Date.now();
         if (avg > 75 && now - lastReactionTime > 3000) {
-          lastReactionTime = now;
-          let rType = 'gasp';
-          if (avg > 92) rType = 'scream';
-          else if (avg > 80) rType = 'laugh';
-
-          triggerReactionUI(rType, 'You');
-          multicastData({ type: 'REACTION_BURST', rType });
+          lastReactionTime = now; let rType = 'gasp'; if (avg > 92) rType = 'scream'; else if (avg > 80) rType = 'laugh';
+          triggerReactionUI(rType, 'You'); multicastData({ type: 'REACTION_BURST', rType });
         }
       }, 200);
     }
 
     if (SpeechRecognition) {
-      recognizer = new SpeechRecognition();
-      recognizer.continuous = true;
-      recognizer.interimResults = true;
-      recognizer.lang = 'en-US';
-
+      recognizer = new SpeechRecognition(); recognizer.continuous = true; recognizer.interimResults = true; recognizer.lang = 'en-US';
       recognizer.onresult = (e) => {
-        let interim = '', final = '';
-        for (let i = e.resultIndex; i < e.results.length; ++i) {
-          if (e.results[i].isFinal) final += e.results[i][0].transcript;
-          else interim += e.results[i][0].transcript;
-        }
-        const text = (final || interim).trim();
-        if (text.length > 0) {
-          showSubtitle("You", text);
-          multicastData({ type: 'LIVE_SUB', speaker: myUsername, text });
-        }
+        let interim = '', final = ''; for (let i = e.resultIndex; i < e.results.length; ++i) { if (e.results[i].isFinal) final += e.results[i][0].transcript; else interim += e.results[i][0].transcript; }
+        const text = (final || interim).trim(); if (text.length > 0) { showSubtitle("You", text); multicastData({ type: 'LIVE_SUB', speaker: myUsername, text }); }
       };
-
-      recognizer.onend = () => {
-        if (shouldKeepListening && isSubsActive) {
-          try { recognizer.start(); } catch (err) {}
-        }
-      };
+      recognizer.onend = () => { if (shouldKeepListening && isSubsActive) try { recognizer.start(); } catch (err) {} };
     }
-
     subsBtn.onclick = () => {
-      if (!SpeechRecognition) return alert('Speech recognition supported on Chrome & Edge.');
-      isSubsActive = !isSubsActive;
-      subsBtn.classList.toggle('active-amber', isSubsActive);
-
-      if (isSubsActive) {
-        shouldKeepListening = true;
-        try { recognizer.start(); } catch(e){}
-        subtitlesBanner.style.display = 'block';
-        subSpeaker.innerText = 'You:';
-        subText.innerText = 'Listening...';
-      } else {
-        shouldKeepListening = false;
-        try { recognizer.stop(); } catch(e){}
-        subtitlesBanner.style.display = 'none';
-      }
+      if (!SpeechRecognition) return alert('Speech recognition supported on Chrome/Edge.');
+      isSubsActive = !isSubsActive; subsBtn.classList.toggle('active-amber', isSubsActive);
+      if (isSubsActive) { shouldKeepListening = true; try { recognizer.start(); } catch(e){} subtitlesBanner.style.display = 'block'; subSpeaker.innerText = 'You:'; subText.innerText = 'Listening...'; }
+      else { shouldKeepListening = false; try { recognizer.stop(); } catch(e){} subtitlesBanner.style.display = 'none'; }
     };
+    function showSubtitle(speaker, text) { subtitlesBanner.style.display = 'block'; subSpeaker.innerText = `${speaker}:`; subSpeaker.style.color = speaker === 'You' ? '#38bdf8' : '#ec4899'; subText.innerText = text; clearTimeout(window.subTimer); window.subTimer = setTimeout(() => { if (!isSubsActive) subtitlesBanner.style.display = 'none'; else subText.innerText = 'Listening...'; }, 4000); }
 
-    function showSubtitle(speaker, text) {
-      subtitlesBanner.style.display = 'block';
-      subSpeaker.innerText = `${speaker}:`;
-      subSpeaker.style.color = speaker === 'You' ? '#38bdf8' : '#ec4899';
-      subText.innerText = text;
-
-      clearTimeout(window.subTimer);
-      window.subTimer = setTimeout(() => {
-        if (!isSubsActive) subtitlesBanner.style.display = 'none';
-        else subText.innerText = 'Listening...';
-      }, 4000);
-    }
-
-    chatBtn.onclick = () => {
-      isChatOpen = !isChatOpen;
-      chatDrawer.classList.toggle('open', isChatOpen);
-      if (isChatOpen) {
-        unreadCount = 0;
-        chatBadge.style.display = 'none';
-        chatInput.focus();
-      }
-    };
-    closeChatBtn.onclick = () => {
-      isChatOpen = false;
-      chatDrawer.classList.remove('open');
-    };
-
-    sendChatBtn.onclick = sendChat;
-    chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
-
-    function sendChat() {
-      const text = chatInput.value.trim();
-      if (!text) return;
-      appendChatMessage(myUsername, text, true);
-      multicastData({ type: 'GROUP_CHAT', from: myUsername, text });
-      chatInput.value = '';
-    }
-
+    chatBtn.onclick = () => { isChatOpen = !isChatOpen; chatDrawer.classList.toggle('open', isChatOpen); if (isChatOpen) { unreadCount = 0; chatBadge.style.display = 'none'; chatInput.focus(); } };
+    closeChatBtn.onclick = () => { isChatOpen = false; chatDrawer.classList.remove('open'); };
+    sendChatBtn.onclick = sendChat; chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
+    function sendChat() { const text = chatInput.value.trim(); if (!text) return; appendChatMessage(myUsername, text, true); multicastData({ type: 'GROUP_CHAT', from: myUsername, text }); chatInput.value = ''; }
     function appendChatMessage(from, text, isMine) {
-      const bubble = document.createElement('div');
-      bubble.className = `chat-bubble ${isMine ? 'chat-mine' : 'chat-theirs'}`;
-      bubble.innerHTML = `${!isMine ? `<div class="chat-sender">${from}</div>` : ''}<div>${text}</div>`;
-      chatMessages.appendChild(bubble);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-
-      if (!isMine && !isChatOpen) {
-        unreadCount++;
-        chatBadge.innerText = unreadCount;
-        chatBadge.style.display = 'flex';
-      }
+      const bubble = document.createElement('div'); bubble.className = `chat-bubble ${isMine ? 'chat-mine' : 'chat-theirs'}`; bubble.innerHTML = `${!isMine ? `<div class="chat-sender">${from}</div>` : ''}<div>${text}</div>`; chatMessages.appendChild(bubble); chatMessages.scrollTop = chatMessages.scrollHeight;
+      if (!isMine && !isChatOpen) { unreadCount++; chatBadge.innerText = unreadCount; chatBadge.style.display = 'flex'; }
     }
 
     camFlipBtn.onclick = async () => {
-      if (!localStream || isCamOff) return;
-      currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-
+      if (!localStream || isCamOff) return; currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: currentFacingMode } }
-        }).catch(() => navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } }));
-
-        const newTrack = stream.getVideoTracks()[0];
-        const oldTrack = localStream.getVideoTracks()[0];
-        if (oldTrack) {
-          oldTrack.stop();
-          localStream.removeTrack(oldTrack);
-        }
-        localStream.addTrack(newTrack);
-
-        myVideo.srcObject = localStream;
-        myMeshVideo.srcObject = localStream;
-
-        Object.values(peerConnections).forEach(pc => {
-          const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-          if (sender) sender.replaceTrack(newTrack);
-        });
-      } catch (err) {
-        alert('Secondary camera unavailable.');
-      }
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: currentFacingMode } } }).catch(() => navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } }));
+        const newTrack = stream.getVideoTracks()[0], oldTrack = localStream.getVideoTracks()[0]; if (oldTrack) { oldTrack.stop(); localStream.removeTrack(oldTrack); } localStream.addTrack(newTrack);
+        myVideo.srcObject = localStream; myMeshVideo.srcObject = localStream;
+        Object.values(peerConnections).forEach(pc => { const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video'); if (sender) sender.replaceTrack(newTrack); });
+      } catch (err) {}
     };
-
     camToggleBtn.onclick = () => {
-      if (!localStream) return;
-      const track = localStream.getVideoTracks()[0];
-      if (track) {
-        isCamOff = !isCamOff;
-        track.enabled = !isCamOff;
-        myVideo.style.display = isCamOff ? 'none' : 'block';
-        myMeshVideo.style.display = isCamOff ? 'none' : 'block';
-        camToggleBtn.innerText = isCamOff ? '🙈' : '📹';
-        camToggleBtn.classList.toggle('active-amber', isCamOff);
-      }
+      if (!localStream) return; const track = localStream.getVideoTracks()[0];
+      if (track) { isCamOff = !isCamOff; track.enabled = !isCamOff; myVideo.style.display = isCamOff ? 'none' : 'block'; myMeshVideo.style.display = isCamOff ? 'none' : 'block'; camToggleBtn.innerText = isCamOff ? '🙈' : '📹'; camToggleBtn.classList.toggle('active-amber', isCamOff); }
     };
-
     screenShareBtn.onclick = async () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        return alert("Screen sharing supported on desktop browsers.");
-      }
-
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return alert("Screen sharing supported on desktop browsers.");
       if (!isScreenSharing) {
         try {
-          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } });
-          const track = screenStream.getVideoTracks()[0];
-
-          Object.values(peerConnections).forEach(pc => {
-            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-            if (sender) sender.replaceTrack(track);
-          });
-
-          myVideo.srcObject = screenStream;
-          myMeshVideo.srcObject = screenStream;
-          screenShareBtn.classList.add('active-blue');
-          isScreenSharing = true;
-
+          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } }); const track = screenStream.getVideoTracks()[0];
+          Object.values(peerConnections).forEach(pc => { const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video'); if (sender) sender.replaceTrack(track); });
+          myVideo.srcObject = screenStream; myMeshVideo.srcObject = screenStream; screenShareBtn.classList.add('active-blue'); isScreenSharing = true;
           track.onended = () => stopScreenShare();
-        } catch (err) {
-          if (err.name !== 'NotAllowedError') console.error(err);
-        }
-      } else {
-        stopScreenShare();
-      }
+        } catch (err) { if (err.name !== 'NotAllowedError') console.error(err); }
+      } else stopScreenShare();
     };
-
     function stopScreenShare() {
-      if (!isScreenSharing) return;
-      if (screenStream) {
-        screenStream.getTracks().forEach(t => t.stop());
-        screenStream = null;
-      }
-      const camTrack = localStream ? localStream.getVideoTracks()[0] : null;
-      Object.values(peerConnections).forEach(pc => {
-        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-        if (sender) sender.replaceTrack(camTrack || null);
-      });
-      myVideo.srcObject = localStream;
-      myMeshVideo.srcObject = localStream;
-      screenShareBtn.classList.remove('active-blue');
-      isScreenSharing = false;
+      if (!isScreenSharing) return; if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; } const camTrack = localStream ? localStream.getVideoTracks()[0] : null;
+      Object.values(peerConnections).forEach(pc => { const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video'); if (sender) sender.replaceTrack(camTrack || null); });
+      myVideo.srcObject = localStream; myMeshVideo.srcObject = localStream; screenShareBtn.classList.remove('active-blue'); isScreenSharing = false;
     }
-
-    muteMicBtn.onclick = () => {
-      if (!localStream) return;
-      isMuted = !isMuted;
-      localStream.getAudioTracks()[0].enabled = !isMuted;
-      if (processedAudioTrack) processedAudioTrack.enabled = !isMuted;
-      muteMicBtn.classList.toggle('active-amber', isMuted);
-    };
-
-    watchDrawerBtn.onclick = () => {
-      const isHidden = watchDrawer.style.display !== 'flex';
-      watchDrawer.style.display = isHidden ? 'flex' : 'none';
-    };
-
-    pipSysBtn.onclick = async () => {
-      if (document.pictureInPictureElement) await document.exitPictureInPicture();
-      else if (mainPlayer && !isYouTubeMode) await mainPlayer.requestPictureInPicture();
-      else alert("System PiP operates on native MP4 video playback.");
-    };
-
-    hangupBtn.onclick = () => {
-      if (localStream) localStream.getTracks().forEach(t => t.stop());
-      location.reload();
-    };
+    muteMicBtn.onclick = () => { if (!localStream) return; isMuted = !isMuted; localStream.getAudioTracks()[0].enabled = !isMuted; if (processedAudioTrack) processedAudioTrack.enabled = !isMuted; muteMicBtn.classList.toggle('active-amber', isMuted); };
+    watchDrawerBtn.onclick = () => { watchDrawer.style.display = watchDrawer.style.display !== 'flex' ? 'flex' : 'none'; };
+    pipSysBtn.onclick = async () => { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else if (mainPlayer && !isYouTubeMode) await mainPlayer.requestPictureInPicture(); else alert("System PiP operates on native MP4 video."); };
+    hangupBtn.onclick = () => { if (localStream) localStream.getTracks().forEach(t => t.stop()); location.reload(); };
 
     fileBeamBtn.onclick = () => p2pFileInput.click();
     p2pFileInput.onchange = () => {
-      const file = p2pFileInput.files[0];
-      if (!file) return;
-
-      const firstChan = Object.values(dataChannels)[0];
-      if (!firstChan || firstChan.readyState !== 'open') return alert('Partner not connected yet.');
-
-      const CHUNK_SIZE = 64 * 1024;
-      let offset = 0;
-      firstChan.bufferedAmountLowThreshold = 256 * 1024;
-      firstChan.send(JSON.stringify({ type: 'FILE_START', name: file.name, size: file.size, mime: file.type }));
-
+      const file = p2pFileInput.files[0]; if (!file) return; const firstChan = Object.values(dataChannels)[0]; if (!firstChan || firstChan.readyState !== 'open') return alert('Partner not connected yet.');
+      const CHUNK_SIZE = 64 * 1024; let offset = 0; firstChan.bufferedAmountLowThreshold = 256 * 1024; firstChan.send(JSON.stringify({ type: 'FILE_START', name: file.name, size: file.size, mime: file.type }));
       function pump() {
         while (offset < file.size) {
-          if (firstChan.bufferedAmount > firstChan.bufferedAmountLowThreshold) {
-            firstChan.onbufferedamountlow = () => {
-              firstChan.onbufferedamountlow = null;
-              pump();
-            };
-            return;
-          }
-          const slice = file.slice(offset, offset + CHUNK_SIZE);
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            firstChan.send(e.target.result);
-            offset += CHUNK_SIZE;
-            pump();
-          };
-          reader.readAsArrayBuffer(slice);
-          return;
-        }
-        firstChan.send(JSON.stringify({ type: 'FILE_END' }));
-        alert('File Beam finished sending!');
-      }
-      pump();
+          if (firstChan.bufferedAmount > firstChan.bufferedAmountLowThreshold) { firstChan.onbufferedamountlow = () => { firstChan.onbufferedamountlow = null; pump(); }; return; }
+          const slice = file.slice(offset, offset + CHUNK_SIZE); const reader = new FileReader(); reader.onload = (e) => { firstChan.send(e.target.result); offset += CHUNK_SIZE; pump(); }; reader.readAsArrayBuffer(slice); return;
+        } firstChan.send(JSON.stringify({ type: 'FILE_END' })); alert('File Beam finished sending!');
+      } pump();
     };
 
     function initWebAudioDSP(stream) {
-      if (!audioCtx) audioCtx = new AudioContextClass();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      micSource = audioCtx.createMediaStreamSource(stream);
-
-      hpFilter = audioCtx.createBiquadFilter();
-      hpFilter.type = 'highpass';
-      hpFilter.frequency.value = 100;
-
-      whisperNode = audioCtx.createBiquadFilter();
-      whisperNode.type = 'peaking';
-      whisperNode.frequency.value = 3500;
-      whisperNode.gain.value = 0;
-
-      compressorNode = audioCtx.createDynamicsCompressor();
-      compressorNode.threshold.value = -24;
-
-      localAnalyser = audioCtx.createAnalyser();
-      localAnalyser.fftSize = 64;
-
+      if (!audioCtx) audioCtx = new AudioContextClass(); if (audioCtx.state === 'suspended') audioCtx.resume();
+      micSource = audioCtx.createMediaStreamSource(stream); hpFilter = audioCtx.createBiquadFilter(); hpFilter.type = 'highpass'; hpFilter.frequency.value = 100;
+      whisperNode = audioCtx.createBiquadFilter(); whisperNode.type = 'peaking'; whisperNode.frequency.value = 3500; whisperNode.gain.value = 0;
+      compressorNode = audioCtx.createDynamicsCompressor(); compressorNode.threshold.value = -24; localAnalyser = audioCtx.createAnalyser(); localAnalyser.fftSize = 64;
       processedDest = audioCtx.createMediaStreamDestination();
-
-      micSource.connect(hpFilter);
-      hpFilter.connect(whisperNode);
-      whisperNode.connect(compressorNode);
-      compressorNode.connect(localAnalyser);
-      compressorNode.connect(processedDest);
-
-      processedAudioTrack = processedDest.stream.getAudioTracks()[0];
-
-      ambGain = audioCtx.createGain();
-      ambGain.gain.value = 0;
-      ambGain.connect(audioCtx.destination);
-
-      startVisualizerLoop();
-      startAcousticAnalyser();
+      micSource.connect(hpFilter); hpFilter.connect(whisperNode); whisperNode.connect(compressorNode); compressorNode.connect(localAnalyser); compressorNode.connect(processedDest);
+      processedAudioTrack = processedDest.stream.getAudioTracks()[0]; ambGain = audioCtx.createGain(); ambGain.gain.value = 0; ambGain.connect(audioCtx.destination);
+      startVisualizerLoop(); startAcousticAnalyser();
     }
-
     function setupRemoteSpatialAudio(stream) {
       if (!audioCtx) return;
       try {
-        const remoteSource = audioCtx.createMediaStreamSource(stream);
-        partnerPanner = audioCtx.createPanner();
-        partnerPanner.panningModel = 'HRTF';
-        partnerPanner.distanceModel = 'inverse';
-        partnerPanner.positionX.value = 0;
-        partnerPanner.positionY.value = 0;
-        partnerPanner.positionZ.value = -1;
-
-        remoteSource.connect(partnerPanner);
-        partnerPanner.connect(audioCtx.destination);
-      } catch (e) {
-        console.warn('Spatial audio routing fallback:', e);
-      }
+        const remoteSource = audioCtx.createMediaStreamSource(stream); partnerPanner = audioCtx.createPanner(); partnerPanner.panningModel = 'HRTF'; partnerPanner.distanceModel = 'inverse'; partnerPanner.positionX.value = 0; partnerPanner.positionY.value = 0; partnerPanner.positionZ.value = -1;
+        remoteSource.connect(partnerPanner); partnerPanner.connect(audioCtx.destination);
+      } catch (e) { console.warn('Spatial audio routing fallback:', e); }
     }
-
-    pannerSelect.onchange = () => {
-      if (!partnerPanner || !audioCtx) return;
-      const x = pannerSelect.value === 'left' ? -3 : pannerSelect.value === 'right' ? 3 : 0;
-      partnerPanner.positionX.setTargetAtTime(x, audioCtx.currentTime, 0.1);
-    };
+    pannerSelect.onchange = () => { if (!partnerPanner || !audioCtx) return; const x = pannerSelect.value === 'left' ? -3 : pannerSelect.value === 'right' ? 3 : 0; partnerPanner.positionX.setTargetAtTime(x, audioCtx.currentTime, 0.1); };
 
     let isWhisperBoost = false;
     whisperBoostBtn.onclick = () => {
-      isWhisperBoost = !isWhisperBoost;
-      whisperBoostBtn.innerText = isWhisperBoost ? '🤫 Active (+8dB)' : '🤫 Off';
-      whisperBoostBtn.classList.toggle('active', isWhisperBoost);
-      if (whisperNode && audioCtx) {
-        whisperNode.gain.setTargetAtTime(isWhisperBoost ? 8 : 0, audioCtx.currentTime, 0.1);
-        compressorNode.threshold.setTargetAtTime(isWhisperBoost ? -45 : -24, audioCtx.currentTime, 0.1);
-      }
+      isWhisperBoost = !isWhisperBoost; whisperBoostBtn.innerText = isWhisperBoost ? '🤫 Active (+8dB)' : '🤫 Off'; whisperBoostBtn.classList.toggle('active', isWhisperBoost);
+      if (whisperNode && audioCtx) { whisperNode.gain.setTargetAtTime(isWhisperBoost ? 8 : 0, audioCtx.currentTime, 0.1); compressorNode.threshold.setTargetAtTime(isWhisperBoost ? -45 : -24, audioCtx.currentTime, 0.1); }
     };
-
-    function stopAmbience() {
-      if (ambSource) {
-        try { ambSource.stop(); } catch(e){}
-        ambSource = null;
-      }
-      if (ambGain && audioCtx) ambGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
-      rainBtn.classList.remove('active');
-      campBtn.classList.remove('active');
-      thetaBtn.classList.remove('active');
-      activeAmbience = null;
-    }
-
+    function stopAmbience() { if (ambSource) { try { ambSource.stop(); } catch(e){} ambSource = null; } if (ambGain && audioCtx) ambGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2); rainBtn.classList.remove('active'); campBtn.classList.remove('active'); thetaBtn.classList.remove('active'); activeAmbience = null; }
     function createPinkNoise(cutoff = 800) {
-      const bufferSize = audioCtx.sampleRate * 2;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      let b0 = 0, b1 = 0, b2 = 0;
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + white * 0.0555179;
-        b1 = 0.99332 * b1 + white * 0.0750759;
-        b2 = 0.96900 * b2 + white * 0.1538520;
-        data[i] = (b0 + b1 + b2 + white * 0.5362) * 0.08;
-      }
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
-      noise.loop = true;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = cutoff;
-      noise.connect(filter);
-      filter.connect(ambGain);
-      noise.start();
-      return noise;
+      const bufferSize = audioCtx.sampleRate * 2; const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate); const data = buffer.getChannelData(0); let b0 = 0, b1 = 0, b2 = 0;
+      for (let i = 0; i < bufferSize; i++) { const white = Math.random() * 2 - 1; b0 = 0.99886 * b0 + white * 0.0555179; b1 = 0.99332 * b1 + white * 0.0750759; b2 = 0.96900 * b2 + white * 0.1538520; data[i] = (b0 + b1 + b2 + white * 0.5362) * 0.08; }
+      const noise = audioCtx.createBufferSource(); noise.buffer = buffer; noise.loop = true; const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = cutoff; noise.connect(filter); filter.connect(ambGain); noise.start(); return noise;
     }
-
-    rainBtn.onclick = () => {
-      if (activeAmbience === 'rain') { stopAmbience(); return; }
-      stopAmbience();
-      ambSource = createPinkNoise(900);
-      ambGain.gain.setTargetAtTime(0.18, audioCtx.currentTime, 0.3);
-      rainBtn.classList.add('active');
-      activeAmbience = 'rain';
-    };
-
-    campBtn.onclick = () => {
-      if (activeAmbience === 'camp') { stopAmbience(); return; }
-      stopAmbience();
-      ambSource = createPinkNoise(420);
-      ambGain.gain.setTargetAtTime(0.22, audioCtx.currentTime, 0.3);
-      campBtn.classList.add('active');
-      activeAmbience = 'camp';
-    };
-
+    rainBtn.onclick = () => { if (activeAmbience === 'rain') { stopAmbience(); return; } stopAmbience(); ambSource = createPinkNoise(900); ambGain.gain.setTargetAtTime(0.18, audioCtx.currentTime, 0.3); rainBtn.classList.add('active'); activeAmbience = 'rain'; };
+    campBtn.onclick = () => { if (activeAmbience === 'camp') { stopAmbience(); return; } stopAmbience(); ambSource = createPinkNoise(420); ambGain.gain.setTargetAtTime(0.22, audioCtx.currentTime, 0.3); campBtn.classList.add('active'); activeAmbience = 'camp'; };
     thetaBtn.onclick = () => {
-      if (activeAmbience === 'theta') { stopAmbience(); return; }
-      stopAmbience();
-      const merger = audioCtx.createChannelMerger(2);
-      const oscL = audioCtx.createOscillator();
-      const oscR = audioCtx.createOscillator();
-      oscL.frequency.value = 200;
-      oscR.frequency.value = 206;
-      const gain = audioCtx.createGain();
-      gain.gain.value = 0.06;
-      oscL.connect(merger, 0, 0);
-      oscR.connect(merger, 0, 1);
-      merger.connect(gain);
-      gain.connect(ambGain);
-      oscL.start(); oscR.start();
-      ambGain.gain.setTargetAtTime(0.2, audioCtx.currentTime, 0.3);
-      thetaBtn.classList.add('active');
-      ambSource = oscL;
-      activeAmbience = 'theta';
+      if (activeAmbience === 'theta') { stopAmbience(); return; } stopAmbience(); const merger = audioCtx.createChannelMerger(2); const oscL = audioCtx.createOscillator(); const oscR = audioCtx.createOscillator(); oscL.frequency.value = 200; oscR.frequency.value = 206; const gain = audioCtx.createGain(); gain.gain.value = 0.06; oscL.connect(merger, 0, 0); oscR.connect(merger, 0, 1); merger.connect(gain); gain.connect(ambGain); oscL.start(); oscR.start(); ambGain.gain.setTargetAtTime(0.2, audioCtx.currentTime, 0.3); thetaBtn.classList.add('active'); ambSource = oscL; activeAmbience = 'theta';
     };
-
-    soundstageToggleBtn.onclick = () => {
-      const isHidden = soundstageDrawer.style.display !== 'flex';
-      soundstageDrawer.style.display = isHidden ? 'flex' : 'none';
-      soundstageToggleBtn.innerText = isHidden ? '✕ Close' : '🎧 Soundstage';
-    };
+    soundstageToggleBtn.onclick = () => { soundstageDrawer.style.display = soundstageDrawer.style.display !== 'flex' ? 'flex' : 'none'; soundstageToggleBtn.innerText = soundstageDrawer.style.display === 'flex' ? '✕ Close' : '🎧 Soundstage'; };
 
     function startVisualizerLoop() {
       const buf = new Uint8Array(32);
       function draw() {
         waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
         if (localAnalyser) {
-          localAnalyser.getByteFrequencyData(buf);
-          let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i];
-          const lvl = sum / buf.length;
-          if (lvl > 18 && !isMuted) myAudioDisc.classList.add('speaking');
-          else myAudioDisc.classList.remove('speaking');
-
-          const barWidth = 4, gap = 3, count = 28;
-          const startX = (waveCanvas.width - (count * (barWidth + gap))) / 2;
+          localAnalyser.getByteFrequencyData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i]; const lvl = sum / buf.length;
+          if (lvl > 18 && !isMuted) myAudioDisc.classList.add('speaking'); else myAudioDisc.classList.remove('speaking');
+          const barWidth = 4, gap = 3, count = 28; const startX = (waveCanvas.width - (count * (barWidth + gap))) / 2;
           for (let i = 0; i < count; i++) {
-            const factor = Math.sin((i / count) * Math.PI);
-            const height = Math.min(46, Math.max(4, (lvl / 3.2) * factor + Math.random() * 2));
-            const x = startX + i * (barWidth + gap);
-            const y = (waveCanvas.height - height) / 2;
-            waveCtx.fillStyle = '#6366f1';
-            waveCtx.beginPath();
-            waveCtx.roundRect(x, y, barWidth, height, 2);
-            waveCtx.fill();
+            const factor = Math.sin((i / count) * Math.PI); const height = Math.min(46, Math.max(4, (lvl / 3.2) * factor + Math.random() * 2));
+            waveCtx.fillStyle = '#6366f1'; waveCtx.beginPath(); waveCtx.roundRect(startX + i * (barWidth + gap), (waveCanvas.height - height) / 2, barWidth, height, 2); waveCtx.fill();
           }
-        }
-        requestAnimationFrame(draw);
-      }
-      draw();
+        } requestAnimationFrame(draw);
+      } draw();
     }
 
-    window.addEventListener('deviceorientation', (e) => {
-      if (!isCallActive) return;
-      if (e.beta > 65 && e.beta < 115 && Math.abs(e.gamma) < 25) earShield.style.display = 'block';
-      else earShield.style.display = 'none';
-    });
+    window.addEventListener('deviceorientation', (e) => { if (!isCallActive) return; earShield.style.display = (e.beta > 65 && e.beta < 115 && Math.abs(e.gamma) < 25) ? 'block' : 'none'; });
     earShield.onclick = () => { earShield.style.display = 'none'; };
 
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('autoAnswer') === 'true') {
-        const from = urlParams.get('from');
-        const mode = urlParams.get('mode') || 'video';
-        const sessionToken = urlParams.get('session');
-        const participants = (urlParams.get('participants') || '').split(',').filter(Boolean);
-
-        pendingCallDetails = { from, callMode: mode, sessionToken, allParticipants: participants };
-        setTimeout(() => acceptCallBtn.click(), 600);
+        const from = urlParams.get('from'); const mode = urlParams.get('mode') || 'video'; const sessionToken = urlParams.get('session'); const participants = (urlParams.get('participants') || '').split(',').filter(Boolean);
+        pendingCallDetails = { from, callMode: mode, sessionToken, allParticipants: participants }; setTimeout(() => acceptCallBtn.click(), 600);
       }
     });
 

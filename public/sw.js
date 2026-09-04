@@ -1,25 +1,13 @@
-self.addEventListener('install', () => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (e) => {
-  e.waitUntil(clients.claim());
-});
+self.addEventListener('install', (e) => self.skipWaiting());
+self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
 
 self.addEventListener('push', (event) => {
-  let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch (err) {
-    data = { title: 'Incoming Call', body: event.data.text() };
-  }
-
-  const title = data.title || '📞 Incoming Call';
+  const data = event.data ? event.data.json() : {};
   const options = {
-    body: data.body || 'Your partner is calling. Tap to answer!',
+    body: data.body || 'Tap to answer the call.',
     icon: 'https://emojicdn.elk.sh/🛋️?style=apple',
     badge: 'https://emojicdn.elk.sh/🛋️?style=apple',
-    tag: 'incoming-call-alert',
+    tag: 'call-alert',
     renotify: true,
     requireInteraction: true,
     vibrate: [500, 250, 500, 250, 500, 250, 500],
@@ -31,16 +19,14 @@ self.addEventListener('push', (event) => {
       from: data.from,
       callMode: data.callMode || 'video',
       sessionToken: data.sessionToken,
-      allParticipants: data.allParticipants || []
+      participants: data.allParticipants || []
     }
   };
-
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(self.registration.showNotification(data.title || 'Incoming Call', options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
   if (event.action === 'decline') return;
 
   const payload = event.notification.data || {};
@@ -49,9 +35,8 @@ self.addEventListener('notificationclick', (event) => {
     from: payload.from || '',
     mode: payload.callMode || 'video',
     session: payload.sessionToken || '',
-    participants: (payload.allParticipants || []).join(',')
+    participants: (payload.participants || []).join(',')
   }).toString();
-
   const targetUrl = `/?${queryParams}`;
 
   event.waitUntil(
@@ -62,9 +47,7 @@ self.addEventListener('notificationclick', (event) => {
           return client.focus();
         }
       }
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );
 });
