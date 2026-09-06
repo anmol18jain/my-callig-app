@@ -1,53 +1,52 @@
-self.addEventListener('install', (e) => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
-
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
+  let data = { title: 'Incoming Call', body: 'Someone is calling...', callerId: '' };
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data.body = event.data.text();
+    }
+  }
+
   const options = {
-    body: data.body || 'Tap to answer the call.',
-    icon: 'https://emojicdn.elk.sh/🛋️?style=apple',
-    badge: 'https://emojicdn.elk.sh/🛋️?style=apple',
-    tag: 'call-alert',
+    body: data.body,
+    icon: '/icon.png', // Optional: your logo icon path
+    badge: '/badge.png',
+    tag: 'call-ringing',
     renotify: true,
-    requireInteraction: true,
+    requireInteraction: true, // Keeps notification visible until user answers or rejects
     vibrate: [500, 250, 500, 250, 500, 250, 500],
+    data: {
+      callerId: data.callerId,
+      url: `/?caller=${encodeURIComponent(data.callerId)}`
+    },
     actions: [
       { action: 'answer', title: '📞 Answer' },
-      { action: 'decline', title: '✕ Decline' }
-    ],
-    data: {
-      from: data.from,
-      callMode: data.callMode || 'video',
-      sessionToken: data.sessionToken,
-      participants: data.allParticipants || []
-    }
+      { action: 'decline', title: '❌ Decline' }
+    ]
   };
-  event.waitUntil(self.registration.showNotification(data.title || 'Incoming Call', options));
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
   if (event.action === 'decline') return;
 
-  const payload = event.notification.data || {};
-  const queryParams = new URLSearchParams({
-    autoAnswer: 'true',
-    from: payload.from || '',
-    mode: payload.callMode || 'video',
-    session: payload.sessionToken || '',
-    participants: (payload.participants || []).join(',')
-  }).toString();
-  const targetUrl = `/?${queryParams}`;
-
+  // Re-focus open tab or open a fresh one to accept the call
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if ('focus' in client) {
-          client.navigate(targetUrl);
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (let client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
           return client.focus();
         }
       }
-      if (clients.openWindow) return clients.openWindow(targetUrl);
+      if (clients.openWindow) {
+        return clients.openWindow(event.notification.data.url || '/');
+      }
     })
   );
 });

@@ -1,144 +1,126 @@
 const express = require('express');
 const http = require('http');
-const { WebSocketServer } = require('ws');
-const path = require('path');
+const WebSocket = require('ws');
 const webpush = require('web-push');
+const cors = require('cors');
 
 const app = express();
-const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
-
 app.use(express.json());
+app.use(cors());
 
-// Strict no-cache headers
-app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  next();
-});
+// Configure Web Push with your generated VAPID keys
+const VAPID_PUBLIC_KEY = 'BMis75qpGF20VG4RmyOjo-d29JEl339zpr0pTQouGMnuqMv3ceF-pEkDkpy4ezsjwgndPOG77dDow4MXaaXgUGM';
+const VAPID_PRIVATE_KEY = 'CtyjNq6wh2MFb9Id2xPWZKCHmz_wyJe2wZBjp9HlHCI';
 
-app.use(express.static(path.join(__dirname, 'public'), {
-  etag: false,
-  lastModified: false
-}));
+webpush.setVapidDetails(
+  'mailto:admin@yourdomain.com',
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
+);
 
-// Map: lowercase_username -> { rawName, ws, pushSub }
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
+// Map storing active connections: userId -> { socket, pushSubscription }
 const users = new Map();
 
-function broadcastContactList() {
-  const contactList = Array.from(users.entries()).map(([_, record]) => ({
-    name: record.rawName,
-    online: record.ws !== null && record.ws.readyState === 1
-  }));
-  const msg = JSON.stringify({ type: 'CONTACT_UPDATE', contacts: contactList });
-  for (const record of users.values()) {
-    if (record.ws && record.ws.readyState === 1) {
-      record.ws.send(msg);
-    }
-  }
-}
+// Endpoint to store browser push subscriptions
+app.post('/api/subscribe', (req, res) => {
+  const { userId, subscription } = req.body;
+  if (!userId || !subscription) return res.status(400).send('Missing payload');
+  
+  const existing = users.get(userId) || {};
+  users.set(userId, { ...existing, pushSubscription: subscription });
+  return res.status(200).json({ success: true });
+});
 
 wss.on('connection', (ws) => {
-  let boundUserKey = null;
-  ws.isAlive = true;
+  let currentUserId = null;
 
-  ws.on('pong', () => { ws.isAlive = true; });
-
-  ws.on('message', (raw) => {
+  ws.on('message', async (raw) => {
+    let msg;
     try {
-      const data = JSON.parse(raw);
+      msg = JSON.parse(raw);
+    } catch {
+      return;
+    }
 
-      if (data.type === 'REGISTER') {
-        const rawName = data.username.trim();
-        boundUserKey = rawName.toLowerCase();
-        const existing = users.get(boundUserKey) || { rawName, ws: null, pushSub: null };
-        existing.rawName = rawName;
-        existing.ws = ws;
-        users.set(boundUserKey, existing);
-        console.log(`[ONLINE] ${rawName} (${boundUserKey})`);
-        broadcastContactList();
-        return;
+    // 1. Keep-Alive Ping (Render connection persistence)
+    if (msg.type === 'ping') {
+      ws.send(JSON.stringify({ type: 'pong' }));
+      return;
+    }
+
+    // 2. Identify User
+    if (msg.type === 'register') {
+      currentUserId = msg.userId;
+      const existing = users.get(msg.userId) || {};
+      users.set(msg.userId, { ...existing, socket: ws });
+      return;
+    }
+
+    // 3. Instant Trickle ICE Candidate relay
+    if (msg.type === 'candidate') {
+      const target = users.get(msg.target);
+      if (target && target.socket && target.socket.readyState === WebSocket.OPEN) {
+        target.socket.send(JSON.stringify({
+          type: 'candidate',
+          from: currentUserId,
+          candidate: msg.candidate
+        }));
+      }
+      return;
+    }
+
+    // 4. Offer / Call Initiation
+    if (msg.type === 'offer') {
+      const target = users.get(msg.target);
+
+      // A: If tab is currently open, relay over WebSocket immediately
+      if (target && target.socket && target.socket.readyState === WebSocket.OPEN) {
+        target.socket.send(JSON.stringify({
+          type: 'offer',
+          from: currentUserId,
+          offer: msg.offer
+        }));
       }
 
-      if (data.type === 'CALL_TARGETS') {
-        const callerRecord = users.get(boundUserKey);
-        const callerName = callerRecord ? callerRecord.rawName : boundUserKey;
-
-        data.targets.forEach((targetRaw) => {
-          const targetKey = targetRaw.trim().toLowerCase();
-          const dest = users.get(targetKey);
-
-          if (dest && dest.ws && dest.ws.readyState === 1) {
-            console.log(`[RINGING] ${callerName} -> ${dest.rawName}`);
-            dest.ws.send(JSON.stringify({
-              type: 'INCOMING_CALL',
-              from: callerName,
-              callMode: data.callMode,
-              sessionToken: data.sessionToken,
-              allParticipants: [callerName, ...data.targets]
-            }));
-          } else {
-            console.log(`[CALL FAILED] Target ${targetRaw} (${targetKey}) is offline or not found.`);
-          }
+      // B: Always trigger Push Notification (reaches device if tab is closed)
+      if (target && target.pushSubscription) {
+        const payload = JSON.stringify({
+          title: 'Incoming Call',
+          body: `${currentUserId} is calling you...`,
+          callerId: currentUserId
         });
-        return;
-      }
 
-      if (data.type === 'CALL_ACCEPTED') {
-        const targetKey = data.target.trim().toLowerCase();
-        const dest = users.get(targetKey);
-        if (dest && dest.ws && dest.ws.readyState === 1) {
-          console.log(`[ACCEPTED] Call accepted by ${boundUserKey}, notifying ${dest.rawName}`);
-          dest.ws.send(JSON.stringify({
-            type: 'CALL_ACCEPTED_BY_PEER',
-            from: users.get(boundUserKey)?.rawName || boundUserKey,
-            sessionToken: data.sessionToken
-          }));
-        }
-        return;
+        webpush.sendNotification(target.pushSubscription, payload).catch(err => {
+          console.error('Push delivery error:', err.statusCode);
+        });
       }
+      return;
+    }
 
-      // Forward WebRTC signals (case-insensitive target)
-      if (data.target) {
-        const targetKey = data.target.trim().toLowerCase();
-        const dest = users.get(targetKey);
-        if (dest && dest.ws && dest.ws.readyState === 1) {
-          dest.ws.send(JSON.stringify({
-            ...data,
-            sender: users.get(boundUserKey)?.rawName || boundUserKey
-          }));
-        }
+    // 5. Answer Relay
+    if (msg.type === 'answer') {
+      const target = users.get(msg.target);
+      if (target && target.socket && target.socket.readyState === WebSocket.OPEN) {
+        target.socket.send(JSON.stringify({
+          type: 'answer',
+          from: currentUserId,
+          answer: msg.answer
+        }));
       }
-    } catch (err) {
-      console.error('[Signaling Error]:', err.message);
+      return;
     }
   });
 
   ws.on('close', () => {
-    if (boundUserKey && users.has(boundUserKey)) {
-      const current = users.get(boundUserKey);
-      current.ws = null;
-      console.log(`[OFFLINE] ${boundUserKey}`);
-      broadcastContactList();
+    if (currentUserId && users.has(currentUserId)) {
+      const record = users.get(currentUserId);
+      users.set(currentUserId, { ...record, socket: null });
     }
   });
 });
 
-// Render 25s ping-pong keepalive
-const pingInterval = setInterval(() => {
-  wss.clients.forEach((ws) => {
-    if (!ws.isAlive) return ws.terminate();
-    ws.isAlive = false;
-    ws.ping();
-  });
-}, 25000);
-
-wss.on('close', () => clearInterval(pingInterval));
-
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Lounge Suite active on port ${PORT}`));
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
