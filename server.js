@@ -9,7 +9,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve static frontend
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
@@ -27,44 +26,33 @@ app.get('/sw.js', (req, res) => {
   });
 });
 
-// Configure VAPID Keys
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BGvJGF5gcTfmZ3yA059WkFBvWAuO5Cskom8t_ltXcaEjRVqmaJaNFH6nuBm7hHidGLQJpAaTyA6dVmijq_8Ln1I';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '0bLcNGyc-2D8_8x1xIPNUiL3X5hj7Vm-XuiIFtmJmXU';
 
 if (VAPID_PUBLIC_KEY !== 'BGvJGF5gcTfmZ3yA059WkFBvWAuO5Cskom8t_ltXcaEjRVqmaJaNFH6nuBm7hHidGLQJpAaTyA6dVmijq_8Ln1I') {
-  webpush.setVapidDetails(
-    'mailto:admin@example.com',
-    VAPID_PUBLIC_KEY,
-    VAPID_PRIVATE_KEY
-  );
+  webpush.setVapidDetails('mailto:support@loungesuite.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 }
 
-// Map: userId -> { socket, pushSubscription, lastSeen }
 const directory = new Map();
 
-function broadcastDirectory() {
+function broadcastPresence() {
   const onlineUsers = [];
   directory.forEach((val, key) => {
     if (val.socket && val.socket.readyState === WebSocket.OPEN) {
       onlineUsers.push(key);
     }
   });
-
   const payload = JSON.stringify({ type: 'presence_update', users: onlineUsers });
   directory.forEach((val) => {
-    if (val.socket && val.socket.readyState === WebSocket.OPEN) {
-      val.socket.send(payload);
-    }
+    if (val.socket && val.socket.readyState === WebSocket.OPEN) val.socket.send(payload);
   });
 }
 
-// Push subscription endpoint
 app.post('/api/subscribe', (req, res) => {
   const { userId, subscription } = req.body;
   if (!userId || !subscription) return res.status(400).json({ error: 'Missing params' });
-
-  const record = directory.get(userId) || {};
-  directory.set(userId, { ...record, pushSubscription: subscription });
+  const entry = directory.get(userId) || {};
+  directory.set(userId, { ...entry, pushSubscription: subscription });
   return res.status(200).json({ success: true });
 });
 
@@ -76,28 +64,21 @@ wss.on('connection', (ws) => {
 
   ws.on('message', async (raw) => {
     let msg;
-    try {
-      msg = JSON.parse(raw);
-    } catch {
-      return;
-    }
+    try { msg = JSON.parse(raw); } catch { return; }
 
-    // 1. Keep-Alive Ping (prevents Render sleep)
     if (msg.type === 'ping') {
       ws.send(JSON.stringify({ type: 'pong' }));
       return;
     }
 
-    // 2. Device Registration & Instant Presence Broadcast
     if (msg.type === 'register') {
       boundUser = msg.userId.trim();
-      const existing = directory.get(boundUser) || {};
-      directory.set(boundUser, { ...existing, socket: ws });
-      broadcastDirectory();
+      const entry = directory.get(boundUser) || {};
+      directory.set(boundUser, { ...entry, socket: ws });
+      broadcastPresence();
       return;
     }
 
-    // 3. Lightning Trickle ICE Forwarding
     if (msg.type === 'candidate') {
       const recipient = directory.get(msg.target?.trim());
       if (recipient?.socket?.readyState === WebSocket.OPEN) {
@@ -110,35 +91,27 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // 4. Call Offer + Wake Push if Offline
     if (msg.type === 'offer') {
       const recipient = directory.get(msg.target?.trim());
-
-      // If active on WebSocket
       if (recipient?.socket?.readyState === WebSocket.OPEN) {
         recipient.socket.send(JSON.stringify({
           type: 'offer',
           from: boundUser,
-          offer: msg.offer
+          offer: msg.offer,
+          callMode: msg.callMode
         }));
       }
-
-      // If asleep / tab closed -> Trigger Background Web Push
       if (recipient?.pushSubscription && VAPID_PUBLIC_KEY !== 'BGvJGF5gcTfmZ3yA059WkFBvWAuO5Cskom8t_ltXcaEjRVqmaJaNFH6nuBm7hHidGLQJpAaTyA6dVmijq_8Ln1I') {
         const payload = JSON.stringify({
-          title: 'Incoming Call',
+          title: `Incoming ${msg.callMode === 'audio' ? 'Audio' : 'Video'} Call`,
           callerId: boundUser
         });
-
-        webpush.sendNotification(recipient.pushSubscription, payload, {
-          TTL: 60,
-          urgency: 'high'
-        }).catch((err) => console.error('Push error:', err.statusCode));
+        webpush.sendNotification(recipient.pushSubscription, payload, { TTL: 60, urgency: 'high' })
+          .catch(e => console.error('Push error:', e.statusCode));
       }
       return;
     }
 
-    // 5. Answer Forwarding
     if (msg.type === 'answer') {
       const recipient = directory.get(msg.target?.trim());
       if (recipient?.socket?.readyState === WebSocket.OPEN) {
@@ -151,7 +124,6 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // 6. Hangup
     if (msg.type === 'hangup') {
       const recipient = directory.get(msg.target?.trim());
       if (recipient?.socket?.readyState === WebSocket.OPEN) {
@@ -162,12 +134,12 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     if (boundUser && directory.has(boundUser)) {
-      const record = directory.get(boundUser);
-      directory.set(boundUser, { ...record, socket: null });
-      broadcastDirectory();
+      const entry = directory.get(boundUser);
+      directory.set(boundUser, { ...entry, socket: null });
+      broadcastPresence();
     }
   });
 });
 
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => console.log(`Active on port ${PORT}`));
+server.listen(PORT, () => console.log(`Lounge Server online on port ${PORT}`));

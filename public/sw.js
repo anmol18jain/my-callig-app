@@ -2,23 +2,19 @@ self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
 
 self.addEventListener('push', (event) => {
-  let payload = { title: 'Incoming Call', callerId: 'Someone' };
+  let payload = { title: 'Incoming Call', callerId: 'Lounge User' };
   if (event.data) {
-    try {
-      payload = event.data.json();
-    } catch {
-      payload.callerId = event.data.text();
-    }
+    try { payload = event.data.json(); } catch { payload.callerId = event.data.text(); }
   }
 
   const options = {
     body: `${payload.callerId} is calling you...`,
-    icon: '/icon.png',
-    badge: '/badge.png',
-    tag: 'active-call-alert',
+    icon: 'https://emojicdn.elk.sh/📞?style=apple',
+    badge: 'https://emojicdn.elk.sh/🛋️?style=apple',
+    tag: 'lounge-incoming-call',
     renotify: true,
     requireInteraction: true,
-    vibrate: [600, 300, 600, 300, 800, 400, 1000],
+    vibrate: [800, 400, 800, 400, 1000],
     data: {
       callerId: payload.callerId,
       url: `/?callFrom=${encodeURIComponent(payload.callerId)}`
@@ -37,7 +33,6 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'decline') return;
 
   const targetUrl = event.notification.data.url || '/';
-
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((winClients) => {
       for (const client of winClients) {
