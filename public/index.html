@@ -7,290 +7,675 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Lounge Suite</title>
-  
+
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#09090b" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="https://emojicdn.elk.sh/🛋️?style=apple" />
-  
+
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
     :root {
-      --bg: #09090b; --card: #121215; --border: #232328; --accent: #6366f1;
-      --accent-glow: rgba(99, 102, 241, 0.35); --green: #22c55e; --pink: #ec4899;
-      --amber: #f59e0b; --red: #ef4444; --text: #f4f4f5; --text-dim: #71717a;
+      --bg: #09090b;
+      --card: #121215;
+      --card-glass: rgba(18, 18, 21, 0.82);
+      --border: #232328;
+      --border-focus: #3b82f6;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.35);
+      --green: #22c55e;
+      --green-glow: rgba(34, 197, 94, 0.4);
+      --pink: #ec4899;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --red-hover: #dc2626;
+      --text: #f4f4f5;
+      --text-dim: #a1a1aa;
     }
+
     * {
-      box-sizing: border-box; margin: 0; padding: 0;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      -webkit-tap-highlight-color: transparent; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
+
     body {
-      width: 100vw; height: 100dvh; background: var(--bg); color: var(--text);
-      overflow: hidden; display: flex; flex-direction: column;
+      width: 100vw;
+      height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
-    #earBlackoutShield {
-      display: none; position: fixed; inset: 0; width: 100vw; height: 100vh;
-      background: #000; z-index: 99999; touch-action: none;
-    }
-
+    /* Top Navigation Bar */
     .top-bar {
-      height: 52px; padding: 0 16px; display: flex; align-items: center;
-      justify-content: space-between; border-bottom: 1px solid var(--border);
-      background: rgba(9, 9, 11, 0.92); backdrop-filter: blur(14px); z-index: 60;
+      height: 54px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: var(--card-glass);
+      backdrop-filter: blur(16px);
+      z-index: 60;
     }
+
     .status-pill {
-      display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;
-      background: var(--card); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--card);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
     }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+    }
+
+    .status-dot.offline {
+      background: var(--red);
+      box-shadow: 0 0 10px var(--red);
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
     .btn-pill {
-      background: none; border: 1px solid var(--border); color: #38bdf8;
-      font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 12px; cursor: pointer;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: #38bdf8;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
     }
 
+    .btn-pill:hover {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    /* Video Workspace */
     .viewport-container {
-      flex: 1; position: relative; overflow: hidden; display: flex;
-      align-items: center; justify-content: center;
-    }
-
-    #audioStage {
-      display: none; flex-direction: column; align-items: center; justify-content: center;
-      width: 100%; height: 100%; position: absolute; inset: 0; z-index: 10;
-    }
-    .audio-mesh-grid {
-      display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
-      gap: 28px; padding: 20px; width: 100%; max-width: 600px;
-    }
-    .avatar-card { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .avatar-disc {
-      width: 95px; height: 95px; border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #27272a, #121215);
-      border: 2px solid var(--border); display: flex; align-items: center;
-      justify-content: center; font-size: 38px; position: relative;
-      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .avatar-disc.speaking { border-color: var(--accent); box-shadow: 0 0 32px var(--accent-glow); transform: scale(1.08); }
-    #waveCanvas {
-      position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
-      width: 280px; height: 50px; pointer-events: none; opacity: 0.85;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
     }
 
     #mainVideoContainer {
-      position: absolute; inset: 0; background: #000; display: flex;
-      align-items: center; justify-content: center; z-index: 15;
+      position: absolute;
+      inset: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 15;
     }
-    #mainPlayer, #ytPlayer { width: 100%; height: 100%; object-fit: contain; }
-    #ytWrapper { width: 100%; height: 100%; display: none; }
 
+    #mainPlayer, #ytPlayer {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    #ytWrapper {
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+
+    /* Grid Stage */
     #videoMeshGrid {
-      position: absolute; inset: 0; padding: 8px; display: none;
-      gap: 8px; z-index: 25; grid-template-columns: 1fr; grid-template-rows: 1fr;
+      position: absolute;
+      inset: 0;
+      padding: 10px;
+      display: none;
+      gap: 10px;
+      z-index: 25;
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr;
     }
+
     .video-tile {
-      position: relative; border-radius: 16px; overflow: hidden; background: #121215;
-      border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #121215;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .video-tile video { width: 100%; height: 100%; object-fit: cover; }
-    .video-tile video.mirror { transform: scaleX(-1); }
+
+    .video-tile video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .video-tile video.mirror {
+      transform: scaleX(-1);
+    }
+
     .tile-label {
-      position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7);
-      padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
     }
 
+    /* Picture-in-Picture Panels */
     .pip-box {
-      position: absolute; width: 130px; height: 175px; border-radius: 16px;
-      overflow: hidden; background: #18181b; border: 2px solid #3f3f46;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 45; cursor: grab; touch-action: none;
+      position: absolute;
+      width: 120px;
+      height: 160px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #18181b;
+      border: 2px solid #3f3f46;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      z-index: 45;
+      cursor: grab;
+      touch-action: none;
+      transition: border-color 0.2s ease;
     }
-    .pip-box video { width: 100%; height: 100%; object-fit: cover; background: #000; }
-    .pip-box video.mirror-mode { transform: scaleX(-1); }
+
+    .pip-box:hover {
+      border-color: #38bdf8;
+    }
+
+    .pip-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #000;
+    }
+
+    .pip-box video.mirror-mode {
+      transform: scaleX(-1);
+    }
+
     .pip-label {
-      position: absolute; bottom: 4px; left: 6px; background: rgba(0,0,0,0.75);
-      padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; z-index: 2;
+      position: absolute;
+      bottom: 6px;
+      left: 6px;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      z-index: 2;
     }
 
+    /* Diagnostics Badge */
     #diagStatus {
-      position: fixed; bottom: 84px; left: 12px; font-size: 11px;
-      background: rgba(0,0,0,0.75); padding: 4px 8px; border-radius: 6px;
-      color: #38bdf8; z-index: 99; pointer-events: none; font-family: monospace;
+      position: fixed;
+      bottom: 84px;
+      left: 12px;
+      font-size: 11px;
+      background: rgba(18, 18, 22, 0.85);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+      padding: 4px 10px;
+      border-radius: 8px;
+      color: #38bdf8;
+      z-index: 99;
+      pointer-events: none;
+      font-family: monospace;
     }
 
-    #doodleCanvas {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      pointer-events: none; touch-action: none; z-index: 50;
-    }
-    #doodleCanvas.drawing-active { pointer-events: auto !important; }
-
-    #subtitlesBanner {
-      position: fixed; bottom: 84px; left: 16px; right: 16px;
-      background: rgba(18, 18, 22, 0.92); border: 1px solid var(--border);
-      border-radius: 14px; padding: 10px 16px; text-align: center;
-      backdrop-filter: blur(14px); display: none; z-index: 70; max-width: 550px; margin: 0 auto;
-    }
-    .sub-speaker { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
-    .sub-text { font-size: 14px; font-weight: 500; color: #fde047; line-height: 1.4; }
-
-    .reaction-burst-box {
-      position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
-      font-size: 54px; pointer-events: none; z-index: 85;
-      animation: popBurst 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
-    }
-    @keyframes popBurst {
-      0% { transform: translate(-50%, 0) scale(0.3); opacity: 0; }
-      20% { transform: translate(-50%, -40px) scale(1.4); opacity: 1; }
-      80% { transform: translate(-50%, -120px) scale(1.0); opacity: 1; }
-      100% { transform: translate(-50%, -180px) scale(0.6); opacity: 0; }
-    }
-
+    /* Modern Control Dock */
     .controls-dock {
-      height: 74px; padding: 0 14px max(10px, env(safe-area-inset-bottom));
-      display: none; align-items: center; justify-content: flex-start; gap: 8px;
-      background: rgba(9, 9, 11, 0.94); border-top: 1px solid var(--border);
-      z-index: 60; backdrop-filter: blur(14px); overflow-x: auto; scrollbar-width: none;
-    }
-    .controls-dock::-webkit-scrollbar { display: none; }
-    .c-btn {
-      width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--border);
-      background: var(--card); color: var(--text); font-size: 17px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; position: relative;
-      flex-shrink: 0; transition: transform 0.15s ease, background 0.2s ease;
-    }
-    .c-btn:active { transform: scale(0.9); }
-    .c-btn.active-blue { background: #0284c7 !important; border-color: #38bdf8 !important; }
-    .c-btn.active-pink { background: var(--pink) !important; border-color: #f472b6 !important; }
-    .c-btn.active-amber { background: #d97706 !important; border-color: #fbbf24 !important; }
-    .c-btn-end { background: var(--red) !important; border-color: #dc2626 !important; }
-    .badge-counter {
-      position: absolute; top: -3px; right: -3px; width: 18px; height: 18px;
-      background: var(--pink); border-radius: 50%; font-size: 10px; font-weight: bold;
-      display: none; align-items: center; justify-content: center;
+      height: 72px;
+      padding: 0 16px max(10px, env(safe-area-inset-bottom));
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: var(--card-glass);
+      border-top: 1px solid var(--border);
+      z-index: 60;
+      backdrop-filter: blur(20px);
+      overflow-x: auto;
+      scrollbar-width: none;
     }
 
+    .controls-dock::-webkit-scrollbar {
+      display: none;
+    }
+
+    .c-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 23px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .c-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .c-btn:hover {
+      background: #1e1e24;
+      border-color: #3f3f46;
+      transform: translateY(-2px);
+    }
+
+    .c-btn:active {
+      transform: scale(0.92);
+    }
+
+    .c-btn.active-blue {
+      background: #0284c7 !important;
+      border-color: #38bdf8 !important;
+      color: #fff;
+    }
+
+    .c-btn.active-pink {
+      background: var(--pink) !important;
+      border-color: #f472b6 !important;
+      color: #fff;
+    }
+
+    .c-btn.active-amber {
+      background: #d97706 !important;
+      border-color: #fbbf24 !important;
+      color: #fff;
+    }
+
+    .c-btn-end {
+      background: var(--red) !important;
+      border-color: var(--red) !important;
+      color: #fff;
+    }
+
+    .c-btn-end:hover {
+      background: var(--red-hover) !important;
+    }
+
+    .badge-counter {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 18px;
+      height: 18px;
+      background: var(--pink);
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: bold;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--bg);
+    }
+
+    /* Contacts Directory Screen */
+    #contactsScreen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 20px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .contacts-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .user-profile-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1e293b, #334155);
+      border: 1px solid #475569;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .contact-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .contact-card:hover {
+      border-color: #3f3f46;
+      background: #17171c;
+    }
+
+    .contact-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .contact-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+
+    .contact-dot.online {
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green-glow);
+    }
+
+    .call-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .action-call-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease;
+    }
+
+    .action-call-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2;
+      stroke: currentColor;
+      fill: none;
+    }
+
+    .action-call-btn:active {
+      transform: scale(0.92);
+    }
+
+    .btn-audio-call {
+      background: #27272a;
+      color: #fff;
+    }
+
+    .btn-audio-call:hover {
+      background: #3f3f46;
+    }
+
+    .btn-video-call {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .btn-video-call:hover {
+      background: #16a34a;
+    }
+
+    /* Slide Drawers & Modals */
     #chatDrawer {
-      position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 360px;
-      background: #111114; border-left: 1px solid var(--border); z-index: 100;
-      display: flex; flex-direction: column; transform: translateX(100%);
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      max-width: 380px;
+      background: #111114;
+      border-left: 1px solid var(--border);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    #chatDrawer.open { transform: translateX(0); }
-    .chat-header { height: 52px; padding: 0 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-    .chat-bubble { max-width: 80%; padding: 8px 12px; border-radius: 14px; font-size: 13px; line-height: 1.4; }
-    .chat-mine { align-self: flex-end; background: #005c4b; color: #e9edef; }
-    .chat-theirs { align-self: flex-start; background: #202c33; color: #e9edef; }
-    .chat-sender { font-size: 10px; font-weight: 700; color: #38bdf8; margin-bottom: 2px; }
-    .chat-input-bar { padding: 10px 14px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); display: flex; gap: 8px; background: #18181b; }
-    .chat-input { flex: 1; height: 38px; background: #27272a; border: 1px solid var(--border); border-radius: 19px; color: white; padding: 0 14px; font-size: 13px; outline: none; }
-    .chat-send-btn { width: 38px; height: 38px; border-radius: 50%; border: none; background: #00a884; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-    #soundstageDrawer {
-      position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%);
-      width: calc(100% - 24px); max-width: 440px; background: rgba(18, 18, 22, 0.96);
-      border: 1px solid var(--border); border-radius: 20px; padding: 16px;
-      backdrop-filter: blur(16px); z-index: 90; display: none; flex-direction: column; gap: 12px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    #chatDrawer.open {
+      transform: translateX(0);
     }
-    .stage-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
-    .amb-chip { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 10px; font-size: 12px; cursor: pointer; }
-    .amb-chip.active { background: var(--accent); }
 
-    #watchDrawer {
-      position: fixed; bottom: 82px; left: 0; right: 0;
-      background: rgba(18, 18, 22, 0.97); backdrop-filter: blur(14px);
-      padding: 14px 16px; border-top: 1px solid var(--border); display: none;
-      flex-direction: column; gap: 10px; z-index: 90;
+    .chat-header {
+      height: 54px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    #watchDrawer input, #watchDrawer select { padding: 8px 12px; background: #27272a; border: 1px solid var(--border); border-radius: 8px; color: white; outline: none; font-size: 13px; }
 
-    .app-modal {
-      position: fixed; inset: 15% 10%; background: #18181b; border: 1px solid var(--border);
-      border-radius: 20px; display: none; flex-direction: column; padding: 20px; z-index: 1000; box-shadow: 0 0 35px rgba(0,0,0,0.8);
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
-    .app-modal-list { flex: 1; overflow-y: auto; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
-    .modal-item { background: #27272a; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 
+    .chat-bubble {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .chat-mine {
+      align-self: flex-end;
+      background: #2563eb;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-theirs {
+      align-self: flex-start;
+      background: #27272a;
+      color: #f4f4f5;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-input-bar {
+      padding: 12px 14px max(12px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      background: #18181b;
+    }
+
+    .chat-input {
+      flex: 1;
+      height: 42px;
+      background: #27272a;
+      border: 1px solid var(--border);
+      border-radius: 21px;
+      color: white;
+      padding: 0 16px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .chat-send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: none;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Incoming Call Fullscreen Modal */
     #incomingCallModal {
-      display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.97);
-      backdrop-filter: blur(20px); z-index: 4000; flex-direction: column;
-      align-items: center; justify-content: space-around; padding: 60px 20px;
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 9, 11, 0.96);
+      backdrop-filter: blur(24px);
+      z-index: 4000;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-around;
+      padding: 60px 20px;
     }
+
     .pulse-avatar {
-      width: 115px; height: 115px; border-radius: 50%; background: #1f1f23;
-      border: 3px solid var(--accent); display: flex; align-items: center;
-      justify-content: center; font-size: 46px; animation: callPulse 1.5s infinite;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: #18181b;
+      border: 3px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      animation: callPulse 1.5s infinite;
     }
+
     @keyframes callPulse {
       0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6); }
       70% { transform: scale(1.06); box-shadow: 0 0 0 24px rgba(99, 102, 241, 0); }
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
     }
 
-    #contactsScreen {
-      position: fixed; inset: 0; background: var(--bg); z-index: 2000;
-      display: flex; flex-direction: column; padding: 20px 16px;
-    }
-    .contacts-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .user-profile-badge { display: flex; align-items: center; gap: 10px; }
-    .user-avatar { width: 44px; height: 44px; border-radius: 50%; background: #27272a; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-    .contact-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .contact-card.selected { border-color: var(--accent); background: rgba(99, 102, 241, 0.1); }
-    .contact-info { display: flex; align-items: center; gap: 12px; }
-    .contact-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-dim); }
-    .contact-dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); }
-    .call-actions { display: flex; gap: 6px; align-items: center; }
-    .action-call-btn { width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; }
-    .btn-audio-call { background: #27272a; color: #fff; }
-    .btn-video-call { background: #0284c7; color: #fff; }
-
-    #groupCallBar {
-      display: none; position: fixed; bottom: 20px; left: 16px; right: 16px;
-      background: #1e1e24; border: 1px solid var(--accent); border-radius: 20px;
-      padding: 12px 18px; align-items: center; justify-content: space-between; z-index: 2500;
-    }
-    .group-btn { padding: 8px 16px; border-radius: 14px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-
     .app-popup-modal {
-      display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.95);
-      z-index: 3500; align-items: center; justify-content: center; padding: 20px;
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 9, 11, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 3500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
     }
-    .popup-box { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 26px 20px; width: 100%; max-width: 320px; text-align: center; }
-    .popup-box input { width: 100%; height: 44px; background: #27272a; border: 1px solid var(--border); border-radius: 12px; color: white; text-align: center; margin: 14px 0; outline: none; font-size: 14px; font-weight: 600; }
-    .popup-box button { width: 100%; height: 44px; border-radius: 22px; border: none; background: var(--accent); color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+    .popup-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 26px 22px;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+
+    .popup-box input {
+      width: 100%;
+      height: 44px;
+      background: #27272a;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: white;
+      text-align: center;
+      margin: 16px 0;
+      outline: none;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .popup-box button {
+      width: 100%;
+      height: 44px;
+      border-radius: 12px;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-  <div id="earBlackoutShield"></div>
-
+  <!-- Top Bar -->
   <div class="top-bar">
     <div class="status-pill">
-      <span class="status-dot"></span>
-      <span id="callSessionTitle">Active Lounge</span>
+      <span id="selfStatusDot" class="status-dot"></span>
+      <span id="callSessionTitle">Connecting...</span>
     </div>
-    <div style="display: flex; gap: 8px;">
-      <button class="btn-pill" id="soundstageToggleBtn">🎧 Soundstage</button>
-      <button class="btn-pill" id="recapBtn">🎬 Highlights</button>
-      <button class="btn-pill" id="pipSysBtn">🪟 Sys PiP</button>
+    <div class="nav-actions">
+      <button class="btn-pill" id="pipSysBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><rect x="12" y="9" width="8" height="6" rx="1"/></svg>
+        PiP
+      </button>
+      <button class="btn-pill" id="switchUserBtn">Switch User</button>
     </div>
   </div>
 
-  <canvas id="doodleCanvas"></canvas>
-
   <div class="viewport-container">
-    <div id="audioStage">
-      <div class="audio-mesh-grid" id="audioMeshGrid">
-        <div class="avatar-card" id="myAudioCard">
-          <div class="avatar-disc" id="myAudioDisc">🎙️</div>
-          <span style="font-size: 12px; font-weight: 600;" id="myAudioName">You</span>
-        </div>
-      </div>
-      <canvas id="waveCanvas"></canvas>
-    </div>
-
     <div id="mainVideoContainer">
       <video id="mainPlayer" playsinline src="https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4"></video>
       <div id="ytWrapper"><div id="ytPlayer"></div></div>
@@ -303,166 +688,99 @@
       </div>
     </div>
 
-    <div class="pip-box" id="localPip" style="top: 65px; right: 16px;">
+    <!-- Floating Picture-in-Picture Views -->
+    <div class="pip-box" id="localPip" style="top: 20px; right: 16px;">
       <video id="myVideo" class="mirror-mode" autoplay playsinline muted></video>
       <span class="pip-label">You</span>
     </div>
 
-    <div class="pip-box" id="remotePip" style="top: 65px; left: 16px;">
+    <div class="pip-box" id="remotePip" style="top: 20px; left: 16px;">
       <video id="partnerVideo" autoplay playsinline></video>
       <span class="pip-label" id="partnerPipLabel">Waiting...</span>
     </div>
 
     <div id="diagStatus">Signal: Ready</div>
-
-    <div id="subtitlesBanner">
-      <div class="sub-speaker" id="subSpeaker">You:</div>
-      <div class="sub-text" id="subText">Listening...</div>
-    </div>
   </div>
 
-  <div id="soundstageDrawer">
-    <div style="font-size: 12px; font-weight: 700; color: #a1a1aa; text-transform: uppercase;">Co-Listen Ambience</div>
-    <div class="stage-row">
-      <span>Ambient Soundscape</span>
-      <div style="display: flex; gap: 6px;">
-        <button class="amb-chip" id="rainBtn">🌧️ Rain</button>
-        <button class="amb-chip" id="campBtn">🔥 Fire</button>
-        <button class="amb-chip" id="thetaBtn">🧠 Theta</button>
-      </div>
-    </div>
-    <div class="stage-row">
-      <span>3D Partner Ear Position</span>
-      <select id="pannerSelect" style="background:#27272a; color:#fff; border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px; outline:none;">
-        <option value="center">Center</option>
-        <option value="left">Left Ear</option>
-        <option value="right">Right Ear</option>
-      </select>
-    </div>
-    <div class="stage-row">
-      <span>Whisper Boost (+8dB EQ)</span>
-      <button class="amb-chip" id="whisperBoostBtn">🤫 Off</button>
-    </div>
-  </div>
-
-  <div id="watchDrawer">
-    <div style="display: flex; gap: 8px;">
-      <input type="text" id="videoUrlInput" placeholder="Paste YouTube Link or Direct MP4..." style="flex: 1;" />
-      <button class="c-btn" id="loadVideoBtn" style="height: 36px; border-radius: 8px; width: 60px; font-size: 12px;">Load</button>
-    </div>
-    <div style="display: flex; gap: 10px; align-items: center; font-size: 12px;">
-      <span>Speed:</span>
-      <select id="rateSelect" style="flex: 1;">
-        <option value="1.0">1.0x</option>
-        <option value="1.25">1.25x</option>
-        <option value="1.5">1.5x</option>
-        <option value="2.0">2.0x</option>
-      </select>
-      <button class="btn-pill" id="couchModeToggle" style="color: #00ffa3;">🛋️ Couch Mode</button>
-    </div>
-    <div style="display: flex; gap: 12px; align-items: center; font-size: 12px;">
-      <span>Scale:</span>
-      <input type="range" id="pipScaleSlider" min="80" max="200" value="130" style="flex: 1;" />
-      <span>Opacity:</span>
-      <input type="range" id="pipOpacitySlider" min="30" max="100" value="95" style="flex: 1;" />
-    </div>
-  </div>
-
-  <div id="chatDrawer">
-    <div class="chat-header">
-      <div style="font-size: 14px; font-weight: 600;">💬 Lounge Chat</div>
-      <button class="btn-pill" id="closeChatBtn" style="color:var(--red); border:none;">✕</button>
-    </div>
-    <div class="chat-messages" id="chatMessages">
-      <div style="text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 15px;">
-        End-to-End P2P Encrypted.
-      </div>
-    </div>
-    <div class="chat-input-bar">
-      <input type="text" id="chatInput" class="chat-input" placeholder="Message..." />
-      <button id="sendChatBtn" class="chat-send-btn">➤</button>
-    </div>
-  </div>
-
-  <div class="app-modal" id="recapModal">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h3 style="color: #ec4899; font-size: 15px;">🎬 Highlights</h3>
-      <button class="btn-pill" id="closeRecapBtn" style="color: #ef4444; font-size: 14px; border: none;">✕</button>
-    </div>
-    <div class="app-modal-list" id="recapList"></div>
-  </div>
-
-  <div id="incomingCallModal">
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 14px;">
-      <div class="pulse-avatar">👤</div>
-      <h2 id="incomingCallerName" style="font-size: 22px; font-weight: 700;">Caller</h2>
-      <p id="incomingCallType" style="font-size: 13px; color: var(--text-dim);">Lounge Suite Invite</p>
-    </div>
-    <div style="display: flex; gap: 48px; align-items: center;">
-      <button id="declineCallBtn" style="width: 65px; height: 65px; border-radius: 50%; border: none; background: var(--red); color: white; font-size: 24px; cursor: pointer;">✕</button>
-      <button id="acceptCallBtn" style="width: 65px; height: 65px; border-radius: 50%; border: none; background: var(--green); color: white; font-size: 24px; cursor: pointer;">📞</button>
-    </div>
-  </div>
-
-  <audio id="ringtoneAudio" loop src="https://actions.google.com/sounds/v1/alarms/phone_alerts_and_rings.ogg"></audio>
-  <audio id="remoteAudioSink" autoplay playsinline></audio>
-
+  <!-- Full-featured In-Call Floating Dock -->
   <div class="controls-dock" id="controlsDock">
-    <button class="c-btn" id="callModeToggleBtn" title="Toggle Grid Call / Watch Party">👥</button>
-    <button class="c-btn" id="playPauseBtn" title="Play/Pause Video">▶</button>
-    <button class="c-btn" id="rewindBtn" title="Rewind 10s">⏪</button>
-    <button class="c-btn" id="forwardBtn" title="Forward 10s">⏩</button>
-    <button class="c-btn" id="bookmarkBtn" title="Bookmark Video Moment">📌</button>
-    <button class="c-btn" id="camFlipBtn" title="Flip Camera">🔄</button>
-    <button class="c-btn" id="camToggleBtn" title="Camera On/Off">📹</button>
-    <button class="c-btn" id="muteMicBtn" title="Mute/Unmute Mic">🎙️</button>
-    <button class="c-btn" id="screenShareBtn" title="Screen Share">🖥️</button>
-    <button class="c-btn" id="doodleBtn" title="Thermal Canvas">🎨</button>
-    <button class="c-btn" id="subsBtn" title="Live Subtitles">💬</button>
-    <button class="c-btn" id="fileBeamBtn" title="P2P 1GB Beam">⚡</button>
-    <button class="c-btn" id="watchDrawerBtn" title="Watch Party Controls">🍿</button>
-    <button class="c-btn" id="chatBtn" title="Chat">✉️<span class="badge-counter" id="chatBadge">0</span></button>
-    <button class="c-btn c-btn-end" id="hangupBtn" title="Leave">📞</button>
+    <button class="c-btn" id="camToggleBtn" title="Toggle Camera">
+      <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+    </button>
+    <button class="c-btn" id="camFlipBtn" title="Flip Camera">
+      <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+    </button>
+    <button class="c-btn" id="muteMicBtn" title="Mute Microphone">
+      <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
+    <button class="c-btn" id="callModeToggleBtn" title="Toggle Grid View">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    </button>
+    <button class="c-btn" id="chatBtn" title="Open Chat">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="badge-counter" id="chatBadge">0</span>
+    </button>
+    <button class="c-btn c-btn-end" id="hangupBtn" title="End Call">
+      <svg viewBox="0 0 24 24" style="transform: rotate(135deg);"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    </button>
   </div>
 
-  <input type="file" id="p2pFileInput" style="display: none;" />
-
+  <!-- Contacts & Device Selection -->
   <div id="contactsScreen">
     <div class="contacts-header">
       <div class="user-profile-badge">
         <div class="user-avatar" id="myAvatarDisplay">👤</div>
         <div>
-          <div style="font-size: 16px; font-weight: 700;" id="myUsernameDisplay">...</div>
-          <div style="font-size: 11px; color: var(--green);">● Active Device</div>
+          <div style="font-size: 16px; font-weight: 700;" id="myUsernameDisplay">Connecting...</div>
+          <div style="font-size: 11px; color: var(--green);">● Online & Ready</div>
         </div>
       </div>
-      <div style="display: flex; gap: 8px;">
-        <button class="btn-pill" id="openAddContactBtn" style="color: #22c55e; border-color: #22c55e;">+ Add Person</button>
-        <button class="btn-pill" id="switchUserBtn">Switch User</button>
-      </div>
+      <button class="btn-pill" id="openAddContactBtn" style="color: var(--green); border-color: var(--green);">+ Add Contact</button>
     </div>
 
-    <div style="font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; display: flex; justify-content: space-between;">
-      <span>Your Contacts</span>
-      <span id="selectedCounter" style="color: var(--accent);">Select contacts for Group Call</span>
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
+      Direct Contacts
     </div>
 
     <div id="contactsListContainer" style="flex: 1; overflow-y: auto;"></div>
+  </div>
 
-    <div id="groupCallBar">
-      <div style="font-size: 13px; font-weight: 600;" id="groupBarText">0 selected</div>
-      <div style="display: flex; gap: 8px;">
-        <button class="group-btn" id="startGroupAudioBtn" style="background:#27272a; color:#fff;">🎙️ Audio Group</button>
-        <button class="group-btn" id="startGroupVideoBtn" style="background:#0284c7; color:#fff;">📹 Video Group</button>
+  <!-- Chat Drawer -->
+  <div id="chatDrawer">
+    <div class="chat-header">
+      <div style="font-size: 14px; font-weight: 600;">Lounge Chat</div>
+      <button class="btn-pill" id="closeChatBtn" style="color: var(--red); border: none;">✕</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div style="text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 15px;">
+        End-to-end direct WebRTC data stream.
       </div>
+    </div>
+    <div class="chat-input-bar">
+      <input type="text" id="chatInput" class="chat-input" placeholder="Type a message..." />
+      <button id="sendChatBtn" class="chat-send-btn">➤</button>
     </div>
   </div>
 
+  <!-- Incoming Call Ringing Overlay -->
+  <div id="incomingCallModal">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+      <div class="pulse-avatar">👤</div>
+      <h2 id="incomingCallerName" style="font-size: 24px; font-weight: 700;">Caller</h2>
+      <p id="incomingCallType" style="font-size: 13px; color: var(--text-dim);">Incoming Call...</p>
+    </div>
+    <div style="display: flex; gap: 48px; align-items: center;">
+      <button id="declineCallBtn" style="width: 68px; height: 68px; border-radius: 50%; border: none; background: var(--red); color: white; font-size: 24px; cursor: pointer;">✕</button>
+      <button id="acceptCallBtn" style="width: 68px; height: 68px; border-radius: 50%; border: none; background: var(--green); color: white; font-size: 24px; cursor: pointer;">📞</button>
+    </div>
+  </div>
+
+  <!-- Add Contact Dialog -->
   <div class="app-popup-modal" id="addPersonModal">
     <div class="popup-box">
-      <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 6px;">Add Person</h3>
-      <p style="font-size: 12px; color: var(--text-dim);">Enter your contact's username</p>
-      <input type="text" id="newPersonInput" placeholder="e.g. Papa, Sister, Alex" />
+      <h3 style="font-size: 18px; font-weight: 700;">Add Contact</h3>
+      <p style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Enter the exact username of the device</p>
+      <input type="text" id="newPersonInput" placeholder="e.g. Phone, Laptop, Sarah" />
       <div style="display: flex; gap: 10px;">
         <button id="cancelAddPersonBtn" style="background: #27272a; flex: 1;">Cancel</button>
         <button id="savePersonBtn" style="background: var(--accent); flex: 1;">Save</button>
@@ -470,153 +788,57 @@
     </div>
   </div>
 
+  <!-- First Login Identity Dialog -->
   <div class="app-popup-modal" id="loginModal">
     <div class="popup-box">
-      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">Who are you?</h2>
-      <p style="font-size: 12px; color: var(--text-dim);">Choose your profile name to receive calls</p>
-      <input type="text" id="loginUsernameInput" placeholder="Your Name" />
-      <button id="saveUsernameBtn">Save & Continue</button>
+      <h2 style="font-size: 20px; font-weight: 700;">Set Device Name</h2>
+      <p style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Identifies this device to receive calls</p>
+      <input type="text" id="loginUsernameInput" placeholder="e.g. Laptop or Phone" />
+      <button id="saveUsernameBtn">Continue</button>
     </div>
   </div>
 
+  <audio id="ringtoneAudio" loop src="https://actions.google.com/sounds/v1/alarms/phone_alerts_and_rings.ogg"></audio>
+  <audio id="remoteAudioSink" autoplay playsinline></audio>
+
+  <!-- Complete WebRTC, Presence & Push Engine -->
   <script>
-    // In-app visual diagnostic logger
+    // Paste your Web Push public key here (leave placeholder if testing without push)
+    const VAPID_PUBLIC_KEY = 'PASTE_YOUR_PUBLIC_KEY_HERE';
+
+    // In-app diagnostic status
     const diagStatus = document.getElementById('diagStatus');
     function setDiag(msg) {
       if (diagStatus) diagStatus.innerText = msg;
       console.log(`[Diagnostic] ${msg}`);
     }
 
-    let ws = null;
-    let wsReconnectTimer = null;
+    // Identity Management
     let myUsername = localStorage.getItem('lounge_username');
-
-    if (myUsername && myUsername.toLowerCase() === 'partner') {
-      localStorage.removeItem('lounge_username');
-      myUsername = null;
+    if (!myUsername) {
+      myUsername = /Mobile|Android/i.test(navigator.userAgent) ? 'Phone' : 'Laptop';
+      localStorage.setItem('lounge_username', myUsername);
     }
 
-    let rawSavedContacts = JSON.parse(localStorage.getItem('lounge_saved_contacts')) || [];
-    let myContacts = rawSavedContacts.filter(c => c && c.toLowerCase() !== 'partner');
+    let myContacts = JSON.parse(localStorage.getItem('lounge_saved_contacts')) || ['Laptop', 'Phone'];
+    myContacts = myContacts.filter(c => c && c.toLowerCase() !== myUsername.toLowerCase());
     localStorage.setItem('lounge_saved_contacts', JSON.stringify(myContacts));
 
-    let selectedContacts = new Set();
-    let currentSessionToken = null;
-    let callParticipants = [];
-    let isAudioOnly = false, isCallActive = false, isCamOff = false, isMuted = false;
-    let currentFacingMode = 'user', isFaceToFaceCall = false, isCouchMode = false;
-    let screenStream = null, isScreenSharing = false;
+    let ws = null;
+    let wsReconnectTimer = null;
+    let localStream = null;
+    let activePeer = null;
+    let isAudioOnly = false;
+    let isCamOff = false;
+    let isMuted = false;
+    let isFaceToFace = false;
+    let currentFacingMode = 'user';
 
     const peerConnections = {};
     const dataChannels = {};
-    const remoteMediaElements = {};
     const iceCandidateQueues = {};
 
-    let localStream = null;
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null, micSource = null, localAnalyser = null;
-
-    const doodleCanvas = document.getElementById('doodleCanvas');
-    const ctx = doodleCanvas.getContext('2d');
-    let isDoodlingActive = false, isDrawingLocal = false, activeStrokes = [];
-    const DISSOLVE_TIME_MS = 3000;
-
-    let ytPlayer = null, isYouTubeMode = false, ytReady = false, isSyncing = false;
-    let lastReactionTime = 0; const reactionHistory = [];
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognizer = null, isSubsActive = false, shouldKeepListening = false;
-    let unreadCount = 0, isChatOpen = false;
-
-    // DOM Elements
-    const contactsScreen = document.getElementById('contactsScreen');
-    const contactsListContainer = document.getElementById('contactsListContainer');
-    const myUsernameDisplay = document.getElementById('myUsernameDisplay');
-    const myAvatarDisplay = document.getElementById('myAvatarDisplay');
-    const groupCallBar = document.getElementById('groupCallBar');
-    const groupBarText = document.getElementById('groupBarText');
-    const openAddContactBtn = document.getElementById('openAddContactBtn');
-    const addPersonModal = document.getElementById('addPersonModal');
-    const newPersonInput = document.getElementById('newPersonInput');
-    const savePersonBtn = document.getElementById('savePersonBtn');
-    const cancelAddPersonBtn = document.getElementById('cancelAddPersonBtn');
-    const loginModal = document.getElementById('loginModal');
-    const loginUsernameInput = document.getElementById('loginUsernameInput');
-    const saveUsernameBtn = document.getElementById('saveUsernameBtn');
-    const switchUserBtn = document.getElementById('switchUserBtn');
-    const controlsDock = document.getElementById('controlsDock');
-    const callSessionTitle = document.getElementById('callSessionTitle');
-    const incomingCallModal = document.getElementById('incomingCallModal');
-    const incomingCallerName = document.getElementById('incomingCallerName');
-    const incomingCallType = document.getElementById('incomingCallType');
-    const acceptCallBtn = document.getElementById('acceptCallBtn');
-    const declineCallBtn = document.getElementById('declineCallBtn');
-    const ringtoneAudio = document.getElementById('ringtoneAudio');
-    const remoteAudioSink = document.getElementById('remoteAudioSink');
-    const audioStage = document.getElementById('audioStage');
-    const audioMeshGrid = document.getElementById('audioMeshGrid');
-    const videoMeshGrid = document.getElementById('videoMeshGrid');
-    const mainVideoContainer = document.getElementById('mainVideoContainer');
-    const mainPlayer = document.getElementById('mainPlayer');
-    const ytWrapper = document.getElementById('ytWrapper');
-    const localPip = document.getElementById('localPip');
-    const remotePip = document.getElementById('remotePip');
-    const myVideo = document.getElementById('myVideo');
-    const partnerVideo = document.getElementById('partnerVideo');
-    const myMeshVideo = document.getElementById('myMeshVideo');
-    const myAudioDisc = document.getElementById('myAudioDisc');
-    const waveCanvas = document.getElementById('waveCanvas');
-    const waveCtx = waveCanvas.getContext('2d');
-    const earShield = document.getElementById('earBlackoutShield');
-    const callModeToggleBtn = document.getElementById('callModeToggleBtn');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const rewindBtn = document.getElementById('rewindBtn');
-    const forwardBtn = document.getElementById('forwardBtn');
-    const bookmarkBtn = document.getElementById('bookmarkBtn');
-    const camFlipBtn = document.getElementById('camFlipBtn');
-    const camToggleBtn = document.getElementById('camToggleBtn');
-    const muteMicBtn = document.getElementById('muteMicBtn');
-    const screenShareBtn = document.getElementById('screenShareBtn');
-    const doodleBtn = document.getElementById('doodleBtn');
-    const subsBtn = document.getElementById('subsBtn');
-    const subtitlesBanner = document.getElementById('subtitlesBanner');
-    const subSpeaker = document.getElementById('subSpeaker');
-    const subText = document.getElementById('subText');
-    const fileBeamBtn = document.getElementById('fileBeamBtn');
-    const p2pFileInput = document.getElementById('p2pFileInput');
-    const watchDrawerBtn = document.getElementById('watchDrawerBtn');
-    const watchDrawer = document.getElementById('watchDrawer');
-    const chatBtn = document.getElementById('chatBtn');
-    const chatBadge = document.getElementById('chatBadge');
-    const chatDrawer = document.getElementById('chatDrawer');
-    const closeChatBtn = document.getElementById('closeChatBtn');
-    const chatMessages = document.getElementById('chatMessages');
-    const chatInput = document.getElementById('chatInput');
-    const sendChatBtn = document.getElementById('sendChatBtn');
-    const soundstageToggleBtn = document.getElementById('soundstageToggleBtn');
-    const soundstageDrawer = document.getElementById('soundstageDrawer');
-    const rainBtn = document.getElementById('rainBtn');
-    const campBtn = document.getElementById('campBtn');
-    const thetaBtn = document.getElementById('thetaBtn');
-    const pannerSelect = document.getElementById('pannerSelect');
-    const whisperBoostBtn = document.getElementById('whisperBoostBtn');
-    const recapBtn = document.getElementById('recapBtn');
-    const recapModal = document.getElementById('recapModal');
-    const recapList = document.getElementById('recapList');
-    const closeRecapBtn = document.getElementById('closeRecapBtn');
-    const pipSysBtn = document.getElementById('pipSysBtn');
-    const couchModeToggle = document.getElementById('couchModeToggle');
-    const pipScaleSlider = document.getElementById('pipScaleSlider');
-    const pipOpacitySlider = document.getElementById('pipOpacitySlider');
-    const videoUrlInput = document.getElementById('videoUrlInput');
-    const loadVideoBtn = document.getElementById('loadVideoBtn');
-    const rateSelect = document.getElementById('rateSelect');
-    const hangupBtn = document.getElementById('hangupBtn');
-
-    waveCanvas.width = 280; waveCanvas.height = 50;
-    window.addEventListener('resize', () => { doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight; });
-    doodleCanvas.width = window.innerWidth; doodleCanvas.height = window.innerHeight;
-
-    // Direct, redundant STUN + TURN relay
+    // STUN + OpenRelay TURN for instant bypass of 4G/CGNAT
     const rtcConfig = {
       iceServers: [
         { urls: 'stun:stun1.l.google.com:19302' },
@@ -634,115 +856,181 @@
       iceCandidatePoolSize: 10
     };
 
+    // DOM References
+    const contactsScreen = document.getElementById('contactsScreen');
+    const contactsListContainer = document.getElementById('contactsListContainer');
+    const myUsernameDisplay = document.getElementById('myUsernameDisplay');
+    const myAvatarDisplay = document.getElementById('myAvatarDisplay');
+    const openAddContactBtn = document.getElementById('openAddContactBtn');
+    const addPersonModal = document.getElementById('addPersonModal');
+    const newPersonInput = document.getElementById('newPersonInput');
+    const savePersonBtn = document.getElementById('savePersonBtn');
+    const cancelAddPersonBtn = document.getElementById('cancelAddPersonBtn');
+    const loginModal = document.getElementById('loginModal');
+    const loginUsernameInput = document.getElementById('loginUsernameInput');
+    const saveUsernameBtn = document.getElementById('saveUsernameBtn');
+    const switchUserBtn = document.getElementById('switchUserBtn');
+    const controlsDock = document.getElementById('controlsDock');
+    const callSessionTitle = document.getElementById('callSessionTitle');
+    const selfStatusDot = document.getElementById('selfStatusDot');
+    const incomingCallModal = document.getElementById('incomingCallModal');
+    const incomingCallerName = document.getElementById('incomingCallerName');
+    const incomingCallType = document.getElementById('incomingCallType');
+    const acceptCallBtn = document.getElementById('acceptCallBtn');
+    const declineCallBtn = document.getElementById('declineCallBtn');
+    const ringtoneAudio = document.getElementById('ringtoneAudio');
+    const remoteAudioSink = document.getElementById('remoteAudioSink');
+    const myVideo = document.getElementById('myVideo');
+    const partnerVideo = document.getElementById('partnerVideo');
+    const myMeshVideo = document.getElementById('myMeshVideo');
+    const mainVideoContainer = document.getElementById('mainVideoContainer');
+    const videoMeshGrid = document.getElementById('videoMeshGrid');
+    const localPip = document.getElementById('localPip');
+    const remotePip = document.getElementById('remotePip');
+    const camToggleBtn = document.getElementById('camToggleBtn');
+    const camFlipBtn = document.getElementById('camFlipBtn');
+    const muteMicBtn = document.getElementById('muteMicBtn');
+    const callModeToggleBtn = document.getElementById('callModeToggleBtn');
+    const hangupBtn = document.getElementById('hangupBtn');
+    const chatBtn = document.getElementById('chatBtn');
+    const chatDrawer = document.getElementById('chatDrawer');
+    const closeChatBtn = document.getElementById('closeChatBtn');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendChatBtn = document.getElementById('sendChatBtn');
+    const chatBadge = document.getElementById('chatBadge');
+    let unreadCount = 0;
+    let isChatOpen = false;
+
+    // 1. SIGNALING CONNECTION
     function connectWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(protocol + '//' + window.location.host);
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${location.host}`);
 
       ws.onopen = () => {
         setDiag("Signal: Connected");
+        selfStatusDot.classList.remove('offline');
+        callSessionTitle.innerText = `${myUsername} (Ready)`;
         if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
-        if (myUsername) registerServer();
+        registerServer();
+
+        // Keep-alive heartbeat (Render 55s timeout protection)
+        setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }));
+          }
+        }, 20000);
       };
 
       ws.onmessage = async (e) => {
         const data = JSON.parse(e.data);
 
-        if (data.type === 'CONTACT_UPDATE') {
-          renderContactsList(data.contacts);
-        } else if (data.type === 'INCOMING_CALL') {
+        // Update real-time online status
+        if (data.type === 'presence_update') {
+          renderContactsList(data.users);
+        } else if (data.type === 'offer') {
           showIncomingCallScreen(data);
-        } else if (data.type === 'CALL_ACCEPTED_BY_PEER') {
-          setDiag("Call accepted, offering...");
-          const pc = createMeshPeerConnection(data.from, true);
-          const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-          await pc.setLocalDescription(offer);
-          ws.send(JSON.stringify({ target: data.from, type: 'OFFER', payload: offer }));
-        } else if (data.type === 'OFFER') {
-          setDiag("Offer received, answering...");
-          const pc = createMeshPeerConnection(data.sender, false);
-          await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
-          if (iceCandidateQueues[data.sender]) {
-            for (const cand of iceCandidateQueues[data.sender]) {
-              await pc.addIceCandidate(cand).catch(()=>{});
-            }
-            iceCandidateQueues[data.sender] = [];
-          }
-          const ans = await pc.createAnswer();
-          await pc.setLocalDescription(ans);
-          ws.send(JSON.stringify({ target: data.sender, type: 'ANSWER', payload: ans }));
-        } else if (data.type === 'ANSWER') {
-          setDiag("Answer received, finalizing...");
-          const pc = peerConnections[data.sender];
+        } else if (data.type === 'answer') {
+          const pc = peerConnections[data.from];
           if (pc) {
-            await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
-            if (iceCandidateQueues[data.sender]) {
-              for (const cand of iceCandidateQueues[data.sender]) {
-                await pc.addIceCandidate(cand).catch(()=>{});
-              }
-              iceCandidateQueues[data.sender] = [];
-            }
+            await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            setDiag(`Connected to ${data.from}`);
+            processIceQueue(data.from);
           }
-        } else if (data.type === 'CANDIDATE') {
-          const pc = peerConnections[data.sender];
-          const candidate = new RTCIceCandidate(data.payload);
+        } else if (data.type === 'candidate') {
+          const pc = peerConnections[data.from];
+          const cand = new RTCIceCandidate(data.candidate);
           if (pc && pc.remoteDescription && pc.remoteDescription.type) {
-            pc.addIceCandidate(candidate).catch(()=>{});
+            pc.addIceCandidate(cand).catch(() => {});
           } else {
-            if (!iceCandidateQueues[data.sender]) iceCandidateQueues[data.sender] = [];
-            iceCandidateQueues[data.sender].push(candidate);
+            if (!iceCandidateQueues[data.from]) iceCandidateQueues[data.from] = [];
+            iceCandidateQueues[data.from].push(cand);
           }
+        } else if (data.type === 'hangup') {
+          endCall(false);
         }
       };
 
       ws.onclose = () => {
         setDiag("Signal: Disconnected");
+        selfStatusDot.classList.add('offline');
+        callSessionTitle.innerText = "Reconnecting...";
         wsReconnectTimer = setTimeout(connectWebSocket, 2000);
       };
     }
-    connectWebSocket();
-
-    function setupUserIdentity() {
-      if (!myUsername) {
-        loginModal.style.display = 'flex';
-      } else {
-        loginModal.style.display = 'none';
-        myUsernameDisplay.innerText = myUsername;
-        myAvatarDisplay.innerText = myUsername[0].toUpperCase();
-        document.getElementById('myAudioName').innerText = `${myUsername} (You)`;
-        registerServer();
-      }
-    }
-
-    saveUsernameBtn.onclick = () => {
-      const val = loginUsernameInput.value.trim();
-      if (!val) return;
-      if (val.toLowerCase() === 'partner') return alert("Choose your real name, not 'Partner'.");
-      myUsername = val;
-      localStorage.setItem('lounge_username', myUsername);
-      setupUserIdentity();
-    };
-
-    switchUserBtn.onclick = () => {
-      localStorage.removeItem('lounge_username');
-      myUsername = null;
-      setupUserIdentity();
-    };
 
     function registerServer() {
-      if (ws && ws.readyState === 1 && myUsername) {
-        ws.send(JSON.stringify({ type: 'REGISTER', username: myUsername }));
+      if (ws && ws.readyState === WebSocket.OPEN && myUsername) {
+        ws.send(JSON.stringify({ type: 'register', userId: myUsername }));
       }
     }
 
-    openAddContactBtn.onclick = () => {
-      newPersonInput.value = ''; addPersonModal.style.display = 'flex'; newPersonInput.focus();
-    };
-    cancelAddPersonBtn.onclick = () => { addPersonModal.style.display = 'none'; };
+    // 2. CONTACTS & IDENTITY UI
+    function setupUserIdentity() {
+      myUsernameDisplay.innerText = myUsername;
+      myAvatarDisplay.innerText = myUsername[0].toUpperCase();
+      renderContactsList();
+      registerServer();
+    }
 
+    let cachedOnlineList = [];
+    function renderContactsList(onlineList = cachedOnlineList) {
+      cachedOnlineList = onlineList;
+      contactsListContainer.innerHTML = '';
+
+      if (myContacts.length === 0) {
+        contactsListContainer.innerHTML = `
+          <div style="text-align:center; color:var(--text-dim); margin-top:40px; font-size:13px;">
+            No contacts saved yet.<br>Tap <b>+ Add Contact</b> above.
+          </div>`;
+        return;
+      }
+
+      myContacts.forEach(name => {
+        const isOnline = onlineList.some(u => u.toLowerCase() === name.toLowerCase());
+        const card = document.createElement('div');
+        card.className = 'contact-card';
+        card.innerHTML = `
+          <div class="contact-info">
+            <div class="contact-dot ${isOnline ? 'online' : ''}"></div>
+            <div>
+              <div style="font-size:15px; font-weight:600;">${name}</div>
+              <div style="font-size:11px; color:${isOnline ? 'var(--green)' : 'var(--text-dim)'};">
+                ${isOnline ? 'Online' : 'Offline'}
+              </div>
+            </div>
+          </div>
+          <div class="call-actions">
+            <button class="action-call-btn btn-audio-call" title="Audio Call">
+              <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            </button>
+            <button class="action-call-btn btn-video-call" title="Video Call">
+              <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            </button>
+            <button class="action-call-btn" style="background:none; color:#71717a;" title="Delete">✕</button>
+          </div>
+        `;
+        card.querySelector('.btn-audio-call').onclick = () => startCall(name, true);
+        card.querySelector('.btn-video-call').onclick = () => startCall(name, false);
+        card.querySelector('button[title="Delete"]').onclick = () => removeContact(name);
+        contactsListContainer.appendChild(card);
+      });
+    }
+
+    function removeContact(name) {
+      if (confirm(`Remove ${name}?`)) {
+        myContacts = myContacts.filter(c => c !== name);
+        localStorage.setItem('lounge_saved_contacts', JSON.stringify(myContacts));
+        renderContactsList();
+      }
+    }
+
+    openAddContactBtn.onclick = () => { newPersonInput.value = ''; addPersonModal.style.display = 'flex'; newPersonInput.focus(); };
+    cancelAddPersonBtn.onclick = () => { addPersonModal.style.display = 'none'; };
     savePersonBtn.onclick = () => {
       const name = newPersonInput.value.trim();
       if (!name) return;
-      if (name.toLowerCase() === myUsername.toLowerCase()) return alert("You cannot add yourself!");
+      if (name.toLowerCase() === myUsername.toLowerCase()) return alert("Cannot add yourself.");
       if (!myContacts.includes(name)) {
         myContacts.push(name);
         localStorage.setItem('lounge_saved_contacts', JSON.stringify(myContacts));
@@ -751,80 +1039,26 @@
       renderContactsList();
     };
 
-    function deleteContact(name) {
-      if (confirm(`Remove ${name}?`)) {
-        myContacts = myContacts.filter(c => c !== name);
-        selectedContacts.delete(name);
-        localStorage.setItem('lounge_saved_contacts', JSON.stringify(myContacts));
-        renderContactsList(); updateGroupBar();
-      }
-    }
+    switchUserBtn.onclick = () => { loginModal.style.display = 'flex'; loginUsernameInput.value = ''; };
+    saveUsernameBtn.onclick = () => {
+      const val = loginUsernameInput.value.trim();
+      if (!val) return;
+      myUsername = val;
+      localStorage.setItem('lounge_username', myUsername);
+      loginModal.style.display = 'none';
+      setupUserIdentity();
+    };
 
-    let serverOnlineCache = [];
-    function renderContactsList(serverList = serverOnlineCache) {
-      serverOnlineCache = serverList;
-      contactsListContainer.innerHTML = '';
-
-      if (myContacts.length === 0) {
-        contactsListContainer.innerHTML = `
-          <div style="text-align:center; color:var(--text-dim); margin-top:40px; font-size:13px;">
-            No contacts saved yet.<br>Tap <b>+ Add Person</b> in the top right.
-          </div>
-        `;
-        return;
-      }
-
-      myContacts.forEach(name => {
-        const isOnline = serverList.some(s => s.name.toLowerCase() === name.toLowerCase() && s.online);
-        const isChecked = selectedContacts.has(name);
-        const card = document.createElement('div');
-        card.className = `contact-card ${isChecked ? 'selected' : ''}`;
-        card.innerHTML = `
-          <div class="contact-info">
-            <input type="checkbox" style="width:18px; height:18px; accent-color:var(--accent); cursor:pointer;" ${isChecked ? 'checked' : ''} />
-            <div class="contact-dot ${isOnline ? 'online' : ''}"></div>
-            <div>
-              <div style="font-size:15px; font-weight:600;">${name}</div>
-              <div style="font-size:11px; color:${isOnline ? 'var(--green)' : 'var(--text-dim)'};">${isOnline ? 'Active Now' : 'Offline'}</div>
-            </div>
-          </div>
-          <div class="call-actions">
-            <button class="action-call-btn btn-audio-call" title="Quick Audio Call">🎙️</button>
-            <button class="action-call-btn btn-video-call" title="Quick Video Call">📹</button>
-            <button class="action-call-btn" style="background:none; color:#71717a; font-size:13px;" title="Delete">✕</button>
-          </div>
-        `;
-        card.querySelector('input').onchange = (e) => {
-          if (e.target.checked) selectedContacts.add(name); else selectedContacts.delete(name);
-          card.classList.toggle('selected', e.target.checked); updateGroupBar();
-        };
-        card.querySelector('.btn-audio-call').onclick = () => initiateCall([name], 'audio');
-        card.querySelector('.btn-video-call').onclick = () => initiateCall([name], 'video');
-        card.querySelector('button[title="Delete"]').onclick = () => deleteContact(name);
-        contactsListContainer.appendChild(card);
-      });
-    }
-
-    function updateGroupBar() {
-      const count = selectedContacts.size;
-      if (count > 0) {
-        groupCallBar.style.display = 'flex'; groupBarText.innerText = `${count} selected`;
-      } else groupCallBar.style.display = 'none';
-    }
-
-    document.getElementById('startGroupAudioBtn').onclick = () => initiateCall(Array.from(selectedContacts), 'audio');
-    document.getElementById('startGroupVideoBtn').onclick = () => initiateCall(Array.from(selectedContacts), 'video');
-
-    async function startMediaHardware(audioOnly) {
+    // 3. HARDWARE & MEDIA INITIALIZATION
+    async function startHardware(audioOnly) {
       try {
         if (!audioOnly) {
           try {
             localStream = await navigator.mediaDevices.getUserMedia({
               audio: { echoCancellation: true, noiseSuppression: true },
-              video: { facingMode: currentFacingMode }
+              video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } }
             });
-          } catch (e) {
-            console.warn("Camera fallback triggered:", e);
+          } catch {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             isAudioOnly = true;
           }
@@ -834,87 +1068,132 @@
 
         if (localStream) {
           myVideo.srcObject = localStream;
-          myVideo.muted = true;
-          myVideo.setAttribute('playsinline', 'true');
-          myVideo.play().catch(()=>{});
-
           myMeshVideo.srcObject = localStream;
-          myMeshVideo.muted = true;
-          myMeshVideo.setAttribute('playsinline', 'true');
-          myMeshVideo.play().catch(()=>{});
-
-          initWebAudioDSP(localStream);
         }
       } catch (err) {
-        alert('Permission Denied: Please allow Camera & Microphone access in site settings.');
-        console.error(err);
+        alert("Microphone/Camera permission required for calling.");
       }
     }
 
-    function enterCallStage(title) {
-      isCallActive = true;
-      contactsScreen.style.display = 'none';
-      controlsDock.style.display = 'flex';
-      callSessionTitle.innerText = title;
+    // 4. WEBRTC ENGINE (Fast Trickle ICE & TURN)
+    function setupPeerConnection(peerName) {
+      if (peerConnections[peerName]) return peerConnections[peerName];
 
-      if (isAudioOnly) {
-        audioStage.style.display = 'flex'; mainVideoContainer.style.display = 'none'; videoMeshGrid.style.display = 'none';
-        localPip.style.display = 'none'; remotePip.style.display = 'none';
-      } else {
-        audioStage.style.display = 'none'; mainVideoContainer.style.display = 'flex'; videoMeshGrid.style.display = 'none';
-        localPip.style.display = 'block'; remotePip.style.display = 'block';
+      const pc = new RTCPeerConnection(rtcConfig);
+      peerConnections[peerName] = pc;
+      iceCandidateQueues[peerName] = [];
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate && ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'candidate',
+            target: peerName,
+            candidate: e.candidate
+          }));
+        }
+      };
+
+      pc.ontrack = (evt) => {
+        const stream = evt.streams[0] || new MediaStream([evt.track]);
+        partnerVideo.srcObject = stream;
+        partnerVideo.play().catch(() => {});
+        remoteAudioSink.srcObject = stream;
+        remoteAudioSink.play().catch(() => {});
+        document.getElementById('partnerPipLabel').innerText = peerName;
+      };
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      }
+
+      // Data Channel for In-Call Chat
+      const dc = pc.createDataChannel('chatChannel');
+      bindDataChannel(peerName, dc);
+      pc.ondatachannel = (e) => bindDataChannel(peerName, e.channel);
+
+      return pc;
+    }
+
+    function processIceQueue(peerName) {
+      const pc = peerConnections[peerName];
+      if (pc && iceCandidateQueues[peerName]) {
+        for (const cand of iceCandidateQueues[peerName]) {
+          pc.addIceCandidate(cand).catch(() => {});
+        }
+        iceCandidateQueues[peerName] = [];
       }
     }
 
-    async function initiateCall(targets, mode) {
-      isAudioOnly = mode === 'audio';
-      currentSessionToken = 'session-' + Math.random().toString(36).substring(2, 7);
-      callParticipants = [myUsername, ...targets];
+    function bindDataChannel(peerName, dc) {
+      dataChannels[peerName] = dc;
+      dc.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'chat') {
+          appendChatMessage(peerName, msg.text, false);
+        }
+      };
+    }
 
-      await startMediaHardware(isAudioOnly);
+    // 5. CALL ACTIONS
+    async function startCall(target, audioOnly) {
+      activePeer = target;
+      isAudioOnly = audioOnly;
+
+      setDiag(`Calling ${target}...`);
+      await startHardware(isAudioOnly);
       if (!localStream) return;
 
-      enterCallStage(targets.join(', '));
-      setDiag(`Calling ${targets.join(', ')}...`);
+      enterCallUI(target);
+      const pc = setupPeerConnection(target);
+
+      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: !isAudioOnly });
+      await pc.setLocalDescription(offer);
+
       ws.send(JSON.stringify({
-        type: 'CALL_TARGETS',
-        targets: targets,
-        callMode: mode,
-        sessionToken: currentSessionToken
+        type: 'offer',
+        target: target,
+        offer: offer
       }));
     }
 
-    let pendingCallDetails = null;
+    let pendingOfferData = null;
     function showIncomingCallScreen(data) {
-      pendingCallDetails = data;
-      incomingCallerName.innerText = `${data.from}`;
-      incomingCallType.innerText = data.callMode === 'audio' ? '🎙️ Incoming Audio Call' : '📹 Incoming Video Call';
+      pendingOfferData = data;
+      incomingCallerName.innerText = data.from;
+      incomingCallType.innerText = 'Incoming Call...';
       incomingCallModal.style.display = 'flex';
       ringtoneAudio.currentTime = 0;
-      ringtoneAudio.play().catch(()=>{});
+      ringtoneAudio.play().catch(() => {});
     }
 
     acceptCallBtn.onclick = async () => {
       dismissRinging();
-      if (!pendingCallDetails) return;
+      if (!pendingOfferData) return;
 
-      isAudioOnly = pendingCallDetails.callMode === 'audio';
-      currentSessionToken = pendingCallDetails.sessionToken;
-      callParticipants = [myUsername, pendingCallDetails.from];
-
-      await startMediaHardware(isAudioOnly);
+      activePeer = pendingOfferData.from;
+      await startHardware(false);
       if (!localStream) return;
 
-      enterCallStage(`In Call`);
-      setDiag("Accepted, notifying peer...");
+      enterCallUI(activePeer);
+      const pc = setupPeerConnection(activePeer);
+
+      await pc.setRemoteDescription(new RTCSessionDescription(pendingOfferData.offer));
+      processIceQueue(activePeer);
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
       ws.send(JSON.stringify({
-        type: 'CALL_ACCEPTED',
-        target: pendingCallDetails.from,
-        sessionToken: currentSessionToken
+        type: 'answer',
+        target: activePeer,
+        answer: answer
       }));
     };
 
-    declineCallBtn.onclick = () => { dismissRinging(); pendingCallDetails = null; };
+    declineCallBtn.onclick = () => {
+      dismissRinging();
+      pendingOfferData = null;
+    };
 
     function dismissRinging() {
       incomingCallModal.style.display = 'none';
@@ -922,257 +1201,45 @@
       ringtoneAudio.currentTime = 0;
     }
 
-    function createMeshPeerConnection(remotePeerName, isInitiator) {
-      if (peerConnections[remotePeerName]) return peerConnections[remotePeerName];
+    function enterCallUI(title) {
+      contactsScreen.style.display = 'none';
+      controlsDock.style.display = 'flex';
+      callSessionTitle.innerText = `In Call with ${title}`;
+    }
 
-      const pc = new RTCPeerConnection(rtcConfig);
-      peerConnections[remotePeerName] = pc;
-      iceCandidateQueues[remotePeerName] = [];
-
-      // Add directional transceivers
-      pc.addTransceiver('audio', { direction: 'sendrecv' });
-      if (!isAudioOnly) {
-        pc.addTransceiver('video', { direction: 'sendrecv' });
+    function endCall(notify = true) {
+      if (notify && activePeer && ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'hangup', target: activePeer }));
       }
+
+      Object.values(peerConnections).forEach(pc => pc.close());
+      for (const k in peerConnections) delete peerConnections[k];
 
       if (localStream) {
-        localStream.getTracks().forEach(track => {
-          pc.addTrack(track, localStream);
-        });
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
       }
 
-      if (isInitiator) {
-        const dc = pc.createDataChannel('groupMeshChannel');
-        setupDataChannel(remotePeerName, dc);
-      } else {
-        pc.ondatachannel = (e) => setupDataChannel(remotePeerName, e.channel);
-      }
-
-      pc.ontrack = (evt) => {
-        setDiag(`Stream arrived: ${evt.track.kind}`);
-        const stream = evt.streams[0] || new MediaStream([evt.track]);
-        setupRemoteParticipantMedia(remotePeerName, stream, evt.track.kind);
-      };
-
-      pc.onicecandidate = (e) => {
-        if (e.candidate && ws && ws.readyState === 1) {
-          ws.send(JSON.stringify({ target: remotePeerName, type: 'CANDIDATE', payload: e.candidate }));
-        }
-      };
-
-      pc.onconnectionstatechange = () => {
-        setDiag(`State: ${pc.connectionState}`);
-        if (pc.connectionState === 'connected') {
-          document.getElementById('partnerPipLabel').innerText = remotePeerName;
-        }
-      };
-
-      return pc;
+      myVideo.srcObject = null;
+      partnerVideo.srcObject = null;
+      controlsDock.style.display = 'none';
+      contactsScreen.style.display = 'flex';
+      callSessionTitle.innerText = `${myUsername} (Ready)`;
+      setDiag("Signal: Ready");
     }
 
-    function setupRemoteParticipantMedia(peerName, stream, kind) {
-      document.getElementById('partnerPipLabel').innerText = peerName;
+    hangupBtn.onclick = () => endCall(true);
 
-      partnerVideo.srcObject = stream;
-      partnerVideo.setAttribute('playsinline', 'true');
-      partnerVideo.play().catch(() => {
-        partnerVideo.muted = true;
-        partnerVideo.play().catch(()=>{});
-      });
-
-      remoteAudioSink.srcObject = stream;
-      remoteAudioSink.play().catch(()=>{});
-
-      if (!remoteMediaElements[peerName]) {
-        const audioCard = document.createElement('div');
-        audioCard.className = 'avatar-card';
-        audioCard.innerHTML = `<div class="avatar-disc">👤</div><span style="font-size:12px; font-weight:600;">${peerName}</span>`;
-        audioMeshGrid.appendChild(audioCard);
-
-        const videoTile = document.createElement('div');
-        videoTile.className = 'video-tile';
-        videoTile.innerHTML = `<video autoplay playsinline></video><span class="tile-label">${peerName}</span>`;
-        const tileVid = videoTile.querySelector('video');
-        tileVid.srcObject = stream;
-        tileVid.play().catch(()=>{});
-        videoMeshGrid.appendChild(videoTile);
-        updateVideoGridLayout();
-
-        remoteMediaElements[peerName] = { audioCard, videoTile };
-      } else {
-        const tileVid = remoteMediaElements[peerName].videoTile.querySelector('video');
-        if (tileVid) {
-          tileVid.srcObject = stream;
-          tileVid.play().catch(()=>{});
-        }
-      }
-    }
-
-    function updateVideoGridLayout() {
-      const totalTiles = videoMeshGrid.querySelectorAll('.video-tile').length;
-      if (totalTiles <= 1) { videoMeshGrid.style.gridTemplateColumns = '1fr'; videoMeshGrid.style.gridTemplateRows = '1fr'; }
-      else if (totalTiles === 2) { videoMeshGrid.style.gridTemplateColumns = window.innerWidth > 600 ? '1fr 1fr' : '1fr'; videoMeshGrid.style.gridTemplateRows = window.innerWidth > 600 ? '1fr' : '1fr 1fr'; }
-      else { videoMeshGrid.style.gridTemplateColumns = '1fr 1fr'; videoMeshGrid.style.gridTemplateRows = '1fr 1fr'; }
-    }
-    window.addEventListener('resize', updateVideoGridLayout);
-
-    function multicastData(obj) {
-      const payload = JSON.stringify(obj);
-      Object.values(dataChannels).forEach(dc => {
-        if (dc.readyState === 'open') dc.send(payload);
-      });
-    }
-
-    let incomingMeta = null, incomingChunks = [];
-    function setupDataChannel(peerName, dc) {
-      dc.binaryType = 'arraybuffer'; dataChannels[peerName] = dc;
-      dc.onmessage = (e) => {
-        if (typeof e.data !== 'string') { incomingChunks.push(e.data); return; }
-        const m = JSON.parse(e.data);
-        if (m.type === 'GROUP_CHAT') appendChatMessage(m.from, m.text, false);
-        else if (m.type === 'DOODLE_POINT') activeStrokes.push({ x: m.x * window.innerWidth, y: m.y * window.innerHeight, isNew: m.isNew, color: '#38bdf8', time: Date.now() });
-        else if (m.type === 'LIVE_SUB') showSubtitle(m.speaker, m.text);
-        else if (m.type === 'LOAD_MEDIA') { if (m.isYT && m.ytId) loadYouTubeVideo(m.ytId); else loadNativeVideo(m.url); }
-        else if (m.type === 'VIDEO_SYNC') {
-          isSyncing = true;
-          if (m.isYT && ytPlayer && ytReady) {
-            if (m.action === 'play') { if (Math.abs(ytPlayer.getCurrentTime() - m.time) > 0.4) ytPlayer.seekTo(m.time, true); ytPlayer.playVideo(); playPauseBtn.innerText = '❚❚'; }
-            else if (m.action === 'pause') { ytPlayer.pauseVideo(); playPauseBtn.innerText = '▶'; }
-            else if (m.action === 'seek') ytPlayer.seekTo(m.time, true);
-          } else if (!m.isYT && mainPlayer) {
-            if (m.action === 'play') { if (Math.abs(mainPlayer.currentTime - m.time) > 0.3) mainPlayer.currentTime = m.time; mainPlayer.play().catch(()=>{}); playPauseBtn.innerText = '❚❚'; }
-            else if (m.action === 'pause') { mainPlayer.pause(); playPauseBtn.innerText = '▶'; }
-            else if (m.action === 'seek') mainPlayer.currentTime = m.time;
-          }
-          setTimeout(() => { isSyncing = false; }, 350);
-        }
-        else if (m.type === 'VIDEO_RATE') { if (m.isYT && ytPlayer && ytReady) ytPlayer.setPlaybackRate(m.rate); else mainPlayer.playbackRate = m.rate; rateSelect.value = m.rate.toString(); }
-        else if (m.type === 'REACTION_BURST') triggerReactionUI(m.rType, peerName);
-        else if (m.type === 'BOOKMARK_MOMENT') triggerReactionUI('bookmark', peerName);
-        else if (m.type === 'FILE_START') { incomingMeta = m; incomingChunks = []; }
-        else if (m.type === 'FILE_END') { const blob = new Blob(incomingChunks, { type: incomingMeta.mime }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = incomingMeta.name; a.click(); alert(`Received File: ${incomingMeta.name}`); }
-      };
-    }
-
-    doodleBtn.onclick = () => { isDoodlingActive = !isDoodlingActive; doodleBtn.classList.toggle('active-pink', isDoodlingActive); doodleCanvas.classList.toggle('drawing-active', isDoodlingActive); };
-    doodleCanvas.addEventListener('pointerdown', (e) => { if (!isDoodlingActive) return; e.preventDefault(); isDrawingLocal = true; activeStrokes.push({ x: e.clientX, y: e.clientY, isNew: true, color: '#ec4899', time: Date.now() }); multicastData({ type: 'DOODLE_POINT', x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight, isNew: true }); });
-    doodleCanvas.addEventListener('pointermove', (e) => { if (!isDrawingLocal || !isDoodlingActive) return; e.preventDefault(); activeStrokes.push({ x: e.clientX, y: e.clientY, isNew: false, color: '#ec4899', time: Date.now() }); multicastData({ type: 'DOODLE_POINT', x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight, isNew: false }); });
-    window.addEventListener('pointerup', () => { isDrawingLocal = false; });
-
-    function renderThermalLoop() {
-      const now = Date.now(); ctx.clearRect(0, 0, doodleCanvas.width, doodleCanvas.height); activeStrokes = activeStrokes.filter(p => now - p.time < DISSOLVE_TIME_MS);
-      if (activeStrokes.length > 0) {
-        ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = 5;
-        for (let i = 0; i < activeStrokes.length; i++) {
-          const pt = activeStrokes[i], opacity = Math.max(0, 1 - ((now - pt.time) / DISSOLVE_TIME_MS)); ctx.strokeStyle = pt.color === '#ec4899' ? `rgba(236,72,153,${opacity})` : `rgba(56,189,248,${opacity})`;
-          if (pt.isNew || i === 0) { ctx.beginPath(); ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x + 0.1, pt.y + 0.1); ctx.stroke(); }
-          else { ctx.beginPath(); ctx.moveTo(activeStrokes[i - 1].x, activeStrokes[i - 1].y); ctx.lineTo(pt.x, pt.y); ctx.stroke(); }
-        }
-      } requestAnimationFrame(renderThermalLoop);
-    } renderThermalLoop();
-
-    function extractYouTubeId(url) { const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/); return (match && match[2].length === 11) ? match[2] : null; }
-    window.onYouTubeIframeAPIReady = function() {
-      ytPlayer = new YT.Player('ytPlayer', {
-        height: '100%', width: '100%', playerVars: { autoplay: 1, controls: 1, rel: 0, playsinline: 1 },
-        events: {
-          onReady: () => { ytReady = true; },
-          onStateChange: (e) => {
-            if (isSyncing) return;
-            if (e.data === YT.PlayerState.PLAYING) { playPauseBtn.innerText = '❚❚'; multicastData({ type: 'VIDEO_SYNC', action: 'play', time: ytPlayer.getCurrentTime(), isYT: true }); }
-            else if (e.data === YT.PlayerState.PAUSED) { playPauseBtn.innerText = '▶'; multicastData({ type: 'VIDEO_SYNC', action: 'pause', time: ytPlayer.getCurrentTime(), isYT: true }); }
-          }
-        }
-      });
-    };
-
-    loadVideoBtn.onclick = () => {
-      const url = videoUrlInput.value.trim(); if (!url) return; const ytId = extractYouTubeId(url);
-      if (ytId) { loadYouTubeVideo(ytId); multicastData({ type: 'LOAD_MEDIA', url, isYT: true, ytId }); }
-      else { loadNativeVideo(url); multicastData({ type: 'LOAD_MEDIA', url, isYT: false }); }
-    };
-    function loadYouTubeVideo(ytId) { isYouTubeMode = true; mainPlayer.pause(); mainPlayer.style.display = 'none'; ytWrapper.style.display = 'block'; if (ytPlayer && ytReady && ytPlayer.loadVideoById) ytPlayer.loadVideoById(ytId); }
-    function loadNativeVideo(url) { isYouTubeMode = false; if (ytPlayer && ytReady && ytPlayer.stopVideo) ytPlayer.stopVideo(); ytWrapper.style.display = 'none'; mainPlayer.style.display = 'block'; mainPlayer.src = url; mainPlayer.play().catch(()=>{}); }
-
-    playPauseBtn.onclick = () => {
-      if (isYouTubeMode && ytPlayer && ytReady) {
-        if (ytPlayer.getPlayerState() === 1) { ytPlayer.pauseVideo(); playPauseBtn.innerText = '▶'; multicastData({ type: 'VIDEO_SYNC', action: 'pause', time: ytPlayer.getCurrentTime(), isYT: true }); }
-        else { ytPlayer.playVideo(); playPauseBtn.innerText = '❚❚'; multicastData({ type: 'VIDEO_SYNC', action: 'play', time: ytPlayer.getCurrentTime(), isYT: true }); }
-      } else {
-        if (mainPlayer.paused) { mainPlayer.play(); playPauseBtn.innerText = '❚❚'; multicastData({ type: 'VIDEO_SYNC', action: 'play', time: mainPlayer.currentTime, isYT: false }); }
-        else { mainPlayer.pause(); playPauseBtn.innerText = '▶'; multicastData({ type: 'VIDEO_SYNC', action: 'pause', time: mainPlayer.currentTime, isYT: false }); }
+    // 6. HARDWARE TOGGLES
+    camToggleBtn.onclick = () => {
+      if (!localStream) return;
+      const track = localStream.getVideoTracks()[0];
+      if (track) {
+        isCamOff = !isCamOff;
+        track.enabled = !isCamOff;
+        camToggleBtn.classList.toggle('active-amber', isCamOff);
       }
     };
-    rewindBtn.onclick = () => {
-      if (isYouTubeMode && ytPlayer && ytReady) { const t = Math.max(0, ytPlayer.getCurrentTime() - 10); ytPlayer.seekTo(t, true); multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: true }); }
-      else { mainPlayer.currentTime = Math.max(0, mainPlayer.currentTime - 10); multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: mainPlayer.currentTime, isYT: false }); }
-    };
-    forwardBtn.onclick = () => {
-      if (isYouTubeMode && ytPlayer && ytReady) { const t = ytPlayer.getCurrentTime() + 10; ytPlayer.seekTo(t, true); multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: true }); }
-      else { mainPlayer.currentTime = Math.min(mainPlayer.duration || 9999, mainPlayer.currentTime + 10); multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: mainPlayer.currentTime, isYT: false }); }
-    };
-    rateSelect.onchange = () => {
-      const r = parseFloat(rateSelect.value); if (isYouTubeMode && ytPlayer && ytReady) ytPlayer.setPlaybackRate(r); else mainPlayer.playbackRate = r; multicastData({ type: 'VIDEO_RATE', rate: r });
-    };
-
-    function makeDraggable(el) {
-      let ox = 0, oy = 0, sx = 0, sy = 0;
-      el.onpointerdown = (e) => {
-        if (isCouchMode || isFaceToFaceCall) return; e.preventDefault(); sx = e.clientX; sy = e.clientY; ox = el.offsetLeft; oy = el.offsetTop;
-        window.onpointermove = (ev) => { el.style.left = (ox + ev.clientX - sx) + 'px'; el.style.top = (oy + ev.clientY - sy) + 'px'; };
-        window.onpointerup = () => { window.onpointermove = null; window.onpointerup = null; };
-      };
-    } makeDraggable(localPip); makeDraggable(remotePip);
-
-    couchModeToggle.onclick = () => { isCouchMode = !isCouchMode; couchModeToggle.style.color = isCouchMode ? '#ec4899' : '#00ffa3'; localPip.classList.toggle('couch-mode-local', isCouchMode); remotePip.classList.toggle('couch-mode-remote', isCouchMode); };
-    pipScaleSlider.oninput = (e) => { const w = e.target.value; const h = Math.round(w * 1.33); localPip.style.width = `${w}px`; localPip.style.height = `${h}px`; remotePip.style.width = `${w}px`; remotePip.style.height = `${h}px`; };
-    pipOpacitySlider.oninput = (e) => { const op = e.target.value / 100; localPip.style.opacity = op; remotePip.style.opacity = op; };
-
-    callModeToggleBtn.onclick = () => {
-      isFaceToFaceCall = !isFaceToFaceCall; callModeToggleBtn.classList.toggle('active-blue', isFaceToFaceCall);
-      if (isFaceToFaceCall) { mainVideoContainer.style.display = 'none'; videoMeshGrid.style.display = 'grid'; localPip.style.display = 'none'; remotePip.style.display = 'none'; updateVideoGridLayout(); }
-      else { mainVideoContainer.style.display = 'flex'; videoMeshGrid.style.display = 'none'; localPip.style.display = 'block'; remotePip.style.display = 'block'; }
-    };
-
-    function triggerReactionUI(type, senderName) {
-      remotePip.classList.add('pip-reacting'); setTimeout(() => remotePip.classList.remove('pip-reacting'), 1400);
-      const icons = { laugh: '😂', scream: '😱', gasp: '😲', bookmark: '📌' }; const bubble = document.createElement('div'); bubble.className = 'reaction-burst-box'; bubble.innerText = icons[type] || '🔥'; document.body.appendChild(bubble); setTimeout(() => bubble.remove(), 1500);
-      const currentTime = isYouTubeMode && ytPlayer && ytReady ? ytPlayer.getCurrentTime() : mainPlayer.currentTime; reactionHistory.push({ type, sender: senderName, time: currentTime });
-    }
-    bookmarkBtn.onclick = () => { const cur = isYouTubeMode && ytPlayer && ytReady ? ytPlayer.getCurrentTime() : mainPlayer.currentTime; triggerReactionUI('bookmark', 'You'); multicastData({ type: 'BOOKMARK_MOMENT', time: cur }); };
-    recapBtn.onclick = () => {
-      recapList.innerHTML = ''; if (reactionHistory.length === 0) recapList.innerHTML = '<div style="color:#71717a; text-align:center; margin-top:20px;">No reactions logged.</div>';
-      reactionHistory.forEach((r) => {
-        const item = document.createElement('div'); item.className = 'modal-item'; const label = r.type === 'bookmark' ? '📌 Bookmark' : (r.type === 'laugh' ? '😂 Laugh' : r.type === 'scream' ? '😱 Scream' : '😲 Gasp');
-        item.innerHTML = `<span>${label} at ${Math.round(r.time)}s (${r.sender})</span><span style="color:#ec4899; font-size:12px;">Jump ➔</span>`;
-        item.onclick = () => { const t = Math.max(0, r.time - 2); if (isYouTubeMode && ytPlayer && ytReady) ytPlayer.seekTo(t, true); else mainPlayer.currentTime = t; multicastData({ type: 'VIDEO_SYNC', action: 'seek', time: t, isYT: isYouTubeMode }); recapModal.style.display = 'none'; }; recapList.appendChild(item);
-      }); recapModal.style.display = 'flex';
-    }; closeRecapBtn.onclick = () => recapModal.style.display = 'none';
-
-    if (SpeechRecognition) {
-      recognizer = new SpeechRecognition(); recognizer.continuous = true; recognizer.interimResults = true; recognizer.lang = 'en-US';
-      recognizer.onresult = (e) => {
-        let interim = '', final = ''; for (let i = e.resultIndex; i < e.results.length; ++i) { if (e.results[i].isFinal) final += e.results[i][0].transcript; else interim += e.results[i][0].transcript; }
-        const text = (final || interim).trim(); if (text.length > 0) { showSubtitle("You", text); multicastData({ type: 'LIVE_SUB', speaker: myUsername, text }); }
-      };
-      recognizer.onend = () => { if (shouldKeepListening && isSubsActive) try { recognizer.start(); } catch (err) {} };
-    }
-    subsBtn.onclick = () => {
-      if (!SpeechRecognition) return alert('Speech recognition supported on Chrome/Edge.');
-      isSubsActive = !isSubsActive; subsBtn.classList.toggle('active-amber', isSubsActive);
-      if (isSubsActive) { shouldKeepListening = true; try { recognizer.start(); } catch(e){} subtitlesBanner.style.display = 'block'; subSpeaker.innerText = 'You:'; subText.innerText = 'Listening...'; }
-      else { shouldKeepListening = false; try { recognizer.stop(); } catch(e){} subtitlesBanner.style.display = 'none'; }
-    };
-    function showSubtitle(speaker, text) { subtitlesBanner.style.display = 'block'; subSpeaker.innerText = `${speaker}:`; subSpeaker.style.color = speaker === 'You' ? '#38bdf8' : '#ec4899'; subText.innerText = text; clearTimeout(window.subTimer); window.subTimer = setTimeout(() => { if (!isSubsActive) subtitlesBanner.style.display = 'none'; else subText.innerText = 'Listening...'; }, 4000); }
-
-    chatBtn.onclick = () => { isChatOpen = !isChatOpen; chatDrawer.classList.toggle('open', isChatOpen); if (isChatOpen) { unreadCount = 0; chatBadge.style.display = 'none'; chatInput.focus(); } };
-    closeChatBtn.onclick = () => { isChatOpen = false; chatDrawer.classList.remove('open'); };
-    sendChatBtn.onclick = sendChat; chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
-    function sendChat() { const text = chatInput.value.trim(); if (!text) return; appendChatMessage(myUsername, text, true); multicastData({ type: 'GROUP_CHAT', from: myUsername, text }); chatInput.value = ''; }
-    function appendChatMessage(from, text, isMine) {
-      const bubble = document.createElement('div'); bubble.className = `chat-bubble ${isMine ? 'chat-mine' : 'chat-theirs'}`; bubble.innerHTML = `${!isMine ? `<div class="chat-sender">${from}</div>` : ''}<div>${text}</div>`; chatMessages.appendChild(bubble); chatMessages.scrollTop = chatMessages.scrollHeight;
-      if (!isMine && !isChatOpen) { unreadCount++; chatBadge.innerText = unreadCount; chatBadge.style.display = 'flex'; }
-    }
 
     camFlipBtn.onclick = async () => {
       if (!localStream || isCamOff) return;
@@ -1184,23 +1251,12 @@
         if (oldTrack) { oldTrack.stop(); localStream.removeTrack(oldTrack); }
         localStream.addTrack(newTrack);
         myVideo.srcObject = localStream;
-        myMeshVideo.srcObject = localStream;
         Object.values(peerConnections).forEach(pc => {
           const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
           if (sender) sender.replaceTrack(newTrack);
         });
-      } catch (err) { console.error("Camera flip error:", err); }
-    };
-
-    camToggleBtn.onclick = () => {
-      if (!localStream) return;
-      const track = localStream.getVideoTracks()[0];
-      if (track) {
-        isCamOff = !isCamOff;
-        track.enabled = !isCamOff;
-        myVideo.style.opacity = isCamOff ? '0' : '1';
-        camToggleBtn.innerText = isCamOff ? '🙈' : '📹';
-        camToggleBtn.classList.toggle('active-amber', isCamOff);
+      } catch (e) {
+        console.error("Cam flip error:", e);
       }
     };
 
@@ -1211,393 +1267,128 @@
       muteMicBtn.classList.toggle('active-amber', isMuted);
     };
 
-    watchDrawerBtn.onclick = () => { watchDrawer.style.display = watchDrawer.style.display !== 'flex' ? 'flex' : 'none'; };
-    pipSysBtn.onclick = async () => { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else if (mainPlayer && !isYouTubeMode) await mainPlayer.requestPictureInPicture(); };
-    hangupBtn.onclick = () => { if (localStream) localStream.getTracks().forEach(t => t.stop()); location.reload(); };
-
-    function initWebAudioDSP(stream) {
-      try {
-        if (!audioCtx) audioCtx = new AudioContextClass();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        micSource = audioCtx.createMediaStreamSource(stream);
-        localAnalyser = audioCtx.createAnalyser();
-        localAnalyser.fftSize = 64;
-        micSource.connect(localAnalyser);
-        startVisualizerLoop();
-      } catch(e) {}
-    }
-
-    function startVisualizerLoop() {
-      const buf = new Uint8Array(32);
-      function draw() {
-        waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
-        if (localAnalyser) {
-          localAnalyser.getByteFrequencyData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i]; const lvl = sum / buf.length;
-          if (lvl > 18 && !isMuted) myAudioDisc.classList.add('speaking'); else myAudioDisc.classList.remove('speaking');
-          const barWidth = 4, gap = 3, count = 28; const startX = (waveCanvas.width - (count * (barWidth + gap))) / 2;
-          for (let i = 0; i < count; i++) {
-            const factor = Math.sin((i / count) * Math.PI); const height = Math.min(46, Math.max(4, (lvl / 3.2) * factor + Math.random() * 2));
-            waveCtx.fillStyle = '#6366f1'; waveCtx.beginPath(); waveCtx.roundRect(startX + i * (barWidth + gap), (waveCanvas.height - height) / 2, barWidth, height, 2); waveCtx.fill();
-          }
-        } requestAnimationFrame(draw);
-      } draw();
-    }
-
-    setupUserIdentity();
-    renderContactsList();
-    </script>
-
-    <!-- MODERN RESPONSIVE CALL VIEW -->
-    <style>
-      #callRoot {
-        position: relative;
-        width: 100%;
-        max-width: 900px;
-        margin: 20px auto;
-        background: #0f172a;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
-        display: flex;
-        flex-direction: column;
-        height: 70vh;
-        min-height: 480px;
+    callModeToggleBtn.onclick = () => {
+      isFaceToFace = !isFaceToFace;
+      callModeToggleBtn.classList.toggle('active-blue', isFaceToFace);
+      if (isFaceToFace) {
+        mainVideoContainer.style.display = 'none';
+        videoMeshGrid.style.display = 'grid';
+        localPip.style.display = 'none';
+        remotePip.style.display = 'none';
+      } else {
+        mainVideoContainer.style.display = 'flex';
+        videoMeshGrid.style.display = 'none';
+        localPip.style.display = 'block';
+        remotePip.style.display = 'block';
       }
-      .stage-area {
-        position: relative;
-        flex: 1;
-        width: 100%;
-        background: #000;
-        overflow: hidden;
+    };
+
+    // 7. IN-CALL CHAT DRAWER
+    chatBtn.onclick = () => {
+      isChatOpen = !isChatOpen;
+      chatDrawer.classList.toggle('open', isChatOpen);
+      if (isChatOpen) {
+        unreadCount = 0;
+        chatBadge.style.display = 'none';
+        chatInput.focus();
       }
-      #remoteVideo {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      #localVideo {
-        position: absolute;
-        bottom: 16px;
-        right: 16px;
-        width: 110px;
-        height: 150px;
-        object-fit: cover;
-        border-radius: 10px;
-        border: 2px solid #38bdf8;
-        background: #1e293b;
-        z-index: 10;
-      }
-      .status-pill {
-        position: absolute;
-        top: 14px;
-        left: 14px;
-        background: rgba(15, 23, 42, 0.75);
-        backdrop-filter: blur(8px);
-        color: #f8fafc;
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-family: sans-serif;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        z-index: 10;
-      }
-      .status-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #eab308;
-      }
-      .status-indicator.ready { background: #22c55e; }
-      .status-indicator.calling { background: #38bdf8; animation: pulse 1s infinite alternate; }
-      @keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }
-      .action-dock {
-        padding: 14px;
-        background: #1e293b;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-      }
-      .action-dock input {
-        flex: 1;
-        padding: 12px 16px;
-        background: #0f172a;
-        border: 1px solid #334155;
-        border-radius: 8px;
-        color: #fff;
-        font-size: 15px;
-        outline: none;
-      }
-      .btn {
-        padding: 12px 20px;
-        border-radius: 8px;
-        border: none;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .btn-call { background: #16a34a; color: #fff; }
-      .btn-hangup { background: #dc2626; color: #fff; display: none; }
-    </style>
+    };
+    closeChatBtn.onclick = () => {
+      isChatOpen = false;
+      chatDrawer.classList.remove('open');
+    };
 
-    <div id="callRoot">
-      <div class="stage-area">
-        <div class="status-pill">
-          <div id="statusDot" class="status-indicator"></div>
-          <span id="statusTxt">Connecting signaling...</span>
-        </div>
-        <video id="remoteVideo" autoplay playsinline></video>
-        <video id="localVideo" autoplay playsinline muted></video>
-      </div>
+    sendChatBtn.onclick = sendChat;
+    chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
 
-      <div class="action-dock">
-        <input id="targetUserInput" type="text" placeholder="Enter remote name/device (e.g., Laptop)" />
-        <button id="callBtn" class="btn btn-call" onclick="initiateFastCall()">📞 Call</button>
-        <button id="hangupBtn" class="btn btn-hangup" onclick="hangupCall()">End Call</button>
-      </div>
-    </div>
-
-    <script>
-      const BACKEND_WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
-      const BACKEND_HTTP_URL = location.origin;
-      const VAPID_PUBLIC_KEY = 'PASTE_YOUR_PUBLIC_KEY_HERE';
-
-      // Assign device identity (matches top bar identity)
-      let currentUserId = localStorage.getItem('lounge_device_id');
-      if (!currentUserId) {
-        currentUserId = /Mobile|Android/i.test(navigator.userAgent) ? 'Phone' : 'Laptop';
-        localStorage.setItem('lounge_device_id', currentUserId);
-      }
-
-      let socket = null;
-      let pc = null;
-      localStream = null;
-      let activeTargetId = null;
-
-      // STUN + Free OpenRelay TURN servers (Required for 4G/Carrier-Grade NAT)
-       rtcConfig = {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          {
-            urls: 'turn:openrelay.metered.ca:80',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          },
-          {
-            urls: 'turn:openrelay.metered.ca:443',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          }
-        ],
-        iceCandidatePoolSize: 10
-      };
-
-      // 1. SIGNALING SETUP
-      function connectSignaling() {
-        socket = new WebSocket(BACKEND_WS_URL);
-
-        socket.onopen = () => {
-          updateStatus('ready', `Ready as "${currentUserId}"`);
-          socket.send(JSON.stringify({ type: 'register', userId: currentUserId }));
-
-          // Render keep-alive (20s)
-          setInterval(() => {
-            if (socket.readyState === WebSocket.OPEN) {
-              socket.send(JSON.stringify({ type: 'ping' }));
-            }
-          }, 20000);
-        };
-
-        socket.onmessage = async (evt) => {
-          const msg = JSON.parse(evt.data);
-
-          if (msg.type === 'candidate' && pc) {
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
-            } catch (err) {}
-          }
-
-          if (msg.type === 'offer') {
-            activeTargetId = msg.from;
-            document.getElementById('targetUserInput').value = activeTargetId;
-            updateStatus('calling', `Incoming call from ${activeTargetId}...`);
-            await acceptCall(msg.offer);
-          }
-
-          if (msg.type === 'answer' && pc) {
-            await pc.setRemoteDescription(new RTCSessionDescription(msg.answer));
-            updateStatus('ready', `In call with ${activeTargetId}`);
-            toggleButtons(true);
-          }
-
-          if (msg.type === 'hangup') {
-            hangupCall(false);
-          }
-        };
-
-        socket.onclose = () => {
-          updateStatus('connecting', 'Reconnecting...');
-          setTimeout(connectSignaling, 2000);
-        };
-      }
-
-      // 2. HARDWARE / PEER CONNECTION INITIALIZATION
-      async function prepareLocalMedia() {
-        if (!localStream) {
-          localStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
-            audio: { echoCancellation: true, noiseSuppression: true }
-          });
-          document.getElementById('localVideo').srcObject = localStream;
-        }
-      }
-
-      function setupPeerConnection() {
-        pc = new RTCPeerConnection(rtcConfig);
-
-        pc.onicecandidate = (event) => {
-          if (event.candidate && socket?.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({
-              type: 'candidate',
-              target: activeTargetId,
-              candidate: event.candidate
-            }));
-          }
-        };
-
-        pc.ontrack = (event) => {
-          const remoteEl = document.getElementById('remoteVideo');
-          if (remoteEl && event.streams[0]) {
-            remoteEl.srcObject = event.streams[0];
-            updateStatus('ready', `Connected to ${activeTargetId}`);
-          }
-        };
-
-        localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
-      }
-
-      // 3. FAST CALLING LOGIC
-      async function initiateFastCall() {
-        const target = document.getElementById('targetUserInput').value.trim();
-        if (!target) return alert('Enter the remote name/device to call');
-
-        activeTargetId = target;
-        updateStatus('calling', `Calling ${activeTargetId}...`);
-        toggleButtons(true);
-
-        await prepareLocalMedia();
-        setupPeerConnection();
-
-        const offer = await pc.createOffer({
-          offerToReceiveAudio: true,
-          offerToReceiveVideo: true
-        });
-        await pc.setLocalDescription(offer);
-
-        socket.send(JSON.stringify({
-          type: 'offer',
-          target: activeTargetId,
-          offer: offer
-        }));
-      }
-
-      async function acceptCall(offer) {
-        toggleButtons(true);
-        await prepareLocalMedia();
-        setupPeerConnection();
-
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        socket.send(JSON.stringify({
-          type: 'answer',
-          target: activeTargetId,
-          answer: answer
-        }));
-      }
-
-      function hangupCall(notify = true) {
-        if (notify && activeTargetId && socket?.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'hangup', target: activeTargetId }));
-        }
-
-        if (pc) {
-          pc.close();
-          pc = null;
-        }
-        if (localStream) {
-          localStream.getTracks().forEach(t => t.stop());
-          localStream = null;
-        }
-
-        document.getElementById('localVideo').srcObject = null;
-        document.getElementById('remoteVideo').srcObject = null;
-        toggleButtons(false);
-        updateStatus('ready', `Ready as "${currentUserId}"`);
-      }
-
-      // 4. BACKGROUND WEB PUSH REGISTRATION
-      async function setupWebPush() {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-
-        try {
-          const reg = await navigator.serviceWorker.register('/sw.js');
-          const permission = await Notification.requestPermission();
-
-          if (permission === 'granted' && VAPID_PUBLIC_KEY !== 'PASTE_YOUR_PUBLIC_KEY_HERE') {
-            const subscription = await reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlB64ToUint8(VAPID_PUBLIC_KEY)
-            });
-
-            await fetch(`${BACKEND_HTTP_URL}/api/subscribe`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId: currentUserId, subscription })
-            });
-          }
-        } catch (e) {
-          console.warn('Push registration skipped:', e);
-        }
-      }
-
-      function urlB64ToUint8(base64String) {
-        const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const rawData = atob(base64);
-        return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
-      }
-
-      function updateStatus(state, msg) {
-        const dot = document.getElementById('statusDot');
-        const txt = document.getElementById('statusTxt');
-        dot.className = `status-indicator ${state}`;
-        txt.innerText = msg;
-      }
-
-      function toggleButtons(inCall) {
-        document.getElementById('callBtn').style.display = inCall ? 'none' : 'flex';
-        document.getElementById('hangupBtn').style.display = inCall ? 'flex' : 'none';
-      }
-
-      // Startup
-      window.addEventListener('DOMContentLoaded', () => {
-        connectSignaling();
-        setupWebPush();
-
-        // Check if page opened from an incoming push notification
-        const params = new URLSearchParams(window.location.search);
-        const caller = params.get('incomingCaller');
-        if (caller) {
-          document.getElementById('targetUserInput').value = caller;
+    function sendChat() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      appendChatMessage('You', text, true);
+      Object.values(dataChannels).forEach(dc => {
+        if (dc.readyState === 'open') {
+          dc.send(JSON.stringify({ type: 'chat', text }));
         }
       });
-    </script>
-  </body>
+      chatInput.value = '';
+    }
+
+    function appendChatMessage(from, text, isMine) {
+      const b = document.createElement('div');
+      b.className = `chat-bubble ${isMine ? 'chat-mine' : 'chat-theirs'}`;
+      b.innerText = `${!isMine ? from + ': ' : ''}${text}`;
+      chatMessages.appendChild(b);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      if (!isMine && !isChatOpen) {
+        unreadCount++;
+        chatBadge.innerText = unreadCount;
+        chatBadge.style.display = 'flex';
+      }
+    }
+
+    // 8. DRAGGABLE PIP LOGIC
+    function makeDraggable(el) {
+      let ox = 0, oy = 0, sx = 0, sy = 0;
+      el.onpointerdown = (e) => {
+        e.preventDefault();
+        sx = e.clientX; sy = e.clientY;
+        ox = el.offsetLeft; oy = el.offsetTop;
+        window.onpointermove = (ev) => {
+          el.style.left = (ox + ev.clientX - sx) + 'px';
+          el.style.top = (oy + ev.clientY - sy) + 'px';
+        };
+        window.onpointerup = () => {
+          window.onpointermove = null;
+          window.onpointerup = null;
+        };
+      };
+    }
+    makeDraggable(localPip);
+    makeDraggable(remotePip);
+
+    // 9. BACKGROUND WEB PUSH REGISTRATION
+    async function setupWebPush() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted' && VAPID_PUBLIC_KEY !== 'PASTE_YOUR_PUBLIC_KEY_HERE') {
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlB64ToUint8(VAPID_PUBLIC_KEY)
+          });
+          await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: myUsername, subscription: sub })
+          });
+        }
+      } catch (err) {
+        console.warn('Web Push skipped/failed:', err);
+      }
+    }
+
+    function urlB64ToUint8(base64String) {
+      const pad = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const b64 = (base64String + pad).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(b64);
+      return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    }
+
+    // Boot
+    window.addEventListener('DOMContentLoaded', () => {
+      setupUserIdentity();
+      connectWebSocket();
+      setupWebPush();
+
+      // Check if opened from background push notification
+      const params = new URLSearchParams(window.location.search);
+      const incoming = params.get('callFrom');
+      if (incoming) {
+        setTimeout(() => startCall(incoming, false), 800);
+      }
+    });
+  </script>
+</body>
 </html>
