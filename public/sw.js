@@ -1,51 +1,85 @@
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
+const CACHE_NAME = "nexora-v1";
 
-self.addEventListener('push', (event) => {
-  let payload = { title: 'Incoming Call', callerId: 'Lounge Peer' };
-  if (event.data) {
-    try {
-      payload = event.data.json();
-    } catch {
-      payload.callerId = event.data.text();
-    }
-  }
+const STATIC_FILES = [
+  "/",
+  "/styles.css",
+  "/app.js",
+  "/manifest.json"
+];
 
-  const options = {
-    body: `${payload.callerId} is calling you on Lounge...`,
-    icon: 'https://emojicdn.elk.sh/📞?style=apple',
-    badge: 'https://emojicdn.elk.sh/🛋️?style=apple',
-    tag: 'lounge-call-alert',
-    renotify: true,
-    requireInteraction: true,
-    vibrate: [600, 300, 600, 300, 1000],
-    data: {
-      callerId: payload.callerId,
-      url: `/?callFrom=${encodeURIComponent(payload.callerId)}`
-    },
-    actions: [
-      { action: 'answer', title: '📞 Answer' },
-      { action: 'decline', title: '❌ Decline' }
-    ]
-  };
+self.addEventListener("install", (event) => {
 
-  event.waitUntil(self.registration.showNotification(payload.title, options));
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) =>
+        cache.addAll(STATIC_FILES)
+      )
+  );
+
+  self.skipWaiting();
 });
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  if (event.action === 'decline') return;
 
-  const targetUrl = event.notification.data.url || '/';
+self.addEventListener("activate", (event) => {
+
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((winClients) => {
-      for (const client of winClients) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.navigate(targetUrl);
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) return clients.openWindow(targetUrl);
-    })
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter(
+              (key) =>
+                key !== CACHE_NAME
+            )
+            .map(
+              (key) =>
+                caches.delete(key)
+            )
+        )
+      )
+  );
+
+  self.clients.claim();
+});
+
+
+self.addEventListener("fetch", (event) => {
+
+  if (
+    event.request.method !==
+    "GET"
+  ) {
+    return;
+  }
+
+  event.respondWith(
+
+    fetch(event.request)
+      .then((response) => {
+
+        const clone =
+          response.clone();
+
+        caches
+          .open(CACHE_NAME)
+          .then(
+            (cache) =>
+              cache.put(
+                event.request,
+                clone
+              )
+          );
+
+        return response;
+      })
+      .catch(
+        () =>
+          caches.match(
+            event.request
+          )
+      )
+
   );
 });

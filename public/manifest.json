@@ -1,16 +1,10 @@
 {
-  "name": "Lounge Suite",
-  "short_name": "Lounge",
+  "name": "NEXORA",
+  "short_name": "NEXORA",
+  "description": "Call, share and watch together.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#09090b",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "https://emojicdn.elk.sh/🛋️?style=apple",
-      "sizes": "192x192 512x512",
-      "type": "image/png"
-    }
-  ]
+  "background_color": "#070810",
+  "theme_color": "#090b13",
+  "orientation": "any"
 }
