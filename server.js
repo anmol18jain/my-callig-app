@@ -6,158 +6,147 @@ const webpush = require('web-push');
 const cors = require('cors');
 
 const app = express();
-
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// --- 1. SERVE FRONTEND STATIC FILES (Fixes "Cannot GET /") ---
-// Serves static files if they are in a 'public' directory
+// Serve frontend assets
 app.use(express.static(path.join(__dirname, 'public')));
-// Serves static files if they are in the project root directory
 app.use(express.static(__dirname));
 
-// Route to deliver index.html at root '/'
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'), (err) => {
-    if (err) {
-      res.sendFile(path.join(__dirname, 'index.html'));
-    }
+    if (err) res.sendFile(path.join(__dirname, 'index.html'));
   });
 });
 
-// Explicit route for sw.js to ensure the Service Worker registers correctly
 app.get('/sw.js', (req, res) => {
+  res.setHeader('Service-Worker-Allowed', '/');
   res.sendFile(path.join(__dirname, 'public', 'sw.js'), (err) => {
-    if (err) {
-      res.sendFile(path.join(__dirname, 'sw.js'));
-    }
+    if (err) res.sendFile(path.join(__dirname, 'sw.js'));
   });
 });
 
-// --- 2. CONFIGURE WEB PUSH (VAPID) ---
-// Replace these strings with the output of: npx web-push generate-vapid-keys
+// Configure VAPID Keys
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BMis75qpGF20VG4RmyOjo-d29JEl339zpr0pTQouGMnuqMv3ceF-pEkDkpy4ezsjwgndPOG77dDow4MXaaXgUGM';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'CtyjNq6wh2MFb9Id2xPWZKCHmz_wyJe2wZBjp9HlHCI';
 
-if (VAPID_PUBLIC_KEY !== 'BMis75qpGF20VG4RmyOjo-d29JEl339zpr0pTQouGMnuqMv3ceF-pEkDkpy4ezsjwgndPOG77dDow4MXaaXgUGM') {
+if (VAPID_PUBLIC_KEY !== 'PASTE_YOUR_PUBLIC_KEY_HERE') {
   webpush.setVapidDetails(
-    'mailto:admin@example.com',
+    'mailto:support@loungecall.com',
     VAPID_PUBLIC_KEY,
     VAPID_PRIVATE_KEY
   );
 }
 
-// In-memory store: userId -> { socket, pushSubscription }
-const users = new Map();
+// User directory: id -> { socket, pushSubscription }
+const registry = new Map();
 
-// Endpoint for frontend to register device Web Push subscriptions
 app.post('/api/subscribe', (req, res) => {
   const { userId, subscription } = req.body;
-  if (!userId || !subscription) {
-    return res.status(400).json({ error: 'Missing userId or subscription' });
-  }
+  if (!userId || !subscription) return res.status(400).json({ error: 'Missing data' });
 
-  const existing = users.get(userId) || {};
-  users.set(userId, { ...existing, pushSubscription: subscription });
+  const record = registry.get(userId) || {};
+  registry.set(userId, { ...record, pushSubscription: subscription });
   return res.status(200).json({ success: true });
 });
 
-// --- 3. WEBSOCKET SIGNALING & TRICKLE ICE ---
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', (ws) => {
-  let currentUserId = null;
+  let boundUserId = null;
 
-  ws.on('message', async (rawMessage) => {
-    let data;
+  ws.on('message', async (raw) => {
+    let msg;
     try {
-      data = JSON.parse(rawMessage);
-    } catch (err) {
+      msg = JSON.parse(raw);
+    } catch {
       return;
     }
 
-    // 1. Keep-Alive Ping (prevents Render connection drop)
-    if (data.type === 'ping') {
+    // Ping/Pong Keep-Alive (Prevents 55s Render drop)
+    if (msg.type === 'ping') {
       ws.send(JSON.stringify({ type: 'pong' }));
       return;
     }
 
-    // 2. User Registration
-    if (data.type === 'register') {
-      currentUserId = data.userId;
-      const existing = users.get(data.userId) || {};
-      users.set(data.userId, { ...existing, socket: ws });
+    if (msg.type === 'register') {
+      boundUserId = msg.userId.trim();
+      const existing = registry.get(boundUserId) || {};
+      registry.set(boundUserId, { ...existing, socket: ws });
       return;
     }
 
-    // 3. Fast Trickle ICE Relay
-    if (data.type === 'candidate') {
-      const target = users.get(data.target);
-      if (target && target.socket && target.socket.readyState === WebSocket.OPEN) {
-        target.socket.send(JSON.stringify({
+    // Trickle ICE forwarding
+    if (msg.type === 'candidate') {
+      const recipient = registry.get(msg.target?.trim());
+      if (recipient?.socket?.readyState === WebSocket.OPEN) {
+        recipient.socket.send(JSON.stringify({
           type: 'candidate',
-          from: currentUserId,
-          candidate: data.candidate
+          from: boundUserId,
+          candidate: msg.candidate
         }));
       }
       return;
     }
 
-    // 4. Offer Initiation (Calls peer & sends Push notification if tab is sleeping)
-    if (data.type === 'offer') {
-      const target = users.get(data.target);
+    // Fast Call Offer with Web Push Fallback
+    if (msg.type === 'offer') {
+      const recipient = registry.get(msg.target?.trim());
 
-      // Path A: Active WebSocket connection
-      if (target && target.socket && target.socket.readyState === WebSocket.OPEN) {
-        target.socket.send(JSON.stringify({
+      // If peer is connected to WebSocket, forward directly
+      if (recipient?.socket?.readyState === WebSocket.OPEN) {
+        recipient.socket.send(JSON.stringify({
           type: 'offer',
-          from: currentUserId,
-          offer: data.offer
+          from: boundUserId,
+          offer: msg.offer
         }));
       }
 
-      // Path B: Wake background device via Web Push
-      if (target && target.pushSubscription && VAPID_PUBLIC_KEY !== 'BMis75qpGF20VG4RmyOjo-d29JEl339zpr0pTQouGMnuqMv3ceF-pEkDkpy4ezsjwgndPOG77dDow4MXaaXgUGM') {
+      // Always deliver background notification if push is subscribed
+      if (recipient?.pushSubscription && VAPID_PUBLIC_KEY !== 'PASTE_YOUR_PUBLIC_KEY_HERE') {
         const payload = JSON.stringify({
           title: 'Incoming Call',
-          body: `${currentUserId} is calling you...`,
-          callerId: currentUserId
+          callerId: boundUserId
         });
 
-        webpush.sendNotification(target.pushSubscription, payload).catch((err) => {
-          console.error('Push delivery error:', err.statusCode);
-        });
+        webpush.sendNotification(recipient.pushSubscription, payload, {
+          TTL: 60,
+          urgency: 'high'
+        }).catch((err) => console.error('Push error:', err.statusCode));
       }
       return;
     }
 
-    // 5. Answer Relay
-    if (data.type === 'answer') {
-      const target = users.get(data.target);
-      if (target && target.socket && target.socket.readyState === WebSocket.OPEN) {
-        target.socket.send(JSON.stringify({
+    // Call Answer
+    if (msg.type === 'answer') {
+      const recipient = registry.get(msg.target?.trim());
+      if (recipient?.socket?.readyState === WebSocket.OPEN) {
+        recipient.socket.send(JSON.stringify({
           type: 'answer',
-          from: currentUserId,
-          answer: data.answer
+          from: boundUserId,
+          answer: msg.answer
         }));
       }
       return;
+    }
+
+    // Hangup
+    if (msg.type === 'hangup') {
+      const recipient = registry.get(msg.target?.trim());
+      if (recipient?.socket?.readyState === WebSocket.OPEN) {
+        recipient.socket.send(JSON.stringify({ type: 'hangup', from: boundUserId }));
+      }
     }
   });
 
   ws.on('close', () => {
-    if (currentUserId && users.has(currentUserId)) {
-      const record = users.get(currentUserId);
-      // Keep pushSubscription alive so calls can still reach the closed browser
-      users.set(currentUserId, { ...record, socket: null });
+    if (boundUserId && registry.has(boundUserId)) {
+      const record = registry.get(boundUserId);
+      registry.set(boundUserId, { ...record, socket: null });
     }
   });
 });
 
-// --- 4. START SERVER ---
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));

@@ -1247,61 +1247,165 @@
     renderContactsList();
     </script>
 
-    <!-- Calling Interface & Video Feed -->
-    <div id="callInterface" style="margin: 20px 0; font-family: sans-serif;">
-      <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
-        <div style="position: relative;">
-          <video id="localVideo" autoplay playsinline muted style="width: 240px; height: 180px; background: #222; border-radius: 8px; object-fit: cover;"></video>
-          <span style="position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 6px; font-size: 12px; border-radius: 4px;">You</span>
+    <!-- MODERN RESPONSIVE CALL VIEW -->
+    <style>
+      #callRoot {
+        position: relative;
+        width: 100%;
+        max-width: 900px;
+        margin: 20px auto;
+        background: #0f172a;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+        display: flex;
+        flex-direction: column;
+        height: 70vh;
+        min-height: 480px;
+      }
+      .stage-area {
+        position: relative;
+        flex: 1;
+        width: 100%;
+        background: #000;
+        overflow: hidden;
+      }
+      #remoteVideo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      #localVideo {
+        position: absolute;
+        bottom: 16px;
+        right: 16px;
+        width: 110px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 2px solid #38bdf8;
+        background: #1e293b;
+        z-index: 10;
+      }
+      .status-pill {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(8px);
+        color: #f8fafc;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-family: sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 10;
+      }
+      .status-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #eab308;
+      }
+      .status-indicator.ready { background: #22c55e; }
+      .status-indicator.calling { background: #38bdf8; animation: pulse 1s infinite alternate; }
+      @keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }
+      .action-dock {
+        padding: 14px;
+        background: #1e293b;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .action-dock input {
+        flex: 1;
+        padding: 12px 16px;
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 15px;
+        outline: none;
+      }
+      .btn {
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn-call { background: #16a34a; color: #fff; }
+      .btn-hangup { background: #dc2626; color: #fff; display: none; }
+    </style>
+
+    <div id="callRoot">
+      <div class="stage-area">
+        <div class="status-pill">
+          <div id="statusDot" class="status-indicator"></div>
+          <span id="statusTxt">Connecting signaling...</span>
         </div>
-        <div style="position: relative;">
-          <video id="remoteVideo" autoplay playsinline style="width: 480px; height: 360px; max-width: 100%; background: #111; border-radius: 8px; object-fit: cover;"></video>
-          <span style="position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 6px; font-size: 12px; border-radius: 4px;">Remote User</span>
-        </div>
+        <video id="remoteVideo" autoplay playsinline></video>
+        <video id="localVideo" autoplay playsinline muted></video>
       </div>
 
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <input id="targetUserIdInput" type="text" placeholder="Enter target User ID" style="padding: 10px; border-radius: 6px; border: 1px solid #ccc; width: 220px;" />
-        <button id="callBtn" onclick="initiateCall()" style="padding: 10px 18px; border-radius: 6px; background: #28a745; color: white; border: none; font-weight: bold; cursor: pointer;">📞 Call</button>
-        <button id="endBtn" onclick="endCall()" style="padding: 10px 18px; border-radius: 6px; background: #dc3545; color: white; border: none; font-weight: bold; cursor: pointer; display: none;">End</button>
+      <div class="action-dock">
+        <input id="targetUserInput" type="text" placeholder="Enter remote name/device (e.g., Laptop)" />
+        <button id="callBtn" class="btn btn-call" onclick="initiateFastCall()">📞 Call</button>
+        <button id="hangupBtn" class="btn btn-hangup" onclick="hangupCall()">End Call</button>
       </div>
-      <p id="callStatus" style="font-size: 14px; color: #555; margin-top: 8px;"></p>
     </div>
 
-    <!-- Complete WebRTC & Web Push Implementation -->
     <script>
-      // 1. CONFIGURATION: Update with your Render URL and generated VAPID Public Key
-      const BACKEND_WS_URL = 'wss://my-callig-app.onrender.com';
-      const BACKEND_HTTP_URL = 'https://my-callig-app.onrender.com';
+      const BACKEND_WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
+      const BACKEND_HTTP_URL = location.origin;
       const VAPID_PUBLIC_KEY = 'PASTE_YOUR_PUBLIC_KEY_HERE';
 
-      // Assign an ID to this device/user session
-      const currentUserId = localStorage.getItem('lounge_uid') || 'user_' + Math.floor(1000 + Math.random() * 9000);
-      localStorage.setItem('lounge_uid', currentUserId);
+      // Assign device identity (matches top bar identity)
+      let currentUserId = localStorage.getItem('lounge_device_id');
+      if (!currentUserId) {
+        currentUserId = /Mobile|Android/i.test(navigator.userAgent) ? 'Phone' : 'Laptop';
+        localStorage.setItem('lounge_device_id', currentUserId);
+      }
 
       let socket = null;
-      let peerConnection = null;
+      let pc = null;
       let localStream = null;
-      let targetUserId = null;
+      let activeTargetId = null;
 
-      // STUN configuration for fast NAT hole-punching
+      // STUN + Free OpenRelay TURN servers (Required for 4G/Carrier-Grade NAT)
       const rtcConfig = {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
+          { urls: 'stun:stun1.l.google.com:19302' },
+          {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          },
+          {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          }
         ],
         iceCandidatePoolSize: 10
       };
 
-      // 2. FAST WEBSOCKET SETUP WITH KEEP-ALIVE
-      function initSocket() {
+      // 1. SIGNALING SETUP
+      function connectSignaling() {
         socket = new WebSocket(BACKEND_WS_URL);
 
         socket.onopen = () => {
-          document.getElementById('callStatus').innerText = `Connected as ${currentUserId}`;
+          updateStatus('ready', `Ready as "${currentUserId}"`);
           socket.send(JSON.stringify({ type: 'register', userId: currentUserId }));
 
-          // Keep-Alive Ping every 20s to prevent Render's timeout
+          // Render keep-alive (20s)
           setInterval(() => {
             if (socket.readyState === WebSocket.OPEN) {
               socket.send(JSON.stringify({ type: 'ping' }));
@@ -1309,141 +1413,147 @@
           }, 20000);
         };
 
-        socket.onmessage = async (event) => {
-          const data = JSON.parse(event.data);
+        socket.onmessage = async (evt) => {
+          const msg = JSON.parse(evt.data);
 
-          // Fast Trickle ICE: Add candidates immediately as they arrive
-          if (data.type === 'candidate' && peerConnection) {
+          if (msg.type === 'candidate' && pc) {
             try {
-              await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-            } catch (e) {
-              console.error('Failed to add remote candidate:', e);
-            }
+              await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+            } catch (err) {}
           }
 
-          // Incoming Call Offer
-          if (data.type === 'offer') {
-            targetUserId = data.from;
-            document.getElementById('targetUserIdInput').value = targetUserId;
-            document.getElementById('callStatus').innerText = `Incoming call from ${targetUserId}...`;
-            await handleIncomingOffer(data.offer);
+          if (msg.type === 'offer') {
+            activeTargetId = msg.from;
+            document.getElementById('targetUserInput').value = activeTargetId;
+            updateStatus('calling', `Incoming call from ${activeTargetId}...`);
+            await acceptCall(msg.offer);
           }
 
-          // Answer received
-          if (data.type === 'answer' && peerConnection) {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-            document.getElementById('callStatus').innerText = 'Connected in call';
-            document.getElementById('endBtn').style.display = 'inline-block';
-            document.getElementById('callBtn').style.display = 'none';
+          if (msg.type === 'answer' && pc) {
+            await pc.setRemoteDescription(new RTCSessionDescription(msg.answer));
+            updateStatus('ready', `In call with ${activeTargetId}`);
+            toggleButtons(true);
+          }
+
+          if (msg.type === 'hangup') {
+            hangupCall(false);
           }
         };
 
         socket.onclose = () => {
-          document.getElementById('callStatus').innerText = 'Reconnecting server...';
-          setTimeout(initSocket, 3000);
+          updateStatus('connecting', 'Reconnecting...');
+          setTimeout(connectSignaling, 2000);
         };
       }
 
-      // 3. WEBRTC MEDIA & PEER CONNECTION
-      async function setupPeerConnection() {
-        peerConnection = new RTCPeerConnection(rtcConfig);
+      // 2. HARDWARE / PEER CONNECTION INITIALIZATION
+      async function prepareLocalMedia() {
+        if (!localStream) {
+          localStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
+            audio: { echoCancellation: true, noiseSuppression: true }
+          });
+          document.getElementById('localVideo').srcObject = localStream;
+        }
+      }
 
-        // Trickle ICE: transmit candidate as soon as discovered
-        peerConnection.onicecandidate = (event) => {
-          if (event.candidate && socket && socket.readyState === WebSocket.OPEN) {
+      function setupPeerConnection() {
+        pc = new RTCPeerConnection(rtcConfig);
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate && socket?.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({
               type: 'candidate',
-              target: targetUserId,
+              target: activeTargetId,
               candidate: event.candidate
             }));
           }
         };
 
-        peerConnection.ontrack = (event) => {
-          const remoteVideo = document.getElementById('remoteVideo');
-          if (remoteVideo && event.streams[0]) {
-            remoteVideo.srcObject = event.streams[0];
+        pc.ontrack = (event) => {
+          const remoteEl = document.getElementById('remoteVideo');
+          if (remoteEl && event.streams[0]) {
+            remoteEl.srcObject = event.streams[0];
+            updateStatus('ready', `Connected to ${activeTargetId}`);
           }
         };
 
-        if (!localStream) {
-          localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-          document.getElementById('localVideo').srcObject = localStream;
-        }
-
-        localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
+        localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
       }
 
-      // Initiate Call
-      async function initiateCall() {
-        const inputId = document.getElementById('targetUserIdInput').value.trim();
-        if (!inputId) {
-          alert('Please enter a target User ID');
-          return;
-        }
+      // 3. FAST CALLING LOGIC
+      async function initiateFastCall() {
+        const target = document.getElementById('targetUserInput').value.trim();
+        if (!target) return alert('Enter the remote name/device to call');
 
-        targetUserId = inputId;
-        document.getElementById('callStatus').innerText = `Calling ${targetUserId}...`;
-        await setupPeerConnection();
+        activeTargetId = target;
+        updateStatus('calling', `Calling ${activeTargetId}...`);
+        toggleButtons(true);
 
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
+        await prepareLocalMedia();
+        setupPeerConnection();
+
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true
+        });
+        await pc.setLocalDescription(offer);
 
         socket.send(JSON.stringify({
           type: 'offer',
-          target: targetUserId,
+          target: activeTargetId,
           offer: offer
         }));
       }
 
-      // Answer Incoming Call
-      async function handleIncomingOffer(offer) {
-        await setupPeerConnection();
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      async function acceptCall(offer) {
+        toggleButtons(true);
+        await prepareLocalMedia();
+        setupPeerConnection();
 
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
 
         socket.send(JSON.stringify({
           type: 'answer',
-          target: targetUserId,
+          target: activeTargetId,
           answer: answer
         }));
-
-        document.getElementById('callStatus').innerText = 'Connected in call';
-        document.getElementById('endBtn').style.display = 'inline-block';
-        document.getElementById('callBtn').style.display = 'none';
       }
 
-      // End Call
-      function endCall() {
-        if (peerConnection) {
-          peerConnection.close();
-          peerConnection = null;
+      function hangupCall(notify = true) {
+        if (notify && activeTargetId && socket?.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'hangup', target: activeTargetId }));
+        }
+
+        if (pc) {
+          pc.close();
+          pc = null;
         }
         if (localStream) {
-          localStream.getTracks().forEach(track => track.stop());
+          localStream.getTracks().forEach(t => t.stop());
           localStream = null;
         }
+
         document.getElementById('localVideo').srcObject = null;
         document.getElementById('remoteVideo').srcObject = null;
-        document.getElementById('endBtn').style.display = 'none';
-        document.getElementById('callBtn').style.display = 'inline-block';
-        document.getElementById('callStatus').innerText = 'Call ended';
+        toggleButtons(false);
+        updateStatus('ready', `Ready as "${currentUserId}"`);
       }
 
-      // 4. BROWSER WEB PUSH REGISTRATION (Background Notifications)
-      async function registerWebPush() {
+      // 4. BACKGROUND WEB PUSH REGISTRATION
+      async function setupWebPush() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
         try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
+          const reg = await navigator.serviceWorker.register('/sw.js');
           const permission = await Notification.requestPermission();
 
-          if (permission === 'granted' && VAPID_PUBLIC_KEY !== 'BMis75qpGF20VG4RmyOjo-d29JEl339zpr0pTQouGMnuqMv3ceF-pEkDkpy4ezsjwgndPOG77dDow4MXaaXgUGM') {
-            const subscription = await registration.pushManager.subscribe({
+          if (permission === 'granted' && VAPID_PUBLIC_KEY !== 'PASTE_YOUR_PUBLIC_KEY_HERE') {
+            const subscription = await reg.pushManager.subscribe({
               userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+              applicationServerKey: urlB64ToUint8(VAPID_PUBLIC_KEY)
             });
 
             await fetch(`${BACKEND_HTTP_URL}/api/subscribe`, {
@@ -1451,23 +1561,43 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ userId: currentUserId, subscription })
             });
-            console.log('Push notification registration successful');
           }
-        } catch (err) {
-          console.warn('Web Push setup skipped or unavailable:', err);
+        } catch (e) {
+          console.warn('Push registration skipped:', e);
         }
       }
 
-      function urlBase64ToUint8Array(base64String) {
+      function urlB64ToUint8(base64String) {
         const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
         const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+        const rawData = atob(base64);
+        return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
       }
 
-      // Auto-start socket and push registration
-      initSocket();
-      registerWebPush();
+      function updateStatus(state, msg) {
+        const dot = document.getElementById('statusDot');
+        const txt = document.getElementById('statusTxt');
+        dot.className = `status-indicator ${state}`;
+        txt.innerText = msg;
+      }
+
+      function toggleButtons(inCall) {
+        document.getElementById('callBtn').style.display = inCall ? 'none' : 'flex';
+        document.getElementById('hangupBtn').style.display = inCall ? 'flex' : 'none';
+      }
+
+      // Startup
+      window.addEventListener('DOMContentLoaded', () => {
+        connectSignaling();
+        setupWebPush();
+
+        // Check if page opened from an incoming push notification
+        const params = new URLSearchParams(window.location.search);
+        const caller = params.get('incomingCaller');
+        if (caller) {
+          document.getElementById('targetUserInput').value = caller;
+        }
+      });
     </script>
   </body>
 </html>

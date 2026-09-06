@@ -1,24 +1,32 @@
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
+});
+
 self.addEventListener('push', (event) => {
-  let data = { title: 'Incoming Call', body: 'Someone is calling...', callerId: '' };
+  let data = { title: 'Incoming Video Call', body: 'Someone is calling you...', callerId: 'Unknown' };
   if (event.data) {
     try {
       data = event.data.json();
-    } catch {
+    } catch (e) {
       data.body = event.data.text();
     }
   }
 
   const options = {
-    body: data.body,
-    icon: '/icon.png', // Optional: your logo icon path
+    body: `${data.callerId} is calling you...`,
+    icon: '/icon.png',
     badge: '/badge.png',
-    tag: 'call-ringing',
+    tag: 'active-incoming-call',
     renotify: true,
-    requireInteraction: true, // Keeps notification visible until user answers or rejects
-    vibrate: [500, 250, 500, 250, 500, 250, 500],
+    requireInteraction: true,
+    vibrate: [800, 400, 800, 400, 800, 400, 1000],
     data: {
       callerId: data.callerId,
-      url: `/?caller=${encodeURIComponent(data.callerId)}`
+      url: `/?incomingCaller=${encodeURIComponent(data.callerId)}`
     },
     actions: [
       { action: 'answer', title: '📞 Answer' },
@@ -36,16 +44,18 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'decline') return;
 
-  // Re-focus open tab or open a fresh one to accept the call
+  const targetUrl = event.notification.data.url || '/';
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (let client of windowClients) {
+      for (const client of windowClients) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(targetUrl);
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(event.notification.data.url || '/');
+        return clients.openWindow(targetUrl);
       }
     })
   );
